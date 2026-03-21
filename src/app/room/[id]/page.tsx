@@ -146,9 +146,9 @@ export default function RoomPage() {
   const [ruleQueryInput, setRuleQueryInput] = useState('');
   const [ruleQueryResult, setRuleQueryResult] = useState('');
   const [isQueryingRule, setIsQueryingRule] = useState(false);
-  const [dmMessage, setDmMessage] = useState(''); // 保存AI主持人的发言
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const dmMessageRef = useRef(''); // 使用ref保存AI主持人的发言，避免闭包问题
   const [sessionId, setSessionId] = useState<string>('');
   const [gameState, setGameState] = useState<Record<string, unknown>>({});
   
@@ -157,19 +157,22 @@ export default function RoomPage() {
     url: '/api/ai/dm',
     onData: (text) => {
       appendNarrative(text);
-      setDmMessage(prev => prev + text); // 累积保存AI发言
+      dmMessageRef.current += text; // 累积保存AI发言到ref
     },
     onComplete: () => {
-      // 使用保存的dmMessage而不是dmNarrative（可能有时序问题）
-      setMessages(prev => [...prev, {
-        id: Date.now().toString(),
-        type: 'narrative',
-        content: dmMessage || dmNarrative,
-        senderName: 'AI主持人',
-        timestamp: new Date().toISOString(),
-      }]);
+      // 使用ref.current获取完整消息
+      const fullMessage = dmMessageRef.current;
+      if (fullMessage) {
+        setMessages(prev => [...prev, {
+          id: Date.now().toString(),
+          type: 'narrative',
+          content: fullMessage,
+          senderName: 'AI主持人',
+          timestamp: new Date().toISOString(),
+        }]);
+      }
       resetNarrative();
-      setDmMessage(''); // 重置
+      dmMessageRef.current = ''; // 重置ref
     },
     onError: (error) => toast.error(error),
   });
@@ -607,6 +610,19 @@ export default function RoomPage() {
 
   const isHost = room?.host_id === user?.id;
   const isInGame = room?.status === 'playing';
+
+  // 调试信息
+  useEffect(() => {
+    if (room && user) {
+      console.log('房间状态调试:', {
+        hostId: room.host_id,
+        userId: user.id,
+        isHost,
+        status: room.status,
+        showStartButton: isHost && room.status === 'waiting'
+      });
+    }
+  }, [room, user, isHost]);
 
   if (authLoading || isLoading) {
     return (
