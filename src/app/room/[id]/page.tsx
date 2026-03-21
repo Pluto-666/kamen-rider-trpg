@@ -142,6 +142,11 @@ export default function RoomPage() {
   const [selectedMember, setSelectedMember] = useState<RoomMember | null>(null);
   const [characterDetail, setCharacterDetail] = useState<Character | null>(null);
   const [isLoadingCharacter, setIsLoadingCharacter] = useState(false);
+  const [showRuleQuery, setShowRuleQuery] = useState(false);
+  const [ruleQueryInput, setRuleQueryInput] = useState('');
+  const [ruleQueryResult, setRuleQueryResult] = useState('');
+  const [isQueryingRule, setIsQueryingRule] = useState(false);
+  const [dmMessage, setDmMessage] = useState(''); // 保存AI主持人的发言
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [sessionId, setSessionId] = useState<string>('');
@@ -150,16 +155,21 @@ export default function RoomPage() {
   const { text: dmNarrative, appendText: appendNarrative, resetText: resetNarrative } = useTypewriter();
   const { stream: streamDM, isStreaming: isDMStreaming } = useAIStream({
     url: '/api/ai/dm',
-    onData: appendNarrative,
+    onData: (text) => {
+      appendNarrative(text);
+      setDmMessage(prev => prev + text); // 累积保存AI发言
+    },
     onComplete: () => {
+      // 使用保存的dmMessage而不是dmNarrative（可能有时序问题）
       setMessages(prev => [...prev, {
         id: Date.now().toString(),
         type: 'narrative',
-        content: dmNarrative,
-        senderName: 'DM',
+        content: dmMessage || dmNarrative,
+        senderName: 'AI主持人',
         timestamp: new Date().toISOString(),
       }]);
       resetNarrative();
+      setDmMessage(''); // 重置
     },
     onError: (error) => toast.error(error),
   });
@@ -382,6 +392,105 @@ export default function RoomPage() {
     });
   };
 
+  // 退出房间
+  const handleLeaveRoom = async () => {
+    try {
+      const response = await fetch(`/api/rooms/${roomId}/join`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        toast.success('已离开房间');
+        router.push('/lobby');
+      } else {
+        const error = await response.json();
+        toast.error(error.error || '离开房间失败');
+      }
+    } catch (error) {
+      console.error('离开房间失败:', error);
+      toast.error('离开房间失败');
+    }
+  };
+
+  // 规则查询
+  const handleRuleQuery = async () => {
+    if (!ruleQueryInput.trim()) return;
+    
+    setIsQueryingRule(true);
+    setRuleQueryResult('');
+
+    try {
+      const response = await fetch('/api/ai/rule-query', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ query: ruleQueryInput }),
+      });
+
+      if (response.ok) {
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
+
+        if (!reader) return;
+
+        let result = '';
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value);
+          const lines = chunk.split('\n');
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6);
+              if (data === '[DONE]') break;
+              try {
+                const parsed = JSON.parse(data);
+                if (parsed.content) {
+                  result += parsed.content;
+                  setRuleQueryResult(result);
+                }
+              } catch {
+                // 忽略解析错误
+              }
+            }
+          }
+        }
+      } else {
+        toast.error('查询失败');
+      }
+    } catch (error) {
+      console.error('规则查询失败:', error);
+      toast.error('查询失败');
+    } finally {
+      setIsQueryingRule(false);
+    }
+  };
+
+  // @成员
+  const handleMentionMember = (memberName: string) => {
+    setChatInput(prev => prev + `@${memberName} `);
+  };
+
+  // 查看自己的角色卡
+  const handleViewMyCharacter = () => {
+    if (!selectedCharacterId) {
+      toast.error('请先选择一个角色');
+      return;
+    }
+    
+    const myMember = members.find(m => m.character_id === selectedCharacterId);
+    if (myMember) {
+      handleViewCharacter(myMember);
+    }
+  };
+
   const handleStartGame = async () => {
     if (!selectedCharacterId) {
       toast.error('请先选择一个角色');
@@ -516,9 +625,9 @@ export default function RoomPage() {
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link href="/lobby">
-              <Button variant="ghost" size="sm">← 返回大厅</Button>
-            </Link>
+            <Button variant="ghost" size="sm" onClick={handleLeaveRoom}>
+              ← 退出房间
+            </Button>
             <div>
               <h1 className="text-xl font-bold">{room?.name}</h1>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -550,10 +659,37 @@ export default function RoomPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
+                  {/* AI主持人 */}
+                  {isInGame && (
+                    <div
+                      className="flex items-center gap-2 p-2 rounded bg-primary/10 border border-primary/20 cursor-pointer hover:bg-primary/20 transition-colors"
+                      onClick={() => handleMentionMember('AI主持人')}
+                      title="点击@AI主持人"
+                    >
+                      <Avatar className="h-8 w-8 bg-primary/20">
+                        <AvatarFallback className="bg-primary/20 text-primary">
+                          🎭
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-primary">
+                          AI主持人
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          游戏主持人
+                        </div>
+                      </div>
+                      <Badge className="text-xs">DM</Badge>
+                    </div>
+                  )}
+                  
+                  {/* 玩家成员 */}
                   {members.map((member) => (
                     <div
                       key={member.id}
-                      className="flex items-center gap-2 p-2 rounded bg-muted/50 hover:bg-muted transition-colors"
+                      className="flex items-center gap-2 p-2 rounded bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
+                      onClick={() => handleMentionMember(member.characters?.name || member.profiles?.username || '玩家')}
+                      title="点击@该成员"
                     >
                       <Avatar className="h-8 w-8">
                         <AvatarFallback>
@@ -576,7 +712,10 @@ export default function RoomPage() {
                             variant="ghost"
                             size="icon"
                             className="h-6 w-6"
-                            onClick={() => handleViewCharacter(member)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleViewCharacter(member);
+                            }}
                             title="查看角色卡"
                           >
                             <Eye className="h-3 w-3" />
@@ -736,16 +875,44 @@ export default function RoomPage() {
                   <div>
                     <div className="text-muted-foreground mb-2">快捷操作</div>
                     <div className="space-y-2">
-                      <Button variant="outline" className="w-full justify-start" size="sm">
+                      <Button 
+                        variant="outline" 
+                        className="w-full justify-start" 
+                        size="sm"
+                        onClick={handleViewMyCharacter}
+                      >
                         📋 查看角色卡
                       </Button>
-                      <Button variant="outline" className="w-full justify-start" size="sm">
+                      <Button 
+                        variant="outline" 
+                        className="w-full justify-start" 
+                        size="sm"
+                        onClick={() => setShowRuleQuery(true)}
+                      >
                         📖 规则查询
                       </Button>
-                      <Button variant="outline" className="w-full justify-start" size="sm">
+                      <Button 
+                        variant="outline" 
+                        className="w-full justify-start" 
+                        size="sm"
+                        onClick={() => toast.success('进度已自动保存')}
+                      >
                         💾 保存进度
                       </Button>
                     </div>
+                  </div>
+                  
+                  <Separator />
+                  
+                  <div>
+                    <Button 
+                      variant="destructive" 
+                      className="w-full" 
+                      size="sm"
+                      onClick={handleLeaveRoom}
+                    >
+                      退出房间
+                    </Button>
                   </div>
                 </div>
               </CardContent>
@@ -977,6 +1144,54 @@ export default function RoomPage() {
               未找到角色信息
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Rule Query Dialog */}
+      <Dialog open={showRuleQuery} onOpenChange={setShowRuleQuery}>
+        <DialogContent className="sm:max-w-2xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>📖 规则查询</DialogTitle>
+            <DialogDescription>
+              查询假面骑士TRPG规则书中的内容
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="flex gap-2">
+              <Input
+                placeholder="输入你想查询的规则，如：变身、必杀技、战斗..."
+                value={ruleQueryInput}
+                onChange={(e) => setRuleQueryInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleRuleQuery();
+                  }
+                }}
+              />
+              <Button onClick={handleRuleQuery} disabled={isQueryingRule || !ruleQueryInput.trim()}>
+                {isQueryingRule ? '查询中...' : '查询'}
+              </Button>
+            </div>
+            
+            {ruleQueryResult && (
+              <ScrollArea className="h-[400px] w-full rounded border p-4">
+                <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap">
+                  {ruleQueryResult}
+                </div>
+              </ScrollArea>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setShowRuleQuery(false);
+              setRuleQueryResult('');
+              setRuleQueryInput('');
+            }}>
+              关闭
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

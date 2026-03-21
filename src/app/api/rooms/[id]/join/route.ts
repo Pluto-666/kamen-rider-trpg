@@ -136,6 +136,18 @@ export async function DELETE(
       return NextResponse.json({ error: '离开房间失败' }, { status: 500 });
     }
 
+    // 检查房间是否还有成员，如果没有则删除房间
+    const { count } = await supabase
+      .from('room_members')
+      .select('*', { count: 'exact', head: true })
+      .eq('room_id', id);
+
+    if (count === 0) {
+      // 房间没有成员了，删除房间
+      await supabase.from('rooms').delete().eq('id', id);
+      return NextResponse.json({ success: true, message: '房间已自动解散' });
+    }
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('离开房间错误:', error);
