@@ -256,6 +256,7 @@ export default function CharactersPage() {
   const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
   const [pendingCharacterData, setPendingCharacterData] = useState<Partial<Character>>({});
   const [editingName, setEditingName] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -388,17 +389,24 @@ export default function CharactersPage() {
 
   // 打开保存确认对话框
   const openSaveConfirm = () => {
+    if (!user?.id) {
+      toast.error('请先登录');
+      return;
+    }
+    
     const extractedData = extractCharacterFromChat(chatHistory);
     
     const characterToSave = {
       ...currentCharacterData,
       ...extractedData,
-      user_id: user?.id,
+      user_id: user.id,
     };
     
+    console.log('准备保存的角色数据:', characterToSave);
     setPendingCharacterData(characterToSave);
-    setEditingName(characterToSave.name || '');
-    setConfirmSaveOpen(true);
+    setEditingName(characterToSave.name || '未命名角色');
+    setCreateDialogOpen(false); // 先关闭创建对话框
+    setConfirmSaveOpen(true);   // 再打开确认对话框
   };
 
   // 确认保存角色卡
@@ -408,10 +416,22 @@ export default function CharactersPage() {
       return;
     }
     
+    if (!user?.id) {
+      toast.error('请先登录');
+      setConfirmSaveOpen(false);
+      return;
+    }
+    
+    if (isSaving) return; // 防止重复点击
+    
     const characterToSave = {
       ...pendingCharacterData,
       name: editingName.trim(),
+      user_id: user.id,
     };
+    
+    console.log('正在保存角色:', characterToSave);
+    setIsSaving(true);
 
     try {
       const response = await fetch('/api/characters', {
@@ -428,6 +448,8 @@ export default function CharactersPage() {
         toast.success('角色卡保存成功！');
         setConfirmSaveOpen(false);
         setCreateDialogOpen(false);
+        setChatHistory([]);
+        setCurrentCharacterData({});
         fetchCharacters();
       } else {
         const error = await response.json();
@@ -436,6 +458,8 @@ export default function CharactersPage() {
     } catch (error) {
       console.error('保存角色卡失败:', error);
       toast.error('保存角色卡失败');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -1016,9 +1040,9 @@ export default function CharactersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* 保存确认对话框 */}
+      {/* 保存确认对话框 - 使用更高的z-index确保显示在创建对话框之上 */}
       <Dialog open={confirmSaveOpen} onOpenChange={setConfirmSaveOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md z-[100]">
           <DialogHeader>
             <DialogTitle>保存角色卡</DialogTitle>
             <DialogDescription>
@@ -1033,6 +1057,7 @@ export default function CharactersPage() {
                 value={editingName}
                 onChange={(e) => setEditingName(e.target.value)}
                 placeholder="输入角色名称"
+                autoFocus
               />
             </div>
             
@@ -1074,12 +1099,24 @@ export default function CharactersPage() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmSaveOpen(false)}>
+            <Button variant="outline" onClick={() => {
+              setConfirmSaveOpen(false);
+              setCreateDialogOpen(true); // 取消时重新打开创建对话框
+            }} disabled={isSaving}>
               取消
             </Button>
-            <Button onClick={confirmSaveCharacter}>
-              <Save className="mr-1 h-3 w-3" />
-              确认保存
+            <Button onClick={confirmSaveCharacter} disabled={isSaving}>
+              {isSaving ? (
+                <>
+                  <span className="mr-1 h-3 w-3 animate-spin">⏳</span>
+                  保存中...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-1 h-3 w-3" />
+                  确认保存
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
