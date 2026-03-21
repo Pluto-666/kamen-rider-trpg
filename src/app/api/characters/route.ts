@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 
+// 清理文本，限制长度
+function cleanText(text: string | undefined | null, maxLength: number = 50): string | undefined {
+  if (!text) return undefined;
+  const cleaned = text.replace(/\|/g, '').replace(/\s+/g, ' ').trim();
+  return cleaned.slice(0, maxLength) || undefined;
+}
+
 // 获取用户的角色卡列表
 export async function GET(request: NextRequest) {
   try {
@@ -102,22 +109,22 @@ export async function POST(request: NextRequest) {
     const characterData = {
       id: crypto.randomUUID(),
       user_id: finalUserId,
-      name: finalName,
-      player_name: player_name || playerName || '匿名玩家',
-      image_url: image_url || imageUrl,
-      race,
-      occupation,
-      age,
-      gender,
+      name: cleanText(finalName, 50) || '未命名角色',
+      player_name: cleanText(player_name || playerName, 50) || '匿名玩家',
+      image_url: cleanText(image_url || imageUrl, 500),
+      race: cleanText(race, 50) || '人类',
+      occupation: cleanText(occupation, 50),
+      age: age ? parseInt(String(age)) : null,
+      gender: cleanText(gender, 20),
       active_power: active_power || activePower || 5,
       attributes: attributes || defaultAttributes,
       fate_points: fate_points || fatePoints || { points: 0, history: [] },
       weapons: weapons || [],
       armors: armors || [],
-      other_equipment: other_equipment || otherEquipment,
+      other_equipment: cleanText(other_equipment || otherEquipment, 1000),
       vehicle,
       configs: configs || [],
-      background,
+      background: cleanText(background, 1000),
       rider_data: rider_data || riderData,
       action_cards: action_cards || actionCards || [],
       episodes: episodes || [],

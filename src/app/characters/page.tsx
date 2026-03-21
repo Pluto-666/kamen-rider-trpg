@@ -175,6 +175,23 @@ interface ChatMessage {
   content: string;
 }
 
+// 清理提取的文本，去除表格格式和多余字符
+function cleanExtractedText(text: string | undefined, maxLength: number = 50): string | undefined {
+  if (!text) return undefined;
+  
+  let cleaned = text
+    // 去除表格分隔符和管道符
+    .replace(/\|/g, '')
+    // 去除多余空格
+    .replace(/\s+/g, ' ')
+    // 去除首尾空格
+    .trim()
+    // 限制长度
+    .slice(0, maxLength);
+  
+  return cleaned || undefined;
+}
+
 // 从对话中提取角色数据
 function extractCharacterFromChat(chatHistory: ChatMessage[]): Partial<Character> {
   const allText = chatHistory.map(m => m.content).join('\n');
@@ -191,14 +208,14 @@ function extractCharacterFromChat(chatHistory: ChatMessage[]): Partial<Character
   for (const pattern of namePatterns) {
     const match = allText.match(pattern);
     if (match && match[1].trim().length > 0 && match[1].trim().length < 20) {
-      character.name = match[1].trim();
+      character.name = cleanExtractedText(match[1], 50);
       break;
     }
   }
   
   // 提取玩家名
-  const playerMatch = allText.match(/(?:玩家名[：:]?\s*|玩家[：:]?\s*)([^\n，。！？]+)/);
-  if (playerMatch) character.player_name = playerMatch[1].trim();
+  const playerMatch = allText.match(/(?:玩家名[：:]?\s*|玩家[：:]?\s*)([^\n，。！？|]+)/);
+  if (playerMatch) character.player_name = cleanExtractedText(playerMatch[1], 50);
   
   // 提取年龄
   const ageMatch = allText.match(/(?:年龄[：:]?\s*|岁[：:]?\s*|今年[：:]?\s*)(\d+)/);
@@ -209,32 +226,38 @@ function extractCharacterFromChat(chatHistory: ChatMessage[]): Partial<Character
   if (genderMatch) character.gender = genderMatch[1];
   
   // 提取种族
-  const raceMatch = allText.match(/(?:种族[：:]?\s*)([^\n，。！？]+)/);
-  if (raceMatch) character.race = raceMatch[1].trim();
+  const raceMatch = allText.match(/(?:种族[：:]?\s*)([^\n，。！？|]+)/);
+  if (raceMatch) character.race = cleanExtractedText(raceMatch[1], 50) || '人类';
   
   // 提取职业
-  const jobMatch = allText.match(/(?:职业[：:]?\s*|工作[：:]?\s*)([^\n，。！？]+)/);
-  if (jobMatch) character.occupation = jobMatch[1].trim();
+  const jobMatch = allText.match(/(?:职业[：:]?\s*|工作[：:]?\s*)([^\n，。！？|]+)/);
+  if (jobMatch) character.occupation = cleanExtractedText(jobMatch[1], 50);
   
   // 提取背景故事
   const bgMatch = allText.match(/(?:背景[：:]?\s*|故事[：:]?\s*|背景故事[：:]?\s*)([^\n]+(?:\n[^\n]+)*)/);
-  if (bgMatch) character.background = bgMatch[1].trim();
+  if (bgMatch) character.background = cleanExtractedText(bgMatch[1], 500);
   
   // 提取骑士系统
-  const riderMatch = allText.match(/(?:骑士系统[：:]?\s*|变身道具[：:]?\s*|骑士称号[：:]?\s*)([^\n，。！？]+)/);
+  const riderMatch = allText.match(/(?:骑士系统[：:]?\s*|变身道具[：:]?\s*|骑士称号[：:]?\s*)([^\n，。！？|]+)/);
   if (riderMatch) {
-    character.rider_data = {
-      riderSystem: riderMatch[1].trim(),
-      transformationItem: '',
-      finisherMoves: [],
-      specialAbilities: [],
-    };
+    const riderSystem = cleanExtractedText(riderMatch[1], 50);
+    if (riderSystem) {
+      character.rider_data = {
+        riderSystem,
+        transformationItem: '',
+        finisherMoves: [],
+        specialAbilities: [],
+      };
+    }
   }
   
   // 提取必杀技
-  const finisherMatch = allText.match(/(?:必杀技[：:]?\s*)([^\n，。！？]+)/);
+  const finisherMatch = allText.match(/(?:必杀技[：:]?\s*)([^\n，。！？|]+)/);
   if (finisherMatch && character.rider_data) {
-    character.rider_data.finisherMoves = [finisherMatch[1].trim()];
+    const finisher = cleanExtractedText(finisherMatch[1], 100);
+    if (finisher) {
+      character.rider_data.finisherMoves = [finisher];
+    }
   }
   
   return character;
@@ -258,40 +281,42 @@ export default function CharactersPage() {
   const [editingName, setEditingName] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const hasFetchedRef = useRef(false);
 
   // 获取角色卡列表
-  const fetchCharacters = useCallback(async (forceRefresh = false) => {
-    console.log('fetchCharacters called, user:', user?.id, 'forceRefresh:', forceRefresh);
+  const fetchCharacters = useCallback(async () => {
+    console.log('=== fetchCharacters 开始 ===');
+    console.log('user?.id:', user?.id);
+    console.log('token:', token ? '存在' : '不存在');
+    
     if (!user?.id) {
       console.log('No user ID, skipping fetch');
       setIsLoading(false);
       return;
     }
     
-    // 如果已经获取过且不是强制刷新，则跳过
-    if (hasFetchedRef.current && !forceRefresh) {
-      console.log('Already fetched, skipping');
-      return;
-    }
-    
     try {
-      console.log('Fetching characters for user:', user.id);
-      const response = await fetch(`/api/characters?user_id=${user.id}`, {
+      const url = `/api/characters?user_id=${user.id}`;
+      console.log('请求URL:', url);
+      
+      const response = await fetch(url, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
+      
+      console.log('响应状态:', response.status);
+      
       if (response.ok) {
         const data = await response.json();
-        console.log('Fetched characters:', data.characters?.length, data.characters);
+        console.log('获取到的角色卡数量:', data.characters?.length);
+        console.log('角色卡数据:', data.characters);
         setCharacters(data.characters || []);
-        hasFetchedRef.current = true;
       } else {
-        console.error('Fetch failed:', response.status);
+        const errorText = await response.text();
+        console.error('获取失败:', response.status, errorText);
       }
     } catch (error) {
-      console.error('获取角色卡失败:', error);
+      console.error('获取角色卡异常:', error);
       toast.error('获取角色卡失败');
     } finally {
       setIsLoading(false);
@@ -465,15 +490,19 @@ export default function CharactersPage() {
 
       if (response.ok) {
         const data = await response.json();
-        console.log('保存成功，返回数据:', data);
+        console.log('=== 保存成功 ===');
+        console.log('返回的角色数据:', data.character);
+        console.log('当前用户ID:', user?.id);
         toast.success('角色卡保存成功！');
         setConfirmSaveOpen(false);
         setCreateDialogOpen(false);
         setChatHistory([]);
         setCurrentCharacterData({});
-        // 强制刷新角色卡列表
-        hasFetchedRef.current = false;
-        fetchCharacters(true);
+        // 延迟刷新确保状态更新完成
+        setTimeout(() => {
+          console.log('开始刷新角色卡列表...');
+          fetchCharacters();
+        }, 100);
       } else {
         const error = await response.json();
         toast.error(error.error || '保存失败');
