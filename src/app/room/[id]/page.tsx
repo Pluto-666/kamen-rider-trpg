@@ -1,0 +1,669 @@
+'use client';
+
+import { useEffect, useState, useRef, useCallback } from 'react';
+import { useRouter, useParams } from 'next/navigation';
+import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
+import { useGameWebSocket } from '@/hooks/useWebSocket';
+import { useAIStream, useTypewriter } from '@/hooks/useAIStream';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Input } from '@/components/ui/input';
+import { Separator } from '@/components/ui/separator';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { toast } from 'sonner';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+
+interface RoomMember {
+  id: string;
+  user_id: string;
+  character_id?: string;
+  status: string;
+  profiles?: {
+    username: string;
+    display_name?: string;
+    avatar?: string;
+  };
+  characters?: {
+    id: string;
+    name: string;
+    title?: string;
+    attributes: Record<string, number>;
+  };
+}
+
+interface Message {
+  id: string;
+  type: 'chat' | 'narrative' | 'roll' | 'system';
+  content: string;
+  senderId?: string;
+  senderName?: string;
+  characterName?: string;
+  timestamp: string;
+  metadata?: Record<string, unknown>;
+}
+
+interface Scenario {
+  name: string;
+  description: string;
+  difficulty: string;
+  duration: string;
+}
+
+export default function RoomPage() {
+  const router = useRouter();
+  const params = useParams();
+  const roomId = params.id as string;
+  const { user, profile, isAuthenticated, isLoading: authLoading, token } = useAuth();
+  
+  const [room, setRoom] = useState<{
+    id: string;
+    name: string;
+    description?: string;
+    host_id: string;
+    status: string;
+    members: RoomMember[];
+  } | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [members, setMembers] = useState<RoomMember[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [chatInput, setChatInput] = useState('');
+  const [selectedCharacterId, setSelectedCharacterId] = useState<string>('');
+  const [characters, setCharacters] = useState<Array<{ id: string; name: string; title?: string }>>([]);
+  const [showScenarioDialog, setShowScenarioDialog] = useState(false);
+  const [scenarios, setScenarios] = useState<Scenario[]>([]);
+  const [selectedScenario, setSelectedScenario] = useState<string>('');
+  const [isStartingGame, setIsStartingGame] = useState(false);
+  
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [sessionId, setSessionId] = useState<string>('');
+  const [gameState, setGameState] = useState<Record<string, unknown>>({});
+  
+  const { text: dmNarrative, appendText: appendNarrative, resetText: resetNarrative } = useTypewriter();
+  const { stream: streamDM, isStreaming: isDMStreaming } = useAIStream({
+    url: '/api/ai/dm',
+    onData: appendNarrative,
+    onComplete: () => {
+      setMessages(prev => [...prev, {
+        id: Date.now().toString(),
+        type: 'narrative',
+        content: dmNarrative,
+        senderName: 'DM',
+        timestamp: new Date().toISOString(),
+      }]);
+      resetNarrative();
+    },
+    onError: (error) => toast.error(error),
+  });
+
+  // WebSocket连接
+  const { send: wsSend } = useGameWebSocket({
+    roomId,
+    userId: user?.id || '',
+    onMessage: (msg) => {
+      switch (msg.type) {
+        case 'room:chat':
+          setMessages(prev => [...prev, {
+            id: Date.now().toString(),
+            type: 'chat',
+            content: (msg.payload as { content: string }).content,
+            senderId: (msg.payload as { userId?: string }).userId,
+            senderName: (msg.payload as { characterName?: string }).characterName || '玩家',
+            timestamp: (msg.payload as { timestamp: string }).timestamp,
+          }]);
+          break;
+        case 'game:narrative':
+          setMessages(prev => [...prev, {
+            id: Date.now().toString(),
+            type: 'narrative',
+            content: (msg.payload as { content: string }).content,
+            senderName: 'DM',
+            timestamp: new Date().toISOString(),
+          }]);
+          break;
+        case 'game:roll_result':
+          const rollPayload = msg.payload as {
+            userId?: string;
+            dice: string;
+            result: number;
+            rolls: number[];
+            attribute?: string;
+            difficulty?: number;
+            total: number;
+          };
+          setMessages(prev => [...prev, {
+            id: Date.now().toString(),
+            type: 'roll',
+            content: `掷骰 ${rollPayload.dice}: [${rollPayload.rolls.join(', ')}] = ${rollPayload.total}${rollPayload.difficulty ? ` (难度 ${rollPayload.difficulty})` : ''}`,
+            senderId: rollPayload.userId,
+            timestamp: new Date().toISOString(),
+            metadata: { ...rollPayload },
+          }]);
+          break;
+        case 'user:joined':
+        case 'user:left':
+          fetchRoomData();
+          break;
+      }
+    },
+    onOpen: () => {
+      toast.success('已连接到房间');
+    },
+    onClose: () => {
+      toast.warning('与房间的连接已断开');
+    },
+  });
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      router.push('/');
+    }
+  }, [authLoading, isAuthenticated, router]);
+
+  useEffect(() => {
+    if (isAuthenticated && token && roomId) {
+      fetchRoomData();
+      fetchCharacters();
+    }
+  }, [isAuthenticated, token, roomId]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const fetchRoomData = async () => {
+    try {
+      const response = await fetch(`/api/rooms/${roomId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setRoom(data.data);
+        setMembers(data.data.members || []);
+        
+        // 检查用户是否已选择角色
+        const myMember = data.data.members?.find(
+          (m: RoomMember) => m.user_id === user?.id
+        );
+        if (myMember?.character_id) {
+          setSelectedCharacterId(myMember.character_id);
+        }
+      } else {
+        toast.error('房间不存在');
+        router.push('/lobby');
+      }
+    } catch (error) {
+      console.error('获取房间信息失败:', error);
+      toast.error('获取房间信息失败');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchCharacters = async () => {
+    try {
+      const response = await fetch('/api/characters', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setCharacters(data.data || []);
+      }
+    } catch (error) {
+      console.error('获取角色卡失败:', error);
+    }
+  };
+
+  const handleSelectCharacter = async (characterId: string) => {
+    try {
+      // 这里应该更新room_members表
+      setSelectedCharacterId(characterId);
+      toast.success('角色已选择');
+    } catch (error) {
+      console.error('选择角色失败:', error);
+      toast.error('选择角色失败');
+    }
+  };
+
+  const handleSendMessage = () => {
+    if (!chatInput.trim()) return;
+
+    const character = characters.find(c => c.id === selectedCharacterId);
+    
+    wsSend({
+      type: 'room:chat',
+      payload: {
+        content: chatInput,
+        characterId: selectedCharacterId,
+        characterName: character?.name || profile?.username,
+      },
+    });
+
+    setChatInput('');
+  };
+
+  const handleRollDice = (dice: string = '1d20') => {
+    wsSend({
+      type: 'game:roll',
+      payload: { dice },
+    });
+  };
+
+  const handleStartGame = async () => {
+    if (!selectedCharacterId) {
+      toast.error('请先选择一个角色');
+      return;
+    }
+
+    setIsStartingGame(true);
+    
+    try {
+      // 获取剧本推荐
+      const response = await fetch('/api/ai/scenarios', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          characters: members.map(m => m.characters).filter(Boolean),
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setScenarios(data.data.scenarios || []);
+        setShowScenarioDialog(true);
+      }
+    } catch (error) {
+      console.error('获取剧本失败:', error);
+      toast.error('获取剧本失败');
+    } finally {
+      setIsStartingGame(false);
+    }
+  };
+
+  const handleSelectScenario = async () => {
+    if (!selectedScenario) {
+      toast.error('请选择一个剧本');
+      return;
+    }
+
+    setShowScenarioDialog(false);
+
+    // 创建游戏会话
+    try {
+      const response = await fetch('/api/sessions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          roomId,
+          scenarioName: selectedScenario,
+          participants: members.map(m => ({
+            userId: m.user_id,
+            characterId: m.character_id,
+            characterName: m.characters?.name,
+          })),
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setSessionId(data.data.id);
+        setGameState(data.data.game_state);
+        
+        // 开始AI叙事
+        streamDM({
+          roomId,
+          sessionId: data.data.id,
+          gameState: data.data.game_state,
+          characters: members.map(m => m.characters).filter(Boolean),
+          scenarioName: selectedScenario,
+          playerAction: '开始游戏',
+        });
+      }
+    } catch (error) {
+      console.error('开始游戏失败:', error);
+      toast.error('开始游戏失败');
+    }
+  };
+
+  const handlePlayerAction = () => {
+    if (!chatInput.trim() || isDMStreaming) return;
+
+    const character = characters.find(c => c.id === selectedCharacterId);
+    
+    // 发送玩家行动
+    wsSend({
+      type: 'game:action',
+      payload: {
+        action: chatInput,
+        characterId: selectedCharacterId,
+        characterName: character?.name,
+      },
+    });
+
+    // 获取AI响应
+    streamDM({
+      roomId,
+      sessionId,
+      gameState,
+      dialogHistory: messages.map(m => ({
+        role: m.type === 'narrative' ? 'assistant' as const : 'user' as const,
+        content: m.content,
+        timestamp: m.timestamp,
+      })),
+      characters: members.map(m => m.characters).filter(Boolean),
+      playerAction: chatInput,
+    });
+
+    setChatInput('');
+  };
+
+  const isHost = room?.host_id === user?.id;
+  const isInGame = room?.status === 'playing';
+
+  if (authLoading || isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">加载中...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="border-b bg-card">
+        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link href="/lobby">
+              <Button variant="ghost" size="sm">← 返回大厅</Button>
+            </Link>
+            <div>
+              <h1 className="text-xl font-bold">{room?.name}</h1>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Badge variant={room?.status === 'waiting' ? 'secondary' : 'default'}>
+                  {room?.status === 'waiting' ? '等待中' : '游戏中'}
+                </Badge>
+                <span>{members.length}人在线</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4">
+            {isHost && room?.status === 'waiting' && (
+              <Button onClick={handleStartGame} disabled={isStartingGame}>
+                {isStartingGame ? '准备中...' : '开始游戏'}
+              </Button>
+            )}
+          </div>
+        </div>
+      </header>
+
+      <div className="container mx-auto px-4 py-4 h-[calc(100vh-80px)]">
+        <div className="grid grid-cols-12 gap-4 h-full">
+          {/* Left Sidebar - Members */}
+          <div className="col-span-2">
+            <Card className="h-full">
+              <CardHeader className="py-3">
+                <CardTitle className="text-sm">房间成员</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {members.map((member) => (
+                    <div
+                      key={member.id}
+                      className="flex items-center gap-2 p-2 rounded bg-muted/50"
+                    >
+                      <Avatar className="h-8 w-8">
+                        <AvatarFallback>
+                          {(member.characters?.name || member.profiles?.username)?.charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium truncate">
+                          {member.characters?.name || member.profiles?.username}
+                        </div>
+                        {member.characters?.title && (
+                          <div className="text-xs text-muted-foreground truncate">
+                            {member.characters.title}
+                          </div>
+                        )}
+                      </div>
+                      {member.user_id === room?.host_id && (
+                        <Badge variant="outline" className="text-xs">房主</Badge>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Character Selection */}
+                {room?.status === 'waiting' && characters.length > 0 && (
+                  <>
+                    <Separator className="my-4" />
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">选择角色</label>
+                      <Select value={selectedCharacterId} onValueChange={handleSelectCharacter}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="选择角色卡" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {characters.map((char) => (
+                            <SelectItem key={char.id} value={char.id}>
+                              {char.name} {char.title && `(${char.title})`}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Main Chat Area */}
+          <div className="col-span-8">
+            <Card className="h-full flex flex-col">
+              <CardContent className="flex-1 p-0">
+                <ScrollArea className="h-[calc(100vh-200px)] p-4">
+                  <div className="space-y-4">
+                    {messages.map((msg) => (
+                      <div
+                        key={msg.id}
+                        className={`${
+                          msg.type === 'narrative' ? 'bg-muted/50 p-3 rounded-lg' : ''
+                        }`}
+                      >
+                        {msg.type === 'narrative' && (
+                          <div className="text-xs text-muted-foreground mb-1 font-medium">
+                            🎭 DM
+                          </div>
+                        )}
+                        {msg.type === 'roll' && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <span className="font-medium">{msg.senderName || '玩家'}</span>
+                            <Badge variant="secondary">掷骰</Badge>
+                          </div>
+                        )}
+                        {msg.type === 'chat' && (
+                          <div className="flex items-start gap-2">
+                            <div className="font-medium text-sm">
+                              {msg.senderName || '玩家'}:
+                            </div>
+                          </div>
+                        )}
+                        <div className={`text-sm ${msg.type === 'narrative' ? 'prose prose-sm dark:prose-invert' : ''}`}>
+                          {msg.content}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {new Date(msg.timestamp).toLocaleTimeString()}
+                        </div>
+                      </div>
+                    ))}
+                    {dmNarrative && (
+                      <div className="bg-muted/50 p-3 rounded-lg">
+                        <div className="text-xs text-muted-foreground mb-1 font-medium">
+                          🎭 DM
+                        </div>
+                        <div className="prose prose-sm dark:prose-invert">
+                          {dmNarrative}
+                          <span className="animate-pulse">▌</span>
+                        </div>
+                      </div>
+                    )}
+                    <div ref={messagesEndRef} />
+                  </div>
+                </ScrollArea>
+              </CardContent>
+
+              {/* Input Area */}
+              <div className="border-t p-4">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder={isInGame ? "输入你的行动..." : "输入消息..."}
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        if (isInGame) {
+                          handlePlayerAction();
+                        } else {
+                          handleSendMessage();
+                        }
+                      }
+                    }}
+                    disabled={isDMStreaming}
+                  />
+                  <Button
+                    onClick={isInGame ? handlePlayerAction : handleSendMessage}
+                    disabled={isDMStreaming || !chatInput.trim()}
+                  >
+                    发送
+                  </Button>
+                </div>
+
+                {/* Dice Roll Buttons */}
+                {isInGame && (
+                  <div className="flex gap-2 mt-2">
+                    <Button variant="outline" size="sm" onClick={() => handleRollDice('1d20')}>
+                      1d20
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => handleRollDice('1d6')}>
+                      1d6
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => handleRollDice('2d6')}>
+                      2d6
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => handleRollDice('1d100')}>
+                      1d100
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </Card>
+          </div>
+
+          {/* Right Sidebar - Game Info */}
+          <div className="col-span-2">
+            <Card className="h-full">
+              <CardHeader className="py-3">
+                <CardTitle className="text-sm">游戏信息</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4 text-sm">
+                  <div>
+                    <div className="text-muted-foreground">剧本</div>
+                    <div className="font-medium">{selectedScenario || '未开始'}</div>
+                  </div>
+                  
+                  <Separator />
+                  
+                  <div>
+                    <div className="text-muted-foreground mb-2">快捷操作</div>
+                    <div className="space-y-2">
+                      <Button variant="outline" className="w-full justify-start" size="sm">
+                        📋 查看角色卡
+                      </Button>
+                      <Button variant="outline" className="w-full justify-start" size="sm">
+                        📖 规则查询
+                      </Button>
+                      <Button variant="outline" className="w-full justify-start" size="sm">
+                        💾 保存进度
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+
+      {/* Scenario Selection Dialog */}
+      <Dialog open={showScenarioDialog} onOpenChange={setShowScenarioDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>选择剧本</DialogTitle>
+            <DialogDescription>
+              AI为您推荐了以下剧本
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {scenarios.map((scenario, index) => (
+              <Card
+                key={index}
+                className={`cursor-pointer transition-colors ${
+                  selectedScenario === scenario.name ? 'ring-2 ring-primary' : ''
+                }`}
+                onClick={() => setSelectedScenario(scenario.name)}
+              >
+                <CardContent className="py-4">
+                  <div className="font-medium">{scenario.name}</div>
+                  <div className="text-sm text-muted-foreground mt-1">
+                    {scenario.description}
+                  </div>
+                  <div className="flex gap-2 mt-2">
+                    <Badge variant="secondary">{scenario.difficulty}</Badge>
+                    <Badge variant="outline">{scenario.duration}</Badge>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          <Button onClick={handleSelectScenario} disabled={!selectedScenario} className="w-full">
+            开始游戏
+          </Button>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
