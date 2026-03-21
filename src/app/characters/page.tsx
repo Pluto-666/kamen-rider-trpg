@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
@@ -27,7 +27,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
-import { useAIStream, useTypewriter } from '@/hooks/useAIStream';
+import { Textarea } from '@/components/ui/textarea';
 
 interface Character {
   id: string;
@@ -58,6 +58,11 @@ interface Character {
   created_at: string;
 }
 
+interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 export default function CharactersPage() {
   const router = useRouter();
   const { user, profile, logout, isAuthenticated, isLoading: authLoading, token } = useAuth();
@@ -66,14 +71,10 @@ export default function CharactersPage() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [userInput, setUserInput] = useState('');
   const [characterData, setCharacterData] = useState<Partial<Character>>({});
-  
-  const { text: aiResponse, appendText, resetText, setText } = useTypewriter();
-  const { stream, isStreaming } = useAIStream({
-    url: '/api/ai/create-character',
-    onData: appendText,
-    onComplete: () => toast.success('AI回复完成'),
-    onError: (error) => toast.error(error),
-  });
+  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [currentResponse, setCurrentResponse] = useState('');
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -86,6 +87,13 @@ export default function CharactersPage() {
       fetchCharacters();
     }
   }, [isAuthenticated, token]);
+
+  useEffect(() => {
+    // 自动滚动到底部
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [chatHistory, currentResponse]);
 
   const fetchCharacters = async () => {
     try {
@@ -108,25 +116,128 @@ export default function CharactersPage() {
 
   const handleStartCreation = () => {
     setCreateDialogOpen(true);
-    resetText();
     setCharacterData({});
     setUserInput('');
+    setChatHistory([]);
+    setCurrentResponse('');
   };
 
   const handleSendMessage = async () => {
     if (!userInput.trim() || isStreaming) return;
 
-    const currentInput = userInput;
+    const userMessage = userInput.trim();
     setUserInput('');
+    
+    // 添加用户消息到历史
+    const newUserHistory = [...chatHistory, { role: 'user' as const, content: userMessage }];
+    setChatHistory(newUserHistory);
+    setIsStreaming(true);
+    setCurrentResponse('');
 
     try {
-      await stream({
-        step: characters.length + 1,
-        characterData,
-        userMessage: currentInput,
+      const response = await fetch('/api/ai/create-character', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          characterData,
+          dialogHistory: newUserHistory,
+          userMessage,
+        }),
       });
+
+      if (!response.ok) {
+        throw new Error('AI响应失败');
+      }
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (!reader) {
+        throw new Error('Response body is null');
+      }
+
+      let fullResponse = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6);
+            if (data === '[DONE]') {
+              break;
+            }
+            try {
+              const parsed = JSON.parse(data);
+              if (parsed.content) {
+                fullResponse += parsed.content;
+                setCurrentResponse(fullResponse);
+              }
+              if (parsed.error) {
+                toast.error(parsed.error);
+              }
+            } catch {
+              // 忽略解析错误
+            }
+          }
+        }
+      }
+
+      // 添加AI回复到历史
+      if (fullResponse) {
+        setChatHistory(prev => [...prev, { role: 'assistant', content: fullResponse }]);
+      }
+      
+      setCurrentResponse('');
     } catch (error) {
       console.error('AI角色创建失败:', error);
+      toast.error('AI响应失败，请重试');
+    } finally {
+      setIsStreaming(false);
+    }
+  };
+
+  // 保存角色卡
+  const handleSaveCharacter = async () => {
+    // 从对话中提取角色信息并保存
+    try {
+      // 这里可以解析对话历史来提取角色信息
+      // 或者让用户手动填写
+      const response = await fetch('/api/characters', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name: characterData.name || '未命名角色',
+          title: characterData.title,
+          age: characterData.age,
+          gender: characterData.gender,
+          background: characterData.background,
+          attributes: characterData.attributes || {
+            strength: 10, dexterity: 10, constitution: 10,
+            intelligence: 10, wisdom: 10, charisma: 10,
+            hp: 10, maxHp: 10, mp: 10, maxMp: 10,
+          },
+        }),
+      });
+
+      if (response.ok) {
+        toast.success('角色卡保存成功');
+        setCreateDialogOpen(false);
+        fetchCharacters();
+      }
+    } catch (error) {
+      console.error('保存角色卡失败:', error);
+      toast.error('保存角色卡失败');
     }
   };
 
@@ -338,38 +449,90 @@ export default function CharactersPage() {
 
       {/* AI Character Creation Dialog */}
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-        <DialogContent className="sm:max-w-2xl max-h-[80vh]">
+        <DialogContent className="sm:max-w-3xl max-h-[90vh]">
           <DialogHeader>
-            <DialogTitle>AI角色创建助手</DialogTitle>
+            <DialogTitle>🎭 AI角色创建助手</DialogTitle>
             <DialogDescription>
-              和AI一起创建你的假面骑士角色
+              和AI一起创建你的假面骑士角色，AI会记住你说的所有信息
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex flex-col h-[50vh]">
-            {/* AI Response Area */}
-            <ScrollArea className="flex-1 p-4 bg-muted/50 rounded-lg mb-4">
-              <div className="prose prose-sm dark:prose-invert max-w-none">
-                {aiResponse || (
-                  <p className="text-muted-foreground">
-                    你好！我是AI角色创建助手。请告诉我你想创建什么样的假面骑士角色？
-                  </p>
-                )}
-              </div>
-            </ScrollArea>
+          <div className="flex flex-col h-[60vh]">
+            {/* Chat History */}
+            <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 bg-muted/30 rounded-lg mb-4 space-y-4">
+              {chatHistory.length === 0 && !currentResponse && (
+                <div className="text-center text-muted-foreground py-8">
+                  <p className="text-lg mb-2">👋 欢迎来到角色创建！</p>
+                  <p>请告诉我你想创建什么样的假面骑士角色？</p>
+                  <p className="text-sm mt-2">例如：我想创建一个假面骑士，名字叫...</p>
+                </div>
+              )}
+              
+              {chatHistory.map((msg, index) => (
+                <div
+                  key={index}
+                  className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div
+                    className={`max-w-[80%] p-3 rounded-lg ${
+                      msg.role === 'user'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-card border'
+                    }`}
+                  >
+                    {msg.role === 'assistant' && (
+                      <div className="text-xs text-muted-foreground mb-1 font-medium">🎭 DM</div>
+                    )}
+                    <div className="whitespace-pre-wrap">{msg.content}</div>
+                  </div>
+                </div>
+              ))}
+              
+              {/* 当前正在生成的回复 */}
+              {currentResponse && (
+                <div className="flex justify-start">
+                  <div className="max-w-[80%] p-3 rounded-lg bg-card border">
+                    <div className="text-xs text-muted-foreground mb-1 font-medium">🎭 DM</div>
+                    <div className="whitespace-pre-wrap">
+                      {currentResponse}
+                      <span className="animate-pulse">▌</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
 
-            {/* User Input */}
-            <div className="flex gap-2">
-              <Input
-                placeholder="输入你的想法..."
+            {/* Input Area */}
+            <div className="space-y-3">
+              <Textarea
+                placeholder="输入你的想法...（按Enter发送，Shift+Enter换行）"
                 value={userInput}
                 onChange={(e) => setUserInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSendMessage();
+                  }
+                }}
                 disabled={isStreaming}
+                className="min-h-[80px] resize-none"
               />
-              <Button onClick={handleSendMessage} disabled={isStreaming || !userInput.trim()}>
-                {isStreaming ? '思考中...' : '发送'}
-              </Button>
+              <div className="flex justify-between items-center">
+                <p className="text-xs text-muted-foreground">
+                  提示：告诉AI你的角色名称、称号、背景、属性等信息
+                </p>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
+                    取消
+                  </Button>
+                  <Button 
+                    onClick={handleSendMessage} 
+                    disabled={isStreaming || !userInput.trim()}
+                  >
+                    {isStreaming ? 'AI思考中...' : '发送'}
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         </DialogContent>
