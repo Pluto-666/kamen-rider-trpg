@@ -676,8 +676,8 @@ export default function CharactersPage() {
 
       {/* AI Character Creation Dialog */}
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-        <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-3xl h-[85vh] flex flex-col">
+          <DialogHeader className="flex-shrink-0">
             <DialogTitle className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-primary" />
               AI角色创建助手
@@ -687,9 +687,9 @@ export default function CharactersPage() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex-1 min-h-0 flex flex-col">
+          <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
             {/* Chat History */}
-            <ScrollArea className="flex-1 p-4 bg-muted/30 rounded-lg mb-4" ref={scrollRef}>
+            <ScrollArea className="flex-1 min-h-0 max-h-[50vh] p-4 bg-muted/30 rounded-lg mb-3" ref={scrollRef}>
               <div className="space-y-4">
                 {chatHistory.length === 0 && !currentResponse && (
                   <div className="text-center text-muted-foreground py-8">
@@ -717,7 +717,7 @@ export default function CharactersPage() {
                           DM
                         </div>
                       )}
-                      <div className="whitespace-pre-wrap">{msg.content}</div>
+                      <div className="whitespace-pre-wrap text-sm">{msg.content}</div>
                     </div>
                   </div>
                 ))}
@@ -729,7 +729,7 @@ export default function CharactersPage() {
                         <Sparkles className="h-3 w-3" />
                         DM
                       </div>
-                      <div className="whitespace-pre-wrap">
+                      <div className="whitespace-pre-wrap text-sm">
                         {currentResponse}
                         <span className="animate-pulse">▌</span>
                       </div>
@@ -739,32 +739,32 @@ export default function CharactersPage() {
               </div>
             </ScrollArea>
 
-            {/* Current Character Data */}
+            {/* Current Character Data - Compact */}
             {Object.keys(currentCharacterData).length > 0 && (
-              <div className="mb-4 p-3 bg-primary/5 rounded-lg border">
-                <div className="text-xs font-medium text-muted-foreground mb-2">当前角色信息</div>
-                <div className="flex flex-wrap gap-2">
+              <div className="flex-shrink-0 mb-3 p-2 bg-primary/5 rounded-lg border">
+                <div className="text-xs font-medium text-muted-foreground mb-1">已记录信息</div>
+                <div className="flex flex-wrap gap-1">
                   {currentCharacterData.name && (
-                    <Badge>姓名: {currentCharacterData.name}</Badge>
+                    <Badge variant="secondary" className="text-xs">姓名: {currentCharacterData.name}</Badge>
                   )}
                   {currentCharacterData.age && (
-                    <Badge variant="secondary">年龄: {currentCharacterData.age}</Badge>
+                    <Badge variant="outline" className="text-xs">{currentCharacterData.age}岁</Badge>
                   )}
                   {currentCharacterData.gender && (
-                    <Badge variant="secondary">性别: {currentCharacterData.gender}</Badge>
+                    <Badge variant="outline" className="text-xs">{currentCharacterData.gender}</Badge>
                   )}
                   {currentCharacterData.race && (
-                    <Badge variant="outline">种族: {currentCharacterData.race}</Badge>
+                    <Badge variant="outline" className="text-xs">{currentCharacterData.race}</Badge>
                   )}
                   {currentCharacterData.occupation && (
-                    <Badge variant="outline">职业: {currentCharacterData.occupation}</Badge>
+                    <Badge variant="outline" className="text-xs">{currentCharacterData.occupation}</Badge>
                   )}
                 </div>
               </div>
             )}
 
             {/* Input Area */}
-            <div className="space-y-3">
+            <div className="flex-shrink-0 space-y-2">
               <Textarea
                 placeholder="输入你的想法...（按Enter发送，Shift+Enter换行）"
                 value={userInput}
@@ -776,25 +776,27 @@ export default function CharactersPage() {
                   }
                 }}
                 disabled={isStreaming}
-                className="min-h-[80px] resize-none"
+                className="min-h-[60px] max-h-[120px] resize-none text-sm"
               />
-              <div className="flex justify-between items-center">
-                <p className="text-xs text-muted-foreground">
-                  告诉AI你的角色名称、年龄、性别、背景等信息
+              <div className="flex justify-between items-center pt-1">
+                <p className="text-xs text-muted-foreground hidden sm:block">
+                  告诉AI角色名称、年龄、性别、背景等
                 </p>
-                <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
+                <div className="flex gap-2 ml-auto">
+                  <Button variant="ghost" size="sm" onClick={() => setCreateDialogOpen(false)}>
                     取消
                   </Button>
                   <Button 
                     variant="secondary"
+                    size="sm"
                     onClick={handleSaveCharacter}
                     disabled={isStreaming || !currentCharacterData.name}
                   >
-                    <Save className="mr-2 h-4 w-4" />
-                    保存角色
+                    <Save className="mr-1 h-3 w-3" />
+                    保存
                   </Button>
                   <Button 
+                    size="sm"
                     onClick={handleSendMessage} 
                     disabled={isStreaming || !userInput.trim()}
                   >
@@ -809,10 +811,10 @@ export default function CharactersPage() {
 
       {/* Character Detail Dialog */}
       <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-2xl h-[85vh] flex flex-col">
           {selectedCharacter && (
             <>
-              <DialogHeader>
+              <DialogHeader className="flex-shrink-0">
                 <DialogTitle className="flex items-center gap-2">
                   <Avatar className="h-10 w-10">
                     <AvatarImage src={selectedCharacter.imageUrl} />
@@ -825,155 +827,159 @@ export default function CharactersPage() {
                 </DialogDescription>
               </DialogHeader>
 
-              <div className="space-y-6">
-                {/* Basic Info */}
-                <div>
-                  <h4 className="font-semibold mb-2 flex items-center gap-2">
-                    <User className="h-4 w-4" />
-                    基本信息
-                  </h4>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedCharacter.race && (
-                      <Badge variant="secondary">种族: {selectedCharacter.race}</Badge>
-                    )}
-                    {selectedCharacter.occupation && (
-                      <Badge variant="outline">职业: {selectedCharacter.occupation}</Badge>
-                    )}
-                    {selectedCharacter.age && (
-                      <Badge variant="outline">{selectedCharacter.age}岁</Badge>
-                    )}
-                    {selectedCharacter.gender && (
-                      <Badge variant="outline">{selectedCharacter.gender}</Badge>
-                    )}
-                    {selectedCharacter.activePower && (
-                      <Badge>活跃力: {selectedCharacter.activePower}</Badge>
-                    )}
-                  </div>
-                </div>
-
-                {/* Attributes */}
-                <div>
-                  <h4 className="font-semibold mb-2">能力值（通常 / 变身后）</h4>
-                  <div className="grid grid-cols-5 gap-2 text-center text-sm">
-                    {[
-                      { name: '肉体', normal: selectedCharacter.attributes?.bodyNormal, transform: selectedCharacter.attributes?.bodyTransform },
-                      { name: '运动', normal: selectedCharacter.attributes?.athleticsNormal, transform: selectedCharacter.attributes?.athleticsTransform },
-                      { name: '器用', normal: selectedCharacter.attributes?.dexterityNormal, transform: selectedCharacter.attributes?.dexterityTransform },
-                      { name: '意志', normal: selectedCharacter.attributes?.willNormal, transform: selectedCharacter.attributes?.willTransform },
-                      { name: '机知', normal: selectedCharacter.attributes?.witNormal, transform: selectedCharacter.attributes?.witTransform },
-                    ].map((attr) => (
-                      <div key={attr.name} className="p-2 bg-muted rounded">
-                        <div className="text-muted-foreground">{attr.name}</div>
-                        <div className="font-bold">{attr.normal || 0}</div>
-                        <div className="text-xs text-primary">变身: {attr.transform || 0}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Secondary Attributes */}
-                <div className="grid grid-cols-2 gap-4">
+              <ScrollArea className="flex-1 min-h-0">
+                <div className="space-y-4 pr-4">
+                  {/* Basic Info */}
                   <div>
-                    <h4 className="font-semibold mb-2">移动力</h4>
-                    <div className="text-sm">
-                      通常: {selectedCharacter.attributes?.movementNormal || 0} / 
-                      变身: {selectedCharacter.attributes?.movementTransform || 0}
-                    </div>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold mb-2">先制力</h4>
-                    <div className="text-sm">
-                      通常: {selectedCharacter.attributes?.initiativeNormal || 0} / 
-                      变身: {selectedCharacter.attributes?.initiativeTransform || 0}
-                    </div>
-                  </div>
-                </div>
-
-                {/* HP */}
-                <div>
-                  <h4 className="font-semibold mb-2 flex items-center gap-2">
-                    <Heart className="h-4 w-4 text-red-500" />
-                    HP
-                  </h4>
-                  <div className="text-sm">
-                    通常: {selectedCharacter.attributes?.totalHP || 0} / 
-                    变身: {selectedCharacter.attributes?.transformHP || 0}
-                  </div>
-                </div>
-
-                {/* Rider Data */}
-                {selectedCharacter.riderData && (
-                  <div>
-                    <h4 className="font-semibold mb-2 flex items-center gap-2">
-                      <Swords className="h-4 w-4" />
-                      骑士系统
+                    <h4 className="font-semibold mb-2 flex items-center gap-2 text-sm">
+                      <User className="h-4 w-4" />
+                      基本信息
                     </h4>
-                    <div className="space-y-1 text-sm">
-                      <div>系统: {selectedCharacter.riderData.riderSystem}</div>
-                      {selectedCharacter.riderData.transformationItem && (
-                        <div>变身道具: {selectedCharacter.riderData.transformationItem}</div>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedCharacter.race && (
+                        <Badge variant="secondary" className="text-xs">种族: {selectedCharacter.race}</Badge>
                       )}
-                      {selectedCharacter.riderData.transformationPhrase && (
-                        <div>变身口号: {selectedCharacter.riderData.transformationPhrase}</div>
+                      {selectedCharacter.occupation && (
+                        <Badge variant="outline" className="text-xs">职业: {selectedCharacter.occupation}</Badge>
                       )}
-                      {selectedCharacter.riderData.finisherMoves && selectedCharacter.riderData.finisherMoves.length > 0 && (
-                        <div>必杀技: {selectedCharacter.riderData.finisherMoves.join(', ')}</div>
+                      {selectedCharacter.age && (
+                        <Badge variant="outline" className="text-xs">{selectedCharacter.age}岁</Badge>
+                      )}
+                      {selectedCharacter.gender && (
+                        <Badge variant="outline" className="text-xs">{selectedCharacter.gender}</Badge>
+                      )}
+                      {selectedCharacter.activePower && (
+                        <Badge className="text-xs">活跃力: {selectedCharacter.activePower}</Badge>
                       )}
                     </div>
                   </div>
-                )}
 
-                {/* Background */}
-                {selectedCharacter.background && (
+                  {/* Attributes */}
                   <div>
-                    <h4 className="font-semibold mb-2">背景故事</h4>
-                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                      {selectedCharacter.background}
-                    </p>
-                  </div>
-                )}
-
-                {/* Weapons */}
-                {selectedCharacter.weapons && selectedCharacter.weapons.length > 0 && (
-                  <div>
-                    <h4 className="font-semibold mb-2 flex items-center gap-2">
-                      <Swords className="h-4 w-4" />
-                      武器
-                    </h4>
-                    <div className="space-y-2">
-                      {selectedCharacter.weapons.map((weapon, idx) => (
-                        <div key={idx} className="p-2 bg-muted rounded text-sm">
-                          <div className="font-medium">{weapon.name}</div>
-                          <div className="text-muted-foreground">
-                            射程: {weapon.range} | 命中: {weapon.hitTotal} | DP: {weapon.dpTotal}
-                          </div>
+                    <h4 className="font-semibold mb-2 text-sm">能力值（通常 / 变身后）</h4>
+                    <div className="grid grid-cols-5 gap-2 text-center text-xs">
+                      {[
+                        { name: '肉体', normal: selectedCharacter.attributes?.bodyNormal, transform: selectedCharacter.attributes?.bodyTransform },
+                        { name: '运动', normal: selectedCharacter.attributes?.athleticsNormal, transform: selectedCharacter.attributes?.athleticsTransform },
+                        { name: '器用', normal: selectedCharacter.attributes?.dexterityNormal, transform: selectedCharacter.attributes?.dexterityTransform },
+                        { name: '意志', normal: selectedCharacter.attributes?.willNormal, transform: selectedCharacter.attributes?.willTransform },
+                        { name: '机知', normal: selectedCharacter.attributes?.witNormal, transform: selectedCharacter.attributes?.witTransform },
+                      ].map((attr) => (
+                        <div key={attr.name} className="p-2 bg-muted rounded">
+                          <div className="text-muted-foreground">{attr.name}</div>
+                          <div className="font-bold">{attr.normal || 0}</div>
+                          <div className="text-primary">变身: {attr.transform || 0}</div>
                         </div>
                       ))}
                     </div>
                   </div>
-                )}
 
-                {/* Equipment */}
-                {selectedCharacter.otherEquipment && (
-                  <div>
-                    <h4 className="font-semibold mb-2 flex items-center gap-2">
-                      <Shield className="h-4 w-4" />
-                      其他装备
-                    </h4>
-                    <p className="text-sm text-muted-foreground">{selectedCharacter.otherEquipment}</p>
+                  {/* Secondary Attributes */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <h4 className="font-semibold mb-1 text-sm">移动力</h4>
+                      <div className="text-xs">
+                        通常: {selectedCharacter.attributes?.movementNormal || 0} / 
+                        变身: {selectedCharacter.attributes?.movementTransform || 0}
+                      </div>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold mb-1 text-sm">先制力</h4>
+                      <div className="text-xs">
+                        通常: {selectedCharacter.attributes?.initiativeNormal || 0} / 
+                        变身: {selectedCharacter.attributes?.initiativeTransform || 0}
+                      </div>
+                    </div>
                   </div>
-                )}
-              </div>
 
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setDetailDialogOpen(false)}>
+                  {/* HP */}
+                  <div>
+                    <h4 className="font-semibold mb-1 flex items-center gap-2 text-sm">
+                      <Heart className="h-4 w-4 text-red-500" />
+                      HP
+                    </h4>
+                    <div className="text-xs">
+                      通常: {selectedCharacter.attributes?.totalHP || 0} / 
+                      变身: {selectedCharacter.attributes?.transformHP || 0}
+                    </div>
+                  </div>
+
+                  {/* Rider Data */}
+                  {selectedCharacter.riderData && (
+                    <div>
+                      <h4 className="font-semibold mb-1 flex items-center gap-2 text-sm">
+                        <Swords className="h-4 w-4" />
+                        骑士系统
+                      </h4>
+                      <div className="space-y-1 text-xs">
+                        {selectedCharacter.riderData.riderSystem && (
+                          <div>系统: {selectedCharacter.riderData.riderSystem}</div>
+                        )}
+                        {selectedCharacter.riderData.transformationItem && (
+                          <div>变身道具: {selectedCharacter.riderData.transformationItem}</div>
+                        )}
+                        {selectedCharacter.riderData.transformationPhrase && (
+                          <div>变身口号: {selectedCharacter.riderData.transformationPhrase}</div>
+                        )}
+                        {selectedCharacter.riderData.finisherMoves && selectedCharacter.riderData.finisherMoves.length > 0 && (
+                          <div>必杀技: {selectedCharacter.riderData.finisherMoves.join(', ')}</div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Background */}
+                  {selectedCharacter.background && (
+                    <div>
+                      <h4 className="font-semibold mb-1 text-sm">背景故事</h4>
+                      <p className="text-xs text-muted-foreground whitespace-pre-wrap">
+                        {selectedCharacter.background}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Weapons */}
+                  {selectedCharacter.weapons && selectedCharacter.weapons.length > 0 && (
+                    <div>
+                      <h4 className="font-semibold mb-1 flex items-center gap-2 text-sm">
+                        <Swords className="h-4 w-4" />
+                        武器
+                      </h4>
+                      <div className="space-y-1">
+                        {selectedCharacter.weapons.map((weapon, idx) => (
+                          <div key={idx} className="p-2 bg-muted rounded text-xs">
+                            <div className="font-medium">{weapon.name}</div>
+                            <div className="text-muted-foreground">
+                              射程: {weapon.range} | 命中: {weapon.hitTotal} | DP: {weapon.dpTotal}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Equipment */}
+                  {selectedCharacter.otherEquipment && (
+                    <div>
+                      <h4 className="font-semibold mb-1 flex items-center gap-2 text-sm">
+                        <Shield className="h-4 w-4" />
+                        其他装备
+                      </h4>
+                      <p className="text-xs text-muted-foreground">{selectedCharacter.otherEquipment}</p>
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
+
+              <DialogFooter className="flex-shrink-0">
+                <Button variant="outline" size="sm" onClick={() => setDetailDialogOpen(false)}>
                   关闭
                 </Button>
-                <Button onClick={() => {
+                <Button size="sm" onClick={() => {
                   handleExportCharacter(selectedCharacter.id);
                   setDetailDialogOpen(false);
                 }}>
-                  <Download className="mr-2 h-4 w-4" />
+                  <Download className="mr-1 h-3 w-3" />
                   导出xlsx
                 </Button>
               </DialogFooter>
