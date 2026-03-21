@@ -20,21 +20,22 @@ export async function POST(request: NextRequest) {
 
     // 搜索规则书中相关内容
     let ruleContext = '';
-    const searchQueries = [query, '假面骑士TRPG规则'];
     
-    for (const q of searchQueries) {
-      const searchResponse = await knowledgeClient.search(
-        q,
-        ['kamen_rider_trpg_rulebook'],
-        5,
-        0.3
-      );
-      
-      if (searchResponse.code === 0 && searchResponse.chunks.length > 0) {
-        ruleContext += searchResponse.chunks
-          .map(chunk => chunk.content)
-          .join('\n\n') + '\n\n';
-      }
+    // 搜索所有知识库，不指定特定的数据集名称
+    const searchResponse = await knowledgeClient.search(
+      query,
+      undefined, // 不指定数据集，搜索所有知识库
+      10,        // 返回更多结果
+      0.2        // 降低相似度阈值以获取更多相关内容
+    );
+    
+    if (searchResponse.code === 0 && searchResponse.chunks.length > 0) {
+      ruleContext = searchResponse.chunks
+        .map(chunk => chunk.content)
+        .join('\n\n');
+      console.log(`规则查询找到 ${searchResponse.chunks.length} 个相关片段`);
+    } else {
+      console.log('规则查询未找到相关内容', searchResponse);
     }
 
     // 构建消息

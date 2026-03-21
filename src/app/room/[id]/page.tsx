@@ -483,14 +483,18 @@ export default function RoomPage() {
 
   // 查看自己的角色卡
   const handleViewMyCharacter = () => {
+    // 先检查是否已选择角色
     if (!selectedCharacterId) {
       toast.error('请先选择一个角色');
       return;
     }
     
-    const myMember = members.find(m => m.character_id === selectedCharacterId);
-    if (myMember) {
+    // 通过当前用户ID找到自己的成员记录
+    const myMember = members.find(m => m.user_id === user?.id);
+    if (myMember && myMember.character_id) {
       handleViewCharacter(myMember);
+    } else {
+      toast.error('未找到您的角色信息，请确认已选择角色');
     }
   };
 
@@ -675,29 +679,27 @@ export default function RoomPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {/* AI主持人 */}
-                  {isInGame && (
-                    <div
-                      className="flex items-center gap-2 p-2 rounded bg-primary/10 border border-primary/20 cursor-pointer hover:bg-primary/20 transition-colors"
-                      onClick={() => handleMentionMember('AI主持人')}
-                      title="点击@AI主持人"
-                    >
-                      <Avatar className="h-8 w-8 bg-primary/20">
-                        <AvatarFallback className="bg-primary/20 text-primary">
-                          🎭
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-primary">
-                          AI主持人
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          游戏主持人
-                        </div>
+                  {/* AI主持人 - 始终显示 */}
+                  <div
+                    className="flex items-center gap-2 p-2 rounded bg-primary/10 border border-primary/20 cursor-pointer hover:bg-primary/20 transition-colors"
+                    onClick={() => handleMentionMember('AI主持人')}
+                    title="点击@AI主持人"
+                  >
+                    <Avatar className="h-8 w-8 bg-primary/20">
+                      <AvatarFallback className="bg-primary/20 text-primary">
+                        🎭
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-primary">
+                        AI主持人
                       </div>
-                      <Badge className="text-xs">DM</Badge>
+                      <div className="text-xs text-muted-foreground">
+                        游戏主持人
+                      </div>
                     </div>
-                  )}
+                    <Badge className="text-xs">DM</Badge>
+                  </div>
                   
                   {/* 玩家成员 */}
                   {members.map((member) => (
