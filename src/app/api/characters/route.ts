@@ -5,7 +5,8 @@ import { getSupabaseClient } from '@/storage/database/supabase-client';
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
+    // 同时支持 userId 和 user_id 两种参数格式
+    const userId = searchParams.get('userId') || searchParams.get('user_id');
     
     if (!userId) {
       return NextResponse.json({ error: '缺少用户ID' }, { status: 400 });

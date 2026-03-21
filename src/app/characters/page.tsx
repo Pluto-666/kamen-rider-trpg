@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
@@ -258,6 +258,45 @@ export default function CharactersPage() {
   const [editingName, setEditingName] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const hasFetchedRef = useRef(false);
+
+  // 获取角色卡列表
+  const fetchCharacters = useCallback(async (forceRefresh = false) => {
+    console.log('fetchCharacters called, user:', user?.id, 'forceRefresh:', forceRefresh);
+    if (!user?.id) {
+      console.log('No user ID, skipping fetch');
+      setIsLoading(false);
+      return;
+    }
+    
+    // 如果已经获取过且不是强制刷新，则跳过
+    if (hasFetchedRef.current && !forceRefresh) {
+      console.log('Already fetched, skipping');
+      return;
+    }
+    
+    try {
+      console.log('Fetching characters for user:', user.id);
+      const response = await fetch(`/api/characters?user_id=${user.id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Fetched characters:', data.characters?.length, data.characters);
+        setCharacters(data.characters || []);
+        hasFetchedRef.current = true;
+      } else {
+        console.error('Fetch failed:', response.status);
+      }
+    } catch (error) {
+      console.error('获取角色卡失败:', error);
+      toast.error('获取角色卡失败');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user?.id, token]);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -266,35 +305,16 @@ export default function CharactersPage() {
   }, [authLoading, isAuthenticated, router]);
 
   useEffect(() => {
-    if (isAuthenticated && token) {
+    if (isAuthenticated && token && user?.id) {
       fetchCharacters();
     }
-  }, [isAuthenticated, token]);
+  }, [isAuthenticated, token, user?.id, fetchCharacters]);
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [chatHistory, currentResponse]);
-
-  const fetchCharacters = async () => {
-    try {
-      const response = await fetch(`/api/characters?user_id=${user?.id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setCharacters(data.characters || []);
-      }
-    } catch (error) {
-      console.error('获取角色卡失败:', error);
-      toast.error('获取角色卡失败');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleStartCreation = () => {
     setCreateDialogOpen(true);
@@ -445,12 +465,15 @@ export default function CharactersPage() {
 
       if (response.ok) {
         const data = await response.json();
+        console.log('保存成功，返回数据:', data);
         toast.success('角色卡保存成功！');
         setConfirmSaveOpen(false);
         setCreateDialogOpen(false);
         setChatHistory([]);
         setCurrentCharacterData({});
-        fetchCharacters();
+        // 强制刷新角色卡列表
+        hasFetchedRef.current = false;
+        fetchCharacters(true);
       } else {
         const error = await response.json();
         toast.error(error.error || '保存失败');
