@@ -40,18 +40,19 @@ import {
   Sparkles,
 } from 'lucide-react';
 
-// 角色卡类型定义（与数据库schema一致）
+// 角色卡类型定义（与数据库返回字段一致，使用snake_case）
 interface Character {
   id: string;
-  userId: string;
+  user_id: string;
   name: string;
-  playerName?: string;
-  imageUrl?: string;
+  title?: string;
+  player_name?: string;
+  image_url?: string;
   race: string;
   occupation?: string;
   age?: number;
   gender?: string;
-  activePower: number;
+  active_power: number;
   attributes: {
     // 主能力值
     body: number;
@@ -98,7 +99,7 @@ interface Character {
     totalHP: number;
     transformHP: number;
   };
-  fatePoints?: {
+  fate_points?: {
     points: number;
     history: string[];
   };
@@ -127,7 +128,7 @@ interface Character {
     fixed: boolean;
     note: string;
   }>;
-  otherEquipment?: string;
+  other_equipment?: string;
   vehicle?: {
     name: string;
     movement: number;
@@ -135,7 +136,7 @@ interface Character {
     passengers: number;
     dodge: number;
     parry: number;
-    fatePoints: number;
+    fate_points: number;
   };
   configs?: Array<{
     category: string;
@@ -144,14 +145,14 @@ interface Character {
     reference: string;
   }>;
   background?: string;
-  riderData?: {
+  rider_data?: {
     riderSystem: string;
     transformationItem: string;
     finisherMoves: string[];
     specialAbilities: string[];
     transformationPhrase?: string;
   };
-  actionCards?: Array<{
+  action_cards?: Array<{
     type: string;
     category: string;
     name: string;
@@ -164,8 +165,8 @@ interface Character {
     title: string;
     summary: string;
   }>;
-  createdAt: string;
-  updatedAt: string;
+  created_at: string;
+  updated_at: string;
 }
 
 interface ChatMessage {
@@ -185,7 +186,7 @@ function extractCharacterFromChat(chatHistory: ChatMessage[]): Partial<Character
   
   // 提取玩家名
   const playerMatch = allText.match(/(?:玩家名[：:]?\s*|玩家[：:]?\s*)([^\n，。！？]+)/);
-  if (playerMatch) character.playerName = playerMatch[1].trim();
+  if (playerMatch) character.player_name = playerMatch[1].trim();
   
   // 提取年龄
   const ageMatch = allText.match(/(?:年龄[：:]?\s*|岁[：:]?\s*)(\d+)/);
@@ -210,7 +211,7 @@ function extractCharacterFromChat(chatHistory: ChatMessage[]): Partial<Character
   // 提取骑士系统
   const riderMatch = allText.match(/(?:骑士系统[：:]?\s*|变身道具[：:]?\s*)([^\n，。！？]+)/);
   if (riderMatch) {
-    character.riderData = {
+    character.rider_data = {
       riderSystem: riderMatch[1].trim(),
       transformationItem: '',
       finisherMoves: [],
@@ -220,8 +221,8 @@ function extractCharacterFromChat(chatHistory: ChatMessage[]): Partial<Character
   
   // 提取必杀技
   const finisherMatch = allText.match(/(?:必杀技[：:]?\s*)([^\n，。！？]+)/);
-  if (finisherMatch && character.riderData) {
-    character.riderData.finisherMoves = [finisherMatch[1].trim()];
+  if (finisherMatch && character.rider_data) {
+    character.rider_data.finisherMoves = [finisherMatch[1].trim()];
   }
   
   return character;
@@ -262,7 +263,7 @@ export default function CharactersPage() {
 
   const fetchCharacters = async () => {
     try {
-      const response = await fetch(`/api/characters?userId=${user?.id}`, {
+      const response = await fetch(`/api/characters?user_id=${user?.id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -378,7 +379,7 @@ export default function CharactersPage() {
     const characterToSave = {
       ...currentCharacterData,
       ...extractedData,
-      userId: user?.id,
+      user_id: user?.id,
     };
     
     if (!characterToSave.name) {
@@ -415,7 +416,7 @@ export default function CharactersPage() {
     if (!confirm('确定要删除这个角色卡吗？')) return;
 
     try {
-      const response = await fetch(`/api/characters/${characterId}?userId=${user?.id}`, {
+      const response = await fetch(`/api/characters/${characterId}?user_id=${user?.id}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -571,16 +572,16 @@ export default function CharactersPage() {
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
                       <Avatar className="h-12 w-12">
-                        <AvatarImage src={character.imageUrl} />
+                        <AvatarImage src={character.image_url} />
                         <AvatarFallback className="bg-primary/10 text-primary">
                           {character.name?.charAt(0)}
                         </AvatarFallback>
                       </Avatar>
                       <div>
                         <CardTitle className="text-xl">{character.name}</CardTitle>
-                        {character.playerName && (
+                        {character.player_name && (
                           <CardDescription className="text-sm">
-                            玩家: {character.playerName}
+                            玩家: {character.player_name}
                           </CardDescription>
                         )}
                       </div>
@@ -651,20 +652,20 @@ export default function CharactersPage() {
                   <div className="flex items-center gap-2 text-sm">
                     <Heart className="h-4 w-4 text-red-500" />
                     <span>HP: {character.attributes?.totalHP || 0}</span>
-                    {character.activePower && (
+                    {character.active_power && (
                       <>
                         <Separator orientation="vertical" className="h-4" />
                         <Sparkles className="h-4 w-4 text-yellow-500" />
-                        <span>活跃力: {character.activePower}</span>
+                        <span>活跃力: {character.active_power}</span>
                       </>
                     )}
                   </div>
 
                   {/* Rider System */}
-                  {character.riderData?.riderSystem && (
+                  {character.rider_data?.riderSystem && (
                     <div className="mt-3 text-sm text-muted-foreground">
                       <Swords className="h-4 w-4 inline mr-1" />
-                      {character.riderData.riderSystem}
+                      {character.rider_data.riderSystem}
                     </div>
                   )}
                 </CardContent>
@@ -817,13 +818,13 @@ export default function CharactersPage() {
               <DialogHeader className="flex-shrink-0">
                 <DialogTitle className="flex items-center gap-2">
                   <Avatar className="h-10 w-10">
-                    <AvatarImage src={selectedCharacter.imageUrl} />
+                    <AvatarImage src={selectedCharacter.image_url} />
                     <AvatarFallback>{selectedCharacter.name?.charAt(0)}</AvatarFallback>
                   </Avatar>
                   {selectedCharacter.name}
                 </DialogTitle>
                 <DialogDescription>
-                  {selectedCharacter.playerName && `玩家: ${selectedCharacter.playerName}`}
+                  {selectedCharacter.player_name && `玩家: ${selectedCharacter.player_name}`}
                 </DialogDescription>
               </DialogHeader>
 
@@ -848,8 +849,8 @@ export default function CharactersPage() {
                       {selectedCharacter.gender && (
                         <Badge variant="outline" className="text-xs">{selectedCharacter.gender}</Badge>
                       )}
-                      {selectedCharacter.activePower && (
-                        <Badge className="text-xs">活跃力: {selectedCharacter.activePower}</Badge>
+                      {selectedCharacter.active_power && (
+                        <Badge className="text-xs">活跃力: {selectedCharacter.active_power}</Badge>
                       )}
                     </div>
                   </div>
@@ -905,24 +906,24 @@ export default function CharactersPage() {
                   </div>
 
                   {/* Rider Data */}
-                  {selectedCharacter.riderData && (
+                  {selectedCharacter.rider_data && (
                     <div>
                       <h4 className="font-semibold mb-1 flex items-center gap-2 text-sm">
                         <Swords className="h-4 w-4" />
                         骑士系统
                       </h4>
                       <div className="space-y-1 text-xs">
-                        {selectedCharacter.riderData.riderSystem && (
-                          <div>系统: {selectedCharacter.riderData.riderSystem}</div>
+                        {selectedCharacter.rider_data.riderSystem && (
+                          <div>系统: {selectedCharacter.rider_data.riderSystem}</div>
                         )}
-                        {selectedCharacter.riderData.transformationItem && (
-                          <div>变身道具: {selectedCharacter.riderData.transformationItem}</div>
+                        {selectedCharacter.rider_data.transformationItem && (
+                          <div>变身道具: {selectedCharacter.rider_data.transformationItem}</div>
                         )}
-                        {selectedCharacter.riderData.transformationPhrase && (
-                          <div>变身口号: {selectedCharacter.riderData.transformationPhrase}</div>
+                        {selectedCharacter.rider_data.transformationPhrase && (
+                          <div>变身口号: {selectedCharacter.rider_data.transformationPhrase}</div>
                         )}
-                        {selectedCharacter.riderData.finisherMoves && selectedCharacter.riderData.finisherMoves.length > 0 && (
-                          <div>必杀技: {selectedCharacter.riderData.finisherMoves.join(', ')}</div>
+                        {selectedCharacter.rider_data.finisherMoves && selectedCharacter.rider_data.finisherMoves.length > 0 && (
+                          <div>必杀技: {selectedCharacter.rider_data.finisherMoves.join(', ')}</div>
                         )}
                       </div>
                     </div>
@@ -959,13 +960,13 @@ export default function CharactersPage() {
                   )}
 
                   {/* Equipment */}
-                  {selectedCharacter.otherEquipment && (
+                  {selectedCharacter.other_equipment && (
                     <div>
                       <h4 className="font-semibold mb-1 flex items-center gap-2 text-sm">
                         <Shield className="h-4 w-4" />
                         其他装备
                       </h4>
-                      <p className="text-xs text-muted-foreground">{selectedCharacter.otherEquipment}</p>
+                      <p className="text-xs text-muted-foreground">{selectedCharacter.other_equipment}</p>
                     </div>
                   )}
                 </div>

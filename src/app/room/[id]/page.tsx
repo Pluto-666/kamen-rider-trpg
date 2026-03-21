@@ -43,12 +43,12 @@ interface Character {
   id: string;
   name: string;
   title?: string;
-  playerName?: string;
+  player_name?: string;
   race?: string;
   occupation?: string;
   age?: number;
   gender?: string;
-  activePower?: number;
+  active_power?: number;
   attributes?: {
     body?: number;
     bodyNormal?: number;
@@ -72,7 +72,7 @@ interface Character {
     totalHP?: number;
     transformHP?: number;
   };
-  riderData?: {
+  rider_data?: {
     riderSystem?: string;
     transformationItem?: string;
     finisherMoves?: string[];
@@ -80,7 +80,7 @@ interface Character {
   };
   background?: string;
   weapons?: Array<{ name: string; range?: string; hitTotal?: number; dpTotal?: number }>;
-  otherEquipment?: string;
+  other_equipment?: string;
 }
 
 interface RoomMember {
@@ -808,7 +808,7 @@ export default function RoomPage() {
                   {characterDetail.name}
                 </DialogTitle>
                 <DialogDescription>
-                  {characterDetail.playerName && `玩家: ${characterDetail.playerName}`}
+                  {characterDetail.player_name && `玩家: ${characterDetail.player_name}`}
                 </DialogDescription>
               </DialogHeader>
 
@@ -832,8 +832,8 @@ export default function RoomPage() {
                     {characterDetail.gender && (
                       <Badge variant="outline">{characterDetail.gender}</Badge>
                     )}
-                    {characterDetail.activePower && (
-                      <Badge>活跃力: {characterDetail.activePower}</Badge>
+                    {characterDetail.active_power && (
+                      <Badge>活跃力: {characterDetail.active_power}</Badge>
                     )}
                   </div>
                 </div>
@@ -895,24 +895,24 @@ export default function RoomPage() {
                 )}
 
                 {/* Rider Data */}
-                {characterDetail.riderData && (
+                {characterDetail.rider_data && (
                   <div>
                     <h4 className="font-semibold mb-2 flex items-center gap-2">
                       <Swords className="h-4 w-4" />
                       骑士系统
                     </h4>
                     <div className="space-y-1 text-sm">
-                      {characterDetail.riderData.riderSystem && (
-                        <div>系统: {characterDetail.riderData.riderSystem}</div>
+                      {characterDetail.rider_data.riderSystem && (
+                        <div>系统: {characterDetail.rider_data.riderSystem}</div>
                       )}
-                      {characterDetail.riderData.transformationItem && (
-                        <div>变身道具: {characterDetail.riderData.transformationItem}</div>
+                      {characterDetail.rider_data.transformationItem && (
+                        <div>变身道具: {characterDetail.rider_data.transformationItem}</div>
                       )}
-                      {characterDetail.riderData.transformationPhrase && (
-                        <div>变身口号: {characterDetail.riderData.transformationPhrase}</div>
+                      {characterDetail.rider_data.transformationPhrase && (
+                        <div>变身口号: {characterDetail.rider_data.transformationPhrase}</div>
                       )}
-                      {characterDetail.riderData.finisherMoves && characterDetail.riderData.finisherMoves.length > 0 && (
-                        <div>必杀技: {characterDetail.riderData.finisherMoves.join(', ')}</div>
+                      {characterDetail.rider_data.finisherMoves && characterDetail.rider_data.finisherMoves.length > 0 && (
+                        <div>必杀技: {characterDetail.rider_data.finisherMoves.join(', ')}</div>
                       )}
                     </div>
                   </div>
@@ -949,13 +949,13 @@ export default function RoomPage() {
                 )}
 
                 {/* Equipment */}
-                {characterDetail.otherEquipment && (
+                {characterDetail.other_equipment && (
                   <div>
                     <h4 className="font-semibold mb-2 flex items-center gap-2">
                       <Shield className="h-4 w-4" />
                       其他装备
                     </h4>
-                    <p className="text-sm text-muted-foreground">{characterDetail.otherEquipment}</p>
+                    <p className="text-sm text-muted-foreground">{characterDetail.other_equipment}</p>
                   </div>
                 )}
               </div>
