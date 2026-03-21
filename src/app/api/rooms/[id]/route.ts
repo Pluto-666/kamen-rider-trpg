@@ -15,10 +15,7 @@ export async function GET(
     // 获取房间信息
     const { data: room, error: roomError } = await supabase
       .from('rooms')
-      .select(`
-        *,
-        profiles:rooms_host_id_fkey(id, username, display_name, avatar)
-      `)
+      .select('*')
       .eq('id', id)
       .single();
 
@@ -26,21 +23,50 @@ export async function GET(
       return NextResponse.json({ error: '房间不存在' }, { status: 404 });
     }
 
+    // 获取房主信息
+    const { data: hostProfile } = await supabase
+      .from('profiles')
+      .select('id, username, display_name, avatar')
+      .eq('id', room.host_id)
+      .single();
+
     // 获取房间成员
     const { data: members } = await supabase
       .from('room_members')
-      .select(`
-        *,
-        profiles(id, username, display_name, avatar),
-        characters(id, name, title, attributes)
-      `)
+      .select('*')
       .eq('room_id', id);
+
+    // 获取成员的用户信息和角色卡
+    const memberUserIds = members?.map(m => m.user_id) || [];
+    const memberCharacterIds = members?.map(m => m.character_id).filter(Boolean) || [];
+
+    const { data: memberProfiles } = await supabase
+      .from('profiles')
+      .select('id, username, display_name, avatar')
+      .in('id', memberUserIds);
+
+    const { data: memberCharacters } = memberCharacterIds.length > 0 
+      ? await supabase
+          .from('characters')
+          .select('id, name, title, attributes')
+          .in('id', memberCharacterIds)
+      : { data: [] };
+
+    const profileMap = new Map(memberProfiles?.map(p => [p.id, p]));
+    const characterMap = new Map(memberCharacters?.map(c => [c.id, c]));
+
+    const membersWithDetails = members?.map(m => ({
+      ...m,
+      profiles: profileMap.get(m.user_id),
+      characters: m.character_id ? characterMap.get(m.character_id) : null,
+    }));
 
     return NextResponse.json({
       success: true,
       data: {
         ...room,
-        members: members || [],
+        profiles: hostProfile,
+        members: membersWithDetails || [],
       },
     });
   } catch (error) {
