@@ -39,30 +39,44 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    
+    // 支持两种命名格式：camelCase 和 snake_case
     const { 
       userId,
+      user_id,
       name,
       playerName,
+      player_name,
       imageUrl,
+      image_url,
       race = '人类',
       occupation,
       age,
       gender,
-      activePower = 5,
+      activePower,
+      active_power,
       attributes,
       fatePoints,
+      fate_points,
       weapons,
       armors,
       otherEquipment,
+      other_equipment,
       vehicle,
       configs,
       background,
       riderData,
+      rider_data,
       actionCards,
+      action_cards,
       episodes
     } = body;
 
-    if (!userId || !name) {
+    // 优先使用snake_case格式（与数据库一致）
+    const finalUserId = user_id || userId;
+    const finalName = name;
+    
+    if (!finalUserId || !finalName) {
       return NextResponse.json({ error: '缺少必要参数' }, { status: 400 });
     }
 
@@ -86,25 +100,25 @@ export async function POST(request: NextRequest) {
 
     const characterData = {
       id: crypto.randomUUID(),
-      user_id: userId,
-      name,
-      player_name: playerName || '匿名玩家',
-      image_url: imageUrl,
+      user_id: finalUserId,
+      name: finalName,
+      player_name: player_name || playerName || '匿名玩家',
+      image_url: image_url || imageUrl,
       race,
       occupation,
       age,
       gender,
-      active_power: activePower,
+      active_power: active_power || activePower || 5,
       attributes: attributes || defaultAttributes,
-      fate_points: fatePoints || { points: 0, history: [] },
+      fate_points: fate_points || fatePoints || { points: 0, history: [] },
       weapons: weapons || [],
       armors: armors || [],
-      other_equipment: otherEquipment,
+      other_equipment: other_equipment || otherEquipment,
       vehicle,
       configs: configs || [],
       background,
-      rider_data: riderData,
-      action_cards: actionCards || [],
+      rider_data: rider_data || riderData,
+      action_cards: action_cards || actionCards || [],
       episodes: episodes || [],
     };
 

@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { 
   Download, 
@@ -180,16 +181,27 @@ function extractCharacterFromChat(chatHistory: ChatMessage[]): Partial<Character
   
   const character: Partial<Character> = {};
   
-  // 提取角色名
-  const nameMatch = allText.match(/(?:角色名[：:]?\s*|名字[：:]?\s*|名称[：:]?\s*)([^\n，。！？]+)/);
-  if (nameMatch) character.name = nameMatch[1].trim();
+  // 提取角色名 - 更宽松的匹配
+  const namePatterns = [
+    /(?:角色名[：:]?\s*|名字[：:]?\s*|名称[：:]?\s*|我叫[：:]?\s*|名字是[：:]?\s*)([^\n，。！？]+)/,
+    /【已记录】[^】]*?[姓名][：:]\s*([^\n，。！？【】]+)/,
+    /好的[，,]?\s*(?:我记住了|记住)[：:]?\s*([^\n，。！？的]+?)(?:的|名字)/,
+    /(?:姓名|名称)[：:]\s*([^\n，。！？]+)/,
+  ];
+  for (const pattern of namePatterns) {
+    const match = allText.match(pattern);
+    if (match && match[1].trim().length > 0 && match[1].trim().length < 20) {
+      character.name = match[1].trim();
+      break;
+    }
+  }
   
   // 提取玩家名
   const playerMatch = allText.match(/(?:玩家名[：:]?\s*|玩家[：:]?\s*)([^\n，。！？]+)/);
   if (playerMatch) character.player_name = playerMatch[1].trim();
   
   // 提取年龄
-  const ageMatch = allText.match(/(?:年龄[：:]?\s*|岁[：:]?\s*)(\d+)/);
+  const ageMatch = allText.match(/(?:年龄[：:]?\s*|岁[：:]?\s*|今年[：:]?\s*)(\d+)/);
   if (ageMatch) character.age = parseInt(ageMatch[1]);
   
   // 提取性别
@@ -209,7 +221,7 @@ function extractCharacterFromChat(chatHistory: ChatMessage[]): Partial<Character
   if (bgMatch) character.background = bgMatch[1].trim();
   
   // 提取骑士系统
-  const riderMatch = allText.match(/(?:骑士系统[：:]?\s*|变身道具[：:]?\s*)([^\n，。！？]+)/);
+  const riderMatch = allText.match(/(?:骑士系统[：:]?\s*|变身道具[：:]?\s*|骑士称号[：:]?\s*)([^\n，。！？]+)/);
   if (riderMatch) {
     character.rider_data = {
       riderSystem: riderMatch[1].trim(),
@@ -241,6 +253,9 @@ export default function CharactersPage() {
   const [currentCharacterData, setCurrentCharacterData] = useState<Partial<Character>>({});
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null);
+  const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
+  const [pendingCharacterData, setPendingCharacterData] = useState<Partial<Character>>({});
+  const [editingName, setEditingName] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -371,9 +386,8 @@ export default function CharactersPage() {
     }
   };
 
-  // 保存角色卡
-  const handleSaveCharacter = async () => {
-    // 从对话中提取完整的角色信息
+  // 打开保存确认对话框
+  const openSaveConfirm = () => {
     const extractedData = extractCharacterFromChat(chatHistory);
     
     const characterToSave = {
@@ -382,10 +396,22 @@ export default function CharactersPage() {
       user_id: user?.id,
     };
     
-    if (!characterToSave.name) {
-      toast.error('请至少告诉AI你的角色名称');
+    setPendingCharacterData(characterToSave);
+    setEditingName(characterToSave.name || '');
+    setConfirmSaveOpen(true);
+  };
+
+  // 确认保存角色卡
+  const confirmSaveCharacter = async () => {
+    if (!editingName.trim()) {
+      toast.error('请输入角色名称');
       return;
     }
+    
+    const characterToSave = {
+      ...pendingCharacterData,
+      name: editingName.trim(),
+    };
 
     try {
       const response = await fetch('/api/characters', {
@@ -400,6 +426,7 @@ export default function CharactersPage() {
       if (response.ok) {
         const data = await response.json();
         toast.success('角色卡保存成功！');
+        setConfirmSaveOpen(false);
         setCreateDialogOpen(false);
         fetchCharacters();
       } else {
@@ -790,8 +817,8 @@ export default function CharactersPage() {
                   <Button 
                     variant="secondary"
                     size="sm"
-                    onClick={handleSaveCharacter}
-                    disabled={isStreaming || !currentCharacterData.name}
+                    onClick={openSaveConfirm}
+                    disabled={isStreaming || chatHistory.length < 2}
                   >
                     <Save className="mr-1 h-3 w-3" />
                     保存
@@ -986,6 +1013,75 @@ export default function CharactersPage() {
               </DialogFooter>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* 保存确认对话框 */}
+      <Dialog open={confirmSaveOpen} onOpenChange={setConfirmSaveOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>保存角色卡</DialogTitle>
+            <DialogDescription>
+              确认角色信息并保存
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">角色名称 *</label>
+              <Input
+                value={editingName}
+                onChange={(e) => setEditingName(e.target.value)}
+                placeholder="输入角色名称"
+              />
+            </div>
+            
+            {pendingCharacterData.race && (
+              <div className="text-sm">
+                <span className="text-muted-foreground">种族:</span> {pendingCharacterData.race}
+              </div>
+            )}
+            
+            {pendingCharacterData.age && (
+              <div className="text-sm">
+                <span className="text-muted-foreground">年龄:</span> {pendingCharacterData.age}
+              </div>
+            )}
+            
+            {pendingCharacterData.gender && (
+              <div className="text-sm">
+                <span className="text-muted-foreground">性别:</span> {pendingCharacterData.gender}
+              </div>
+            )}
+            
+            {pendingCharacterData.occupation && (
+              <div className="text-sm">
+                <span className="text-muted-foreground">职业:</span> {pendingCharacterData.occupation}
+              </div>
+            )}
+            
+            {pendingCharacterData.background && (
+              <div className="text-sm">
+                <span className="text-muted-foreground">背景:</span> {pendingCharacterData.background}
+              </div>
+            )}
+            
+            {pendingCharacterData.rider_data?.riderSystem && (
+              <div className="text-sm">
+                <span className="text-muted-foreground">骑士系统:</span> {pendingCharacterData.rider_data.riderSystem}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmSaveOpen(false)}>
+              取消
+            </Button>
+            <Button onClick={confirmSaveCharacter}>
+              <Save className="mr-1 h-3 w-3" />
+              确认保存
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
