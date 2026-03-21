@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -20,6 +20,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import {
   Select,
@@ -28,6 +29,59 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { 
+  User, 
+  Swords, 
+  Shield, 
+  Heart, 
+  Sparkles, 
+  Download,
+  Eye 
+} from 'lucide-react';
+
+interface Character {
+  id: string;
+  name: string;
+  title?: string;
+  playerName?: string;
+  race?: string;
+  occupation?: string;
+  age?: number;
+  gender?: string;
+  activePower?: number;
+  attributes?: {
+    body?: number;
+    bodyNormal?: number;
+    bodyTransform?: number;
+    athletics?: number;
+    athleticsNormal?: number;
+    athleticsTransform?: number;
+    dexterity?: number;
+    dexterityNormal?: number;
+    dexterityTransform?: number;
+    will?: number;
+    willNormal?: number;
+    willTransform?: number;
+    wit?: number;
+    witNormal?: number;
+    witTransform?: number;
+    movementNormal?: number;
+    movementTransform?: number;
+    initiativeNormal?: number;
+    initiativeTransform?: number;
+    totalHP?: number;
+    transformHP?: number;
+  };
+  riderData?: {
+    riderSystem?: string;
+    transformationItem?: string;
+    finisherMoves?: string[];
+    transformationPhrase?: string;
+  };
+  background?: string;
+  weapons?: Array<{ name: string; range?: string; hitTotal?: number; dpTotal?: number }>;
+  otherEquipment?: string;
+}
 
 interface RoomMember {
   id: string;
@@ -39,12 +93,7 @@ interface RoomMember {
     display_name?: string;
     avatar?: string;
   };
-  characters?: {
-    id: string;
-    name: string;
-    title?: string;
-    attributes: Record<string, number>;
-  };
+  characters?: Character;
 }
 
 interface Message {
@@ -89,6 +138,10 @@ export default function RoomPage() {
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
   const [selectedScenario, setSelectedScenario] = useState<string>('');
   const [isStartingGame, setIsStartingGame] = useState(false);
+  const [showCharacterDetail, setShowCharacterDetail] = useState(false);
+  const [selectedMember, setSelectedMember] = useState<RoomMember | null>(null);
+  const [characterDetail, setCharacterDetail] = useState<Character | null>(null);
+  const [isLoadingCharacter, setIsLoadingCharacter] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [sessionId, setSessionId] = useState<string>('');
@@ -220,14 +273,14 @@ export default function RoomPage() {
 
   const fetchCharacters = async () => {
     try {
-      const response = await fetch('/api/characters', {
+      const response = await fetch(`/api/characters?userId=${user?.id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
       if (response.ok) {
         const data = await response.json();
-        setCharacters(data.data || []);
+        setCharacters(data.characters || []);
       }
     } catch (error) {
       console.error('获取角色卡失败:', error);
@@ -242,6 +295,66 @@ export default function RoomPage() {
     } catch (error) {
       console.error('选择角色失败:', error);
       toast.error('选择角色失败');
+    }
+  };
+
+  const handleViewCharacter = async (member: RoomMember) => {
+    if (!member.character_id) {
+      toast.error('该成员未选择角色');
+      return;
+    }
+
+    setIsLoadingCharacter(true);
+    setSelectedMember(member);
+    setShowCharacterDetail(true);
+
+    try {
+      const response = await fetch(`/api/characters/${member.character_id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setCharacterDetail(data.character);
+      } else {
+        toast.error('获取角色信息失败');
+      }
+    } catch (error) {
+      console.error('获取角色详情失败:', error);
+      toast.error('获取角色信息失败');
+    } finally {
+      setIsLoadingCharacter(false);
+    }
+  };
+
+  const handleExportCharacter = async (characterId: string) => {
+    try {
+      const response = await fetch(`/api/characters/${characterId}/export`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('导出失败');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `character_sheet.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast.success('角色卡导出成功！');
+    } catch (error) {
+      console.error('导出角色卡失败:', error);
+      toast.error('导出失败');
     }
   };
 
@@ -440,7 +553,7 @@ export default function RoomPage() {
                   {members.map((member) => (
                     <div
                       key={member.id}
-                      className="flex items-center gap-2 p-2 rounded bg-muted/50"
+                      className="flex items-center gap-2 p-2 rounded bg-muted/50 hover:bg-muted transition-colors"
                     >
                       <Avatar className="h-8 w-8">
                         <AvatarFallback>
@@ -457,9 +570,22 @@ export default function RoomPage() {
                           </div>
                         )}
                       </div>
-                      {member.user_id === room?.host_id && (
-                        <Badge variant="outline" className="text-xs">房主</Badge>
-                      )}
+                      <div className="flex items-center gap-1">
+                        {member.character_id && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={() => handleViewCharacter(member)}
+                            title="查看角色卡"
+                          >
+                            <Eye className="h-3 w-3" />
+                          </Button>
+                        )}
+                        {member.user_id === room?.host_id && (
+                          <Badge variant="outline" className="text-xs">房主</Badge>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -662,6 +788,195 @@ export default function RoomPage() {
           <Button onClick={handleSelectScenario} disabled={!selectedScenario} className="w-full">
             开始游戏
           </Button>
+        </DialogContent>
+      </Dialog>
+
+      {/* Character Detail Dialog */}
+      <Dialog open={showCharacterDetail} onOpenChange={setShowCharacterDetail}>
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+          {isLoadingCharacter ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          ) : characterDetail ? (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Avatar className="h-10 w-10">
+                    <AvatarFallback>{characterDetail.name?.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  {characterDetail.name}
+                </DialogTitle>
+                <DialogDescription>
+                  {characterDetail.playerName && `玩家: ${characterDetail.playerName}`}
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-6">
+                {/* Basic Info */}
+                <div>
+                  <h4 className="font-semibold mb-2 flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    基本信息
+                  </h4>
+                  <div className="flex flex-wrap gap-2">
+                    {characterDetail.race && (
+                      <Badge variant="secondary">种族: {characterDetail.race}</Badge>
+                    )}
+                    {characterDetail.occupation && (
+                      <Badge variant="outline">职业: {characterDetail.occupation}</Badge>
+                    )}
+                    {characterDetail.age && (
+                      <Badge variant="outline">{characterDetail.age}岁</Badge>
+                    )}
+                    {characterDetail.gender && (
+                      <Badge variant="outline">{characterDetail.gender}</Badge>
+                    )}
+                    {characterDetail.activePower && (
+                      <Badge>活跃力: {characterDetail.activePower}</Badge>
+                    )}
+                  </div>
+                </div>
+
+                {/* Attributes */}
+                {characterDetail.attributes && (
+                  <div>
+                    <h4 className="font-semibold mb-2">能力值（通常 / 变身后）</h4>
+                    <div className="grid grid-cols-5 gap-2 text-center text-sm">
+                      {[
+                        { name: '肉体', normal: characterDetail.attributes.bodyNormal, transform: characterDetail.attributes.bodyTransform },
+                        { name: '运动', normal: characterDetail.attributes.athleticsNormal, transform: characterDetail.attributes.athleticsTransform },
+                        { name: '器用', normal: characterDetail.attributes.dexterityNormal, transform: characterDetail.attributes.dexterityTransform },
+                        { name: '意志', normal: characterDetail.attributes.willNormal, transform: characterDetail.attributes.willTransform },
+                        { name: '机知', normal: characterDetail.attributes.witNormal, transform: characterDetail.attributes.witTransform },
+                      ].map((attr) => (
+                        <div key={attr.name} className="p-2 bg-muted rounded">
+                          <div className="text-muted-foreground">{attr.name}</div>
+                          <div className="font-bold">{attr.normal || 0}</div>
+                          <div className="text-xs text-primary">变身: {attr.transform || 0}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Secondary Attributes */}
+                {characterDetail.attributes && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <h4 className="font-semibold mb-2">移动力</h4>
+                      <div className="text-sm">
+                        通常: {characterDetail.attributes.movementNormal || 0} / 
+                        变身: {characterDetail.attributes.movementTransform || 0}
+                      </div>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold mb-2">先制力</h4>
+                      <div className="text-sm">
+                        通常: {characterDetail.attributes.initiativeNormal || 0} / 
+                        变身: {characterDetail.attributes.initiativeTransform || 0}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* HP */}
+                {characterDetail.attributes && (
+                  <div>
+                    <h4 className="font-semibold mb-2 flex items-center gap-2">
+                      <Heart className="h-4 w-4 text-red-500" />
+                      HP
+                    </h4>
+                    <div className="text-sm">
+                      通常: {characterDetail.attributes.totalHP || 0} / 
+                      变身: {characterDetail.attributes.transformHP || 0}
+                    </div>
+                  </div>
+                )}
+
+                {/* Rider Data */}
+                {characterDetail.riderData && (
+                  <div>
+                    <h4 className="font-semibold mb-2 flex items-center gap-2">
+                      <Swords className="h-4 w-4" />
+                      骑士系统
+                    </h4>
+                    <div className="space-y-1 text-sm">
+                      {characterDetail.riderData.riderSystem && (
+                        <div>系统: {characterDetail.riderData.riderSystem}</div>
+                      )}
+                      {characterDetail.riderData.transformationItem && (
+                        <div>变身道具: {characterDetail.riderData.transformationItem}</div>
+                      )}
+                      {characterDetail.riderData.transformationPhrase && (
+                        <div>变身口号: {characterDetail.riderData.transformationPhrase}</div>
+                      )}
+                      {characterDetail.riderData.finisherMoves && characterDetail.riderData.finisherMoves.length > 0 && (
+                        <div>必杀技: {characterDetail.riderData.finisherMoves.join(', ')}</div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Background */}
+                {characterDetail.background && (
+                  <div>
+                    <h4 className="font-semibold mb-2">背景故事</h4>
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                      {characterDetail.background}
+                    </p>
+                  </div>
+                )}
+
+                {/* Weapons */}
+                {characterDetail.weapons && characterDetail.weapons.length > 0 && (
+                  <div>
+                    <h4 className="font-semibold mb-2 flex items-center gap-2">
+                      <Swords className="h-4 w-4" />
+                      武器
+                    </h4>
+                    <div className="space-y-2">
+                      {characterDetail.weapons.map((weapon, idx) => (
+                        <div key={idx} className="p-2 bg-muted rounded text-sm">
+                          <div className="font-medium">{weapon.name}</div>
+                          <div className="text-muted-foreground">
+                            射程: {weapon.range} | 命中: {weapon.hitTotal} | DP: {weapon.dpTotal}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Equipment */}
+                {characterDetail.otherEquipment && (
+                  <div>
+                    <h4 className="font-semibold mb-2 flex items-center gap-2">
+                      <Shield className="h-4 w-4" />
+                      其他装备
+                    </h4>
+                    <p className="text-sm text-muted-foreground">{characterDetail.otherEquipment}</p>
+                  </div>
+                )}
+              </div>
+
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowCharacterDetail(false)}>
+                  关闭
+                </Button>
+                <Button onClick={() => {
+                  handleExportCharacter(characterDetail.id);
+                }}>
+                  <Download className="mr-2 h-4 w-4" />
+                  导出xlsx
+                </Button>
+              </DialogFooter>
+            </>
+          ) : (
+            <div className="text-center py-12 text-muted-foreground">
+              未找到角色信息
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

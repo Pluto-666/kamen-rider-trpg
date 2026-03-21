@@ -6,13 +6,13 @@ import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -25,42 +25,206 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Input } from '@/components/ui/input';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { 
+  Download, 
+  Trash2, 
+  MoreVertical, 
+  Save, 
+  User, 
+  Swords, 
+  Shield,
+  Heart,
+  Sparkles,
+} from 'lucide-react';
 
+// 角色卡类型定义（与数据库schema一致）
 interface Character {
   id: string;
+  userId: string;
   name: string;
-  title?: string;
+  playerName?: string;
+  imageUrl?: string;
+  race: string;
+  occupation?: string;
   age?: number;
   gender?: string;
-  background?: string;
+  activePower: number;
   attributes: {
-    strength: number;
+    // 主能力值
+    body: number;
+    bodyRace: number;
+    bodyJob: number;
+    bodyNormal: number;
+    bodyTransform: number;
+    athletics: number;
+    athleticsRace: number;
+    athleticsJob: number;
+    athleticsNormal: number;
+    athleticsTransform: number;
     dexterity: number;
-    constitution: number;
-    intelligence: number;
-    wisdom: number;
-    charisma: number;
-    hp: number;
-    maxHp: number;
-    mp: number;
-    maxMp: number;
+    dexterityRace: number;
+    dexterityJob: number;
+    dexterityNormal: number;
+    dexterityTransform: number;
+    will: number;
+    willRace: number;
+    willJob: number;
+    willNormal: number;
+    willTransform: number;
+    wit: number;
+    witRace: number;
+    witJob: number;
+    witNormal: number;
+    witTransform: number;
+    // 副能力值
+    movement: number;
+    movementRace: number;
+    movementJob: number;
+    movementNormal: number;
+    movementTransform: number;
+    movementBonus: number;
+    initiative: number;
+    initiativeRace: number;
+    initiativeJob: number;
+    initiativeNormal: number;
+    initiativeTransform: number;
+    initiativeBonus: number;
+    // HP
+    additionalHP: number;
+    bodyHP: number;
+    totalHP: number;
+    transformHP: number;
   };
-  skills?: Array<{ name: string; level: number; description: string }>;
+  fatePoints?: {
+    points: number;
+    history: string[];
+  };
+  weapons?: Array<{
+    name: string;
+    range: string;
+    hit: number;
+    hitBonus: number;
+    hitTotal: number;
+    dp: number;
+    dpBonus: number;
+    dpTotal: number;
+    attribute: string;
+    uses: number;
+    note: string;
+  }>;
+  armors?: Array<{
+    name: string;
+    dodge: number;
+    dodgeBonus: number;
+    dodgeTotal: number;
+    parry: number;
+    parryBonus: number;
+    parryTotal: number;
+    additionalHP: number;
+    fixed: boolean;
+    note: string;
+  }>;
+  otherEquipment?: string;
+  vehicle?: {
+    name: string;
+    movement: number;
+    hp: number;
+    passengers: number;
+    dodge: number;
+    parry: number;
+    fatePoints: number;
+  };
+  configs?: Array<{
+    category: string;
+    name: string;
+    level: number;
+    reference: string;
+  }>;
+  background?: string;
   riderData?: {
     riderSystem: string;
     transformationItem: string;
     finisherMoves: string[];
     specialAbilities: string[];
+    transformationPhrase?: string;
   };
-  created_at: string;
+  actionCards?: Array<{
+    type: string;
+    category: string;
+    name: string;
+    cards: number;
+    used: boolean;
+    description: string;
+  }>;
+  episodes?: Array<{
+    episode: number;
+    title: string;
+    summary: string;
+  }>;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
+}
+
+// 从对话中提取角色数据
+function extractCharacterFromChat(chatHistory: ChatMessage[]): Partial<Character> {
+  const allText = chatHistory.map(m => m.content).join('\n');
+  
+  const character: Partial<Character> = {};
+  
+  // 提取角色名
+  const nameMatch = allText.match(/(?:角色名[：:]?\s*|名字[：:]?\s*|名称[：:]?\s*)([^\n，。！？]+)/);
+  if (nameMatch) character.name = nameMatch[1].trim();
+  
+  // 提取玩家名
+  const playerMatch = allText.match(/(?:玩家名[：:]?\s*|玩家[：:]?\s*)([^\n，。！？]+)/);
+  if (playerMatch) character.playerName = playerMatch[1].trim();
+  
+  // 提取年龄
+  const ageMatch = allText.match(/(?:年龄[：:]?\s*|岁[：:]?\s*)(\d+)/);
+  if (ageMatch) character.age = parseInt(ageMatch[1]);
+  
+  // 提取性别
+  const genderMatch = allText.match(/(?:性别[：:]?\s*)(男|女|其他)/);
+  if (genderMatch) character.gender = genderMatch[1];
+  
+  // 提取种族
+  const raceMatch = allText.match(/(?:种族[：:]?\s*)([^\n，。！？]+)/);
+  if (raceMatch) character.race = raceMatch[1].trim();
+  
+  // 提取职业
+  const jobMatch = allText.match(/(?:职业[：:]?\s*|工作[：:]?\s*)([^\n，。！？]+)/);
+  if (jobMatch) character.occupation = jobMatch[1].trim();
+  
+  // 提取背景故事
+  const bgMatch = allText.match(/(?:背景[：:]?\s*|故事[：:]?\s*|背景故事[：:]?\s*)([^\n]+(?:\n[^\n]+)*)/);
+  if (bgMatch) character.background = bgMatch[1].trim();
+  
+  // 提取骑士系统
+  const riderMatch = allText.match(/(?:骑士系统[：:]?\s*|变身道具[：:]?\s*)([^\n，。！？]+)/);
+  if (riderMatch) {
+    character.riderData = {
+      riderSystem: riderMatch[1].trim(),
+      transformationItem: '',
+      finisherMoves: [],
+      specialAbilities: [],
+    };
+  }
+  
+  // 提取必杀技
+  const finisherMatch = allText.match(/(?:必杀技[：:]?\s*)([^\n，。！？]+)/);
+  if (finisherMatch && character.riderData) {
+    character.riderData.finisherMoves = [finisherMatch[1].trim()];
+  }
+  
+  return character;
 }
 
 export default function CharactersPage() {
@@ -70,10 +234,12 @@ export default function CharactersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [userInput, setUserInput] = useState('');
-  const [characterData, setCharacterData] = useState<Partial<Character>>({});
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [currentResponse, setCurrentResponse] = useState('');
+  const [currentCharacterData, setCurrentCharacterData] = useState<Partial<Character>>({});
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+  const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -89,7 +255,6 @@ export default function CharactersPage() {
   }, [isAuthenticated, token]);
 
   useEffect(() => {
-    // 自动滚动到底部
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
@@ -97,14 +262,14 @@ export default function CharactersPage() {
 
   const fetchCharacters = async () => {
     try {
-      const response = await fetch('/api/characters', {
+      const response = await fetch(`/api/characters?userId=${user?.id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
       if (response.ok) {
         const data = await response.json();
-        setCharacters(data.data || []);
+        setCharacters(data.characters || []);
       }
     } catch (error) {
       console.error('获取角色卡失败:', error);
@@ -116,7 +281,7 @@ export default function CharactersPage() {
 
   const handleStartCreation = () => {
     setCreateDialogOpen(true);
-    setCharacterData({});
+    setCurrentCharacterData({});
     setUserInput('');
     setChatHistory([]);
     setCurrentResponse('');
@@ -128,7 +293,6 @@ export default function CharactersPage() {
     const userMessage = userInput.trim();
     setUserInput('');
     
-    // 添加用户消息到历史
     const newUserHistory = [...chatHistory, { role: 'user' as const, content: userMessage }];
     setChatHistory(newUserHistory);
     setIsStreaming(true);
@@ -142,7 +306,7 @@ export default function CharactersPage() {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({
-          characterData,
+          characterData: currentCharacterData,
           dialogHistory: newUserHistory,
           userMessage,
         }),
@@ -180,6 +344,9 @@ export default function CharactersPage() {
                 fullResponse += parsed.content;
                 setCurrentResponse(fullResponse);
               }
+              if (parsed.type === 'character_data') {
+                setCurrentCharacterData(parsed.data);
+              }
               if (parsed.error) {
                 toast.error(parsed.error);
               }
@@ -190,7 +357,6 @@ export default function CharactersPage() {
         }
       }
 
-      // 添加AI回复到历史
       if (fullResponse) {
         setChatHistory(prev => [...prev, { role: 'assistant', content: fullResponse }]);
       }
@@ -206,34 +372,38 @@ export default function CharactersPage() {
 
   // 保存角色卡
   const handleSaveCharacter = async () => {
-    // 从对话中提取角色信息并保存
+    // 从对话中提取完整的角色信息
+    const extractedData = extractCharacterFromChat(chatHistory);
+    
+    const characterToSave = {
+      ...currentCharacterData,
+      ...extractedData,
+      userId: user?.id,
+    };
+    
+    if (!characterToSave.name) {
+      toast.error('请至少告诉AI你的角色名称');
+      return;
+    }
+
     try {
-      // 这里可以解析对话历史来提取角色信息
-      // 或者让用户手动填写
       const response = await fetch('/api/characters', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          name: characterData.name || '未命名角色',
-          title: characterData.title,
-          age: characterData.age,
-          gender: characterData.gender,
-          background: characterData.background,
-          attributes: characterData.attributes || {
-            strength: 10, dexterity: 10, constitution: 10,
-            intelligence: 10, wisdom: 10, charisma: 10,
-            hp: 10, maxHp: 10, mp: 10, maxMp: 10,
-          },
-        }),
+        body: JSON.stringify(characterToSave),
       });
 
       if (response.ok) {
-        toast.success('角色卡保存成功');
+        const data = await response.json();
+        toast.success('角色卡保存成功！');
         setCreateDialogOpen(false);
         fetchCharacters();
+      } else {
+        const error = await response.json();
+        toast.error(error.error || '保存失败');
       }
     } catch (error) {
       console.error('保存角色卡失败:', error);
@@ -245,7 +415,7 @@ export default function CharactersPage() {
     if (!confirm('确定要删除这个角色卡吗？')) return;
 
     try {
-      const response = await fetch(`/api/characters/${characterId}`, {
+      const response = await fetch(`/api/characters/${characterId}?userId=${user?.id}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -264,35 +434,54 @@ export default function CharactersPage() {
     }
   };
 
+  // 导出角色卡为xlsx
+  const handleExportCharacter = async (characterId: string) => {
+    try {
+      const response = await fetch(`/api/characters/${characterId}/export`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('导出失败');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `character_sheet.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast.success('角色卡导出成功！');
+    } catch (error) {
+      console.error('导出角色卡失败:', error);
+      toast.error('导出失败');
+    }
+  };
+
+  const handleViewCharacter = (character: Character) => {
+    setSelectedCharacter(character);
+    setDetailDialogOpen(true);
+  };
+
   const handleLogout = async () => {
     await logout();
     router.push('/');
   };
 
-  const getAttributeName = (attr: string) => {
-    const names: Record<string, string> = {
-      strength: '力量',
-      dexterity: '敏捷',
-      constitution: '体质',
-      intelligence: '智力',
-      wisdom: '感知',
-      charisma: '魅力',
-      hp: '生命值',
-      maxHp: '最大HP',
-      mp: '精神力',
-      maxMp: '最大MP',
-    };
-    return names[attr] || attr;
-  };
-
-  const getAttributeModifier = (value: number) => {
+  const getAttributeDisplay = (value: number) => {
     const modifier = Math.floor((value - 10) / 2);
-    return modifier >= 0 ? `+${modifier}` : `${modifier}`;
+    return `${value} (${modifier >= 0 ? '+' : ''}${modifier})`;
   };
 
   if (authLoading || !isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
           <p className="mt-4 text-muted-foreground">加载中...</p>
@@ -304,9 +493,10 @@ export default function CharactersPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b bg-card">
+      <header className="border-b bg-card sticky top-0 z-40">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/lobby">
+          <Link href="/lobby" className="flex items-center gap-2">
+            <Swords className="h-6 w-6 text-primary" />
             <h1 className="text-2xl font-bold hover:text-primary transition-colors cursor-pointer">
               假面骑士 TRPG
             </h1>
@@ -321,11 +511,12 @@ export default function CharactersPage() {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="flex items-center gap-2">
                   <Avatar className="h-8 w-8">
+                    <AvatarImage src={profile?.avatar} />
                     <AvatarFallback>
                       {profile?.username?.charAt(0).toUpperCase() || 'U'}
                     </AvatarFallback>
                   </Avatar>
-                  <span>{profile?.username || profile?.display_name || '用户'}</span>
+                  <span className="hidden sm:inline">{profile?.username || profile?.display_name || '用户'}</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -349,6 +540,7 @@ export default function CharactersPage() {
           </div>
 
           <Button onClick={handleStartCreation} size="lg">
+            <User className="mr-2 h-4 w-4" />
             创建新角色
           </Button>
         </div>
@@ -362,6 +554,7 @@ export default function CharactersPage() {
         ) : characters.length === 0 ? (
           <Card className="text-center py-12">
             <CardContent>
+              <User className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
               <p className="text-muted-foreground mb-4">你还没有创建任何角色卡</p>
               <Button onClick={handleStartCreation}>创建第一个角色</Button>
             </CardContent>
@@ -369,23 +562,52 @@ export default function CharactersPage() {
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {characters.map((character) => (
-              <Card key={character.id} className="hover:shadow-lg transition-shadow">
+              <Card 
+                key={character.id} 
+                className="hover:shadow-lg transition-all cursor-pointer group"
+                onClick={() => handleViewCharacter(character)}
+              >
                 <CardHeader>
                   <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="text-xl">{character.name}</CardTitle>
-                      {character.title && (
-                        <CardDescription className="text-base">
-                          {character.title}
-                        </CardDescription>
-                      )}
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-12 w-12">
+                        <AvatarImage src={character.imageUrl} />
+                        <AvatarFallback className="bg-primary/10 text-primary">
+                          {character.name?.charAt(0)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <CardTitle className="text-xl">{character.name}</CardTitle>
+                        {character.playerName && (
+                          <CardDescription className="text-sm">
+                            玩家: {character.playerName}
+                          </CardDescription>
+                        )}
+                      </div>
                     </div>
                     <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm">...</Button>
+                      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                        <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent>
-                        <DropdownMenuItem onClick={() => handleDeleteCharacter(character.id)}>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={(e) => {
+                          e.stopPropagation();
+                          handleExportCharacter(character.id);
+                        }}>
+                          <Download className="mr-2 h-4 w-4" />
+                          导出xlsx
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteCharacter(character.id);
+                          }}
+                          className="text-destructive"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
                           删除角色
                         </DropdownMenuItem>
                       </DropdownMenuContent>
@@ -394,51 +616,56 @@ export default function CharactersPage() {
                 </CardHeader>
                 <CardContent>
                   {/* Basic Info */}
-                  <div className="flex gap-4 mb-4 text-sm text-muted-foreground">
-                    {character.age && <span>年龄: {character.age}</span>}
-                    {character.gender && <span>性别: {character.gender}</span>}
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {character.race && (
+                      <Badge variant="secondary">{character.race}</Badge>
+                    )}
+                    {character.occupation && (
+                      <Badge variant="outline">{character.occupation}</Badge>
+                    )}
+                    {character.age && (
+                      <Badge variant="outline">{character.age}岁</Badge>
+                    )}
+                    {character.gender && (
+                      <Badge variant="outline">{character.gender}</Badge>
+                    )}
                   </div>
 
-                  {/* Attributes */}
-                  <div className="grid grid-cols-3 gap-2 mb-4">
-                    {['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'].map((attr) => (
-                      <div key={attr} className="text-center p-2 bg-muted rounded">
-                        <div className="text-xs text-muted-foreground">{getAttributeName(attr)}</div>
-                        <div className="font-bold">
-                          {character.attributes?.[attr as keyof typeof character.attributes] || 10}
-                        </div>
-                        <div className="text-xs text-primary">
-                          {getAttributeModifier(character.attributes?.[attr as keyof typeof character.attributes] || 10)}
-                        </div>
+                  {/* Attributes Summary */}
+                  <div className="grid grid-cols-5 gap-1 mb-4 text-xs">
+                    {[
+                      { name: '肉体', value: character.attributes?.bodyNormal || 0 },
+                      { name: '运动', value: character.attributes?.athleticsNormal || 0 },
+                      { name: '器用', value: character.attributes?.dexterityNormal || 0 },
+                      { name: '意志', value: character.attributes?.willNormal || 0 },
+                      { name: '机知', value: character.attributes?.witNormal || 0 },
+                    ].map((attr) => (
+                      <div key={attr.name} className="text-center p-1.5 bg-muted rounded">
+                        <div className="text-muted-foreground">{attr.name}</div>
+                        <div className="font-bold text-sm">{attr.value}</div>
                       </div>
                     ))}
                   </div>
 
-                  {/* HP/MP */}
-                  <div className="flex gap-4 mb-4">
-                    <div className="flex-1">
-                      <div className="text-xs text-muted-foreground">HP</div>
-                      <div className="font-medium">
-                        {character.attributes?.hp || 0}/{character.attributes?.maxHp || 0}
-                      </div>
-                    </div>
-                    <div className="flex-1">
-                      <div className="text-xs text-muted-foreground">MP</div>
-                      <div className="font-medium">
-                        {character.attributes?.mp || 0}/{character.attributes?.maxMp || 0}
-                      </div>
-                    </div>
+                  {/* HP */}
+                  <div className="flex items-center gap-2 text-sm">
+                    <Heart className="h-4 w-4 text-red-500" />
+                    <span>HP: {character.attributes?.totalHP || 0}</span>
+                    {character.activePower && (
+                      <>
+                        <Separator orientation="vertical" className="h-4" />
+                        <Sparkles className="h-4 w-4 text-yellow-500" />
+                        <span>活跃力: {character.activePower}</span>
+                      </>
+                    )}
                   </div>
 
-                  {/* Rider Data */}
-                  {character.riderData && (
-                    <>
-                      <Separator className="my-3" />
-                      <div className="text-sm">
-                        <div className="font-medium mb-1">骑士系统</div>
-                        <div className="text-muted-foreground">{character.riderData.riderSystem}</div>
-                      </div>
-                    </>
+                  {/* Rider System */}
+                  {character.riderData?.riderSystem && (
+                    <div className="mt-3 text-sm text-muted-foreground">
+                      <Swords className="h-4 w-4 inline mr-1" />
+                      {character.riderData.riderSystem}
+                    </div>
                   )}
                 </CardContent>
               </Card>
@@ -449,58 +676,92 @@ export default function CharactersPage() {
 
       {/* AI Character Creation Dialog */}
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-        <DialogContent className="sm:max-w-3xl max-h-[90vh]">
+        <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col">
           <DialogHeader>
-            <DialogTitle>🎭 AI角色创建助手</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              AI角色创建助手
+            </DialogTitle>
             <DialogDescription>
               和AI一起创建你的假面骑士角色，AI会记住你说的所有信息
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex flex-col h-[60vh]">
+          <div className="flex-1 min-h-0 flex flex-col">
             {/* Chat History */}
-            <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 bg-muted/30 rounded-lg mb-4 space-y-4">
-              {chatHistory.length === 0 && !currentResponse && (
-                <div className="text-center text-muted-foreground py-8">
-                  <p className="text-lg mb-2">👋 欢迎来到角色创建！</p>
-                  <p>请告诉我你想创建什么样的假面骑士角色？</p>
-                  <p className="text-sm mt-2">例如：我想创建一个假面骑士，名字叫...</p>
-                </div>
-              )}
-              
-              {chatHistory.map((msg, index) => (
-                <div
-                  key={index}
-                  className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div
-                    className={`max-w-[80%] p-3 rounded-lg ${
-                      msg.role === 'user'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-card border'
-                    }`}
-                  >
-                    {msg.role === 'assistant' && (
-                      <div className="text-xs text-muted-foreground mb-1 font-medium">🎭 DM</div>
-                    )}
-                    <div className="whitespace-pre-wrap">{msg.content}</div>
+            <ScrollArea className="flex-1 p-4 bg-muted/30 rounded-lg mb-4" ref={scrollRef}>
+              <div className="space-y-4">
+                {chatHistory.length === 0 && !currentResponse && (
+                  <div className="text-center text-muted-foreground py-8">
+                    <p className="text-lg mb-2">👋 欢迎来到角色创建！</p>
+                    <p>请告诉我你想创建什么样的假面骑士角色？</p>
+                    <p className="text-sm mt-2">例如：我想创建一个假面骑士，名字叫...</p>
                   </div>
-                </div>
-              ))}
-              
-              {/* 当前正在生成的回复 */}
-              {currentResponse && (
-                <div className="flex justify-start">
-                  <div className="max-w-[80%] p-3 rounded-lg bg-card border">
-                    <div className="text-xs text-muted-foreground mb-1 font-medium">🎭 DM</div>
-                    <div className="whitespace-pre-wrap">
-                      {currentResponse}
-                      <span className="animate-pulse">▌</span>
+                )}
+                
+                {chatHistory.map((msg, index) => (
+                  <div
+                    key={index}
+                    className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div
+                      className={`max-w-[80%] p-3 rounded-lg ${
+                        msg.role === 'user'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-card border'
+                      }`}
+                    >
+                      {msg.role === 'assistant' && (
+                        <div className="text-xs text-muted-foreground mb-1 font-medium flex items-center gap-1">
+                          <Sparkles className="h-3 w-3" />
+                          DM
+                        </div>
+                      )}
+                      <div className="whitespace-pre-wrap">{msg.content}</div>
                     </div>
                   </div>
+                ))}
+                
+                {currentResponse && (
+                  <div className="flex justify-start">
+                    <div className="max-w-[80%] p-3 rounded-lg bg-card border">
+                      <div className="text-xs text-muted-foreground mb-1 font-medium flex items-center gap-1">
+                        <Sparkles className="h-3 w-3" />
+                        DM
+                      </div>
+                      <div className="whitespace-pre-wrap">
+                        {currentResponse}
+                        <span className="animate-pulse">▌</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
+
+            {/* Current Character Data */}
+            {Object.keys(currentCharacterData).length > 0 && (
+              <div className="mb-4 p-3 bg-primary/5 rounded-lg border">
+                <div className="text-xs font-medium text-muted-foreground mb-2">当前角色信息</div>
+                <div className="flex flex-wrap gap-2">
+                  {currentCharacterData.name && (
+                    <Badge>姓名: {currentCharacterData.name}</Badge>
+                  )}
+                  {currentCharacterData.age && (
+                    <Badge variant="secondary">年龄: {currentCharacterData.age}</Badge>
+                  )}
+                  {currentCharacterData.gender && (
+                    <Badge variant="secondary">性别: {currentCharacterData.gender}</Badge>
+                  )}
+                  {currentCharacterData.race && (
+                    <Badge variant="outline">种族: {currentCharacterData.race}</Badge>
+                  )}
+                  {currentCharacterData.occupation && (
+                    <Badge variant="outline">职业: {currentCharacterData.occupation}</Badge>
+                  )}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
 
             {/* Input Area */}
             <div className="space-y-3">
@@ -519,22 +780,205 @@ export default function CharactersPage() {
               />
               <div className="flex justify-between items-center">
                 <p className="text-xs text-muted-foreground">
-                  提示：告诉AI你的角色名称、称号、背景、属性等信息
+                  告诉AI你的角色名称、年龄、性别、背景等信息
                 </p>
                 <div className="flex gap-2">
                   <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
                     取消
                   </Button>
                   <Button 
+                    variant="secondary"
+                    onClick={handleSaveCharacter}
+                    disabled={isStreaming || !currentCharacterData.name}
+                  >
+                    <Save className="mr-2 h-4 w-4" />
+                    保存角色
+                  </Button>
+                  <Button 
                     onClick={handleSendMessage} 
                     disabled={isStreaming || !userInput.trim()}
                   >
-                    {isStreaming ? 'AI思考中...' : '发送'}
+                    {isStreaming ? '思考中...' : '发送'}
                   </Button>
                 </div>
               </div>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Character Detail Dialog */}
+      <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+          {selectedCharacter && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Avatar className="h-10 w-10">
+                    <AvatarImage src={selectedCharacter.imageUrl} />
+                    <AvatarFallback>{selectedCharacter.name?.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  {selectedCharacter.name}
+                </DialogTitle>
+                <DialogDescription>
+                  {selectedCharacter.playerName && `玩家: ${selectedCharacter.playerName}`}
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-6">
+                {/* Basic Info */}
+                <div>
+                  <h4 className="font-semibold mb-2 flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    基本信息
+                  </h4>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedCharacter.race && (
+                      <Badge variant="secondary">种族: {selectedCharacter.race}</Badge>
+                    )}
+                    {selectedCharacter.occupation && (
+                      <Badge variant="outline">职业: {selectedCharacter.occupation}</Badge>
+                    )}
+                    {selectedCharacter.age && (
+                      <Badge variant="outline">{selectedCharacter.age}岁</Badge>
+                    )}
+                    {selectedCharacter.gender && (
+                      <Badge variant="outline">{selectedCharacter.gender}</Badge>
+                    )}
+                    {selectedCharacter.activePower && (
+                      <Badge>活跃力: {selectedCharacter.activePower}</Badge>
+                    )}
+                  </div>
+                </div>
+
+                {/* Attributes */}
+                <div>
+                  <h4 className="font-semibold mb-2">能力值（通常 / 变身后）</h4>
+                  <div className="grid grid-cols-5 gap-2 text-center text-sm">
+                    {[
+                      { name: '肉体', normal: selectedCharacter.attributes?.bodyNormal, transform: selectedCharacter.attributes?.bodyTransform },
+                      { name: '运动', normal: selectedCharacter.attributes?.athleticsNormal, transform: selectedCharacter.attributes?.athleticsTransform },
+                      { name: '器用', normal: selectedCharacter.attributes?.dexterityNormal, transform: selectedCharacter.attributes?.dexterityTransform },
+                      { name: '意志', normal: selectedCharacter.attributes?.willNormal, transform: selectedCharacter.attributes?.willTransform },
+                      { name: '机知', normal: selectedCharacter.attributes?.witNormal, transform: selectedCharacter.attributes?.witTransform },
+                    ].map((attr) => (
+                      <div key={attr.name} className="p-2 bg-muted rounded">
+                        <div className="text-muted-foreground">{attr.name}</div>
+                        <div className="font-bold">{attr.normal || 0}</div>
+                        <div className="text-xs text-primary">变身: {attr.transform || 0}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Secondary Attributes */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <h4 className="font-semibold mb-2">移动力</h4>
+                    <div className="text-sm">
+                      通常: {selectedCharacter.attributes?.movementNormal || 0} / 
+                      变身: {selectedCharacter.attributes?.movementTransform || 0}
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold mb-2">先制力</h4>
+                    <div className="text-sm">
+                      通常: {selectedCharacter.attributes?.initiativeNormal || 0} / 
+                      变身: {selectedCharacter.attributes?.initiativeTransform || 0}
+                    </div>
+                  </div>
+                </div>
+
+                {/* HP */}
+                <div>
+                  <h4 className="font-semibold mb-2 flex items-center gap-2">
+                    <Heart className="h-4 w-4 text-red-500" />
+                    HP
+                  </h4>
+                  <div className="text-sm">
+                    通常: {selectedCharacter.attributes?.totalHP || 0} / 
+                    变身: {selectedCharacter.attributes?.transformHP || 0}
+                  </div>
+                </div>
+
+                {/* Rider Data */}
+                {selectedCharacter.riderData && (
+                  <div>
+                    <h4 className="font-semibold mb-2 flex items-center gap-2">
+                      <Swords className="h-4 w-4" />
+                      骑士系统
+                    </h4>
+                    <div className="space-y-1 text-sm">
+                      <div>系统: {selectedCharacter.riderData.riderSystem}</div>
+                      {selectedCharacter.riderData.transformationItem && (
+                        <div>变身道具: {selectedCharacter.riderData.transformationItem}</div>
+                      )}
+                      {selectedCharacter.riderData.transformationPhrase && (
+                        <div>变身口号: {selectedCharacter.riderData.transformationPhrase}</div>
+                      )}
+                      {selectedCharacter.riderData.finisherMoves && selectedCharacter.riderData.finisherMoves.length > 0 && (
+                        <div>必杀技: {selectedCharacter.riderData.finisherMoves.join(', ')}</div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Background */}
+                {selectedCharacter.background && (
+                  <div>
+                    <h4 className="font-semibold mb-2">背景故事</h4>
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                      {selectedCharacter.background}
+                    </p>
+                  </div>
+                )}
+
+                {/* Weapons */}
+                {selectedCharacter.weapons && selectedCharacter.weapons.length > 0 && (
+                  <div>
+                    <h4 className="font-semibold mb-2 flex items-center gap-2">
+                      <Swords className="h-4 w-4" />
+                      武器
+                    </h4>
+                    <div className="space-y-2">
+                      {selectedCharacter.weapons.map((weapon, idx) => (
+                        <div key={idx} className="p-2 bg-muted rounded text-sm">
+                          <div className="font-medium">{weapon.name}</div>
+                          <div className="text-muted-foreground">
+                            射程: {weapon.range} | 命中: {weapon.hitTotal} | DP: {weapon.dpTotal}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Equipment */}
+                {selectedCharacter.otherEquipment && (
+                  <div>
+                    <h4 className="font-semibold mb-2 flex items-center gap-2">
+                      <Shield className="h-4 w-4" />
+                      其他装备
+                    </h4>
+                    <p className="text-sm text-muted-foreground">{selectedCharacter.otherEquipment}</p>
+                  </div>
+                )}
+              </div>
+
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setDetailDialogOpen(false)}>
+                  关闭
+                </Button>
+                <Button onClick={() => {
+                  handleExportCharacter(selectedCharacter.id);
+                  setDetailDialogOpen(false);
+                }}>
+                  <Download className="mr-2 h-4 w-4" />
+                  导出xlsx
+                </Button>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </div>

@@ -1,11 +1,15 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { drizzle } from 'drizzle-orm/node-postgres';
+import { Pool } from 'pg';
 import { execSync } from 'child_process';
+import * as schema from './shared/schema';
 
 let envLoaded = false;
 
 interface SupabaseCredentials {
   url: string;
   anonKey: string;
+  dbUrl?: string;
 }
 
 function loadEnv(): void {
@@ -80,7 +84,11 @@ function getSupabaseCredentials(): SupabaseCredentials {
     throw new Error('COZE_SUPABASE_ANON_KEY is not set');
   }
 
-  return { url, anonKey };
+  return { 
+    url, 
+    anonKey,
+    dbUrl: process.env.COZE_SUPABASE_DB_URL,
+  };
 }
 
 function getSupabaseClient(token?: string): SupabaseClient {
@@ -112,4 +120,64 @@ function getSupabaseClient(token?: string): SupabaseClient {
   });
 }
 
-export { loadEnv, getSupabaseCredentials, getSupabaseClient };
+// Database connection singleton
+let _pool: Pool | null = null;
+let _db: ReturnType<typeof drizzle> | null = null;
+
+function getDb() {
+  if (_db) {
+    return _db;
+  }
+  
+  const credentials = getSupabaseCredentials();
+  
+  // Use the direct database URL if available, otherwise construct from Supabase URL
+  let dbUrl = credentials.dbUrl;
+  
+  if (!dbUrl) {
+    // Try to get from environment variables
+    dbUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.COZE_SUPABASE_DB_URL;
+    
+    // If we have Supabase URL and DB password, construct the connection string
+    const supabaseUrl = credentials.url;
+    const dbPassword = process.env.COZE_SUPABASE_DB_PASSWORD;
+    
+    if (!dbUrl && supabaseUrl && dbPassword) {
+      // Extract project reference from URL
+      const projectRef = supabaseUrl.replace('https://', '').replace('.supabase.co', '');
+      dbUrl = `postgres://postgres.${projectRef}:${dbPassword}@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres`;
+    }
+  }
+  
+  if (!dbUrl) {
+    throw new Error('Database URL not configured. Please set DATABASE_URL or COZE_SUPABASE_DB_URL environment variable.');
+  }
+  
+  _pool = new Pool({
+    connectionString: dbUrl,
+    ssl: {
+      rejectUnauthorized: false,
+    },
+  });
+  
+  _db = drizzle(_pool, { schema });
+  return _db;
+}
+
+// Export db as a getter function to defer initialization
+export const db = {
+  get select() {
+    return getDb().select.bind(getDb());
+  },
+  get insert() {
+    return getDb().insert.bind(getDb());
+  },
+  get update() {
+    return getDb().update.bind(getDb());
+  },
+  get delete() {
+    return getDb().delete.bind(getDb());
+  },
+};
+
+export { loadEnv, getSupabaseCredentials, getSupabaseClient, getDb };
