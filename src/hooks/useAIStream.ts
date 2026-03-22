@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback } from 'react';
 
 interface UseAIStreamOptions {
   url: string;
@@ -12,12 +12,18 @@ interface UseAIStreamOptions {
 export function useAIStream({ url, onData, onComplete, onError }: UseAIStreamOptions) {
   const [isStreaming, setIsStreaming] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const bufferRef = useRef<string>(''); // 用于处理跨 chunk 的数据
 
   const stream = useCallback(async (body: Record<string, unknown>) => {
-    if (isStreaming) return;
+    if (isStreaming) {
+      console.log('[useAIStream] 已经在流式传输中，跳过');
+      return;
+    }
 
+    console.log('[useAIStream] 开始流式请求:', url);
     setIsStreaming(true);
     abortControllerRef.current = new AbortController();
+    bufferRef.current = '';
 
     try {
       const token = localStorage.getItem('auth_token');
@@ -42,43 +48,66 @@ export function useAIStream({ url, onData, onComplete, onError }: UseAIStreamOpt
         throw new Error('Response body is null');
       }
 
-      while (true) {
-        const { done, value } = await reader.read();
+      let done = false;
+      while (!done) {
+        const result = await reader.read();
+        done = result.done;
+        
         if (done) break;
 
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n');
+        const chunk = decoder.decode(result.value, { stream: true });
+        bufferRef.current += chunk;
+
+        // 按行分割处理
+        const lines = bufferRef.current.split('\n');
+        
+        // 保留最后一个可能不完整的行
+        bufferRef.current = lines.pop() || '';
 
         for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6);
+          const trimmedLine = line.trim();
+          if (!trimmedLine) continue;
+          
+          if (trimmedLine.startsWith('data: ')) {
+            const data = trimmedLine.slice(6).trim();
+            
             if (data === '[DONE]') {
+              console.log('[useAIStream] 收到 [DONE] 信号');
               onComplete();
+              // 设置 done 为 true 来退出循环
+              done = true;
               break;
             }
+            
             try {
               const parsed = JSON.parse(data);
               if (parsed.content) {
                 onData(parsed.content);
               }
               if (parsed.error) {
+                console.error('[useAIStream] 收到错误:', parsed.error);
                 onError(parsed.error);
               }
-            } catch {
-              // 忽略解析错误
+            } catch (parseError) {
+              // JSON 解析失败，可能是不完整的数据
+              console.warn('[useAIStream] JSON 解析失败:', data.substring(0, 100));
             }
           }
         }
       }
+
+      console.log('[useAIStream] 流式传输完成');
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
-        console.log('Stream aborted');
+        console.log('[useAIStream] 流被中止');
       } else {
+        console.error('[useAIStream] 流式传输错误:', error);
         onError(error instanceof Error ? error.message : 'Unknown error');
       }
     } finally {
       setIsStreaming(false);
       abortControllerRef.current = null;
+      bufferRef.current = '';
     }
   }, [url, isStreaming, onData, onComplete, onError]);
 
@@ -94,7 +123,6 @@ export function useAIStream({ url, onData, onComplete, onError }: UseAIStreamOpt
 // 简单的打字机效果hook
 export function useTypewriter() {
   const [text, setText] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
 
   const appendText = useCallback((chunk: string) => {
     setText((prev) => prev + chunk);
@@ -104,13 +132,5 @@ export function useTypewriter() {
     setText('');
   }, []);
 
-  useEffect(() => {
-    if (text.length > 0) {
-      setIsTyping(true);
-      const timer = setTimeout(() => setIsTyping(false), 500);
-      return () => clearTimeout(timer);
-    }
-  }, [text]);
-
-  return { text, isTyping, appendText, resetText, setText };
+  return { text, appendText, resetText, setText };
 }

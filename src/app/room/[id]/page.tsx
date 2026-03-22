@@ -166,25 +166,38 @@ export default function RoomPage() {
   const { stream: streamDM, isStreaming: isDMStreaming } = useAIStream({
     url: '/api/ai/dm',
     onData: (text) => {
+      console.log('[DM] 收到数据块，长度:', text.length);
       appendNarrative(text);
       dmMessageRef.current += text; // 累积保存AI发言到ref
     },
     onComplete: () => {
       // 使用ref.current获取完整消息
       const fullMessage = dmMessageRef.current;
+      console.log('[DM] 流式传输完成，消息长度:', fullMessage?.length || 0);
       if (fullMessage) {
-        setMessages(prev => [...prev, {
+        const narrativeMessage = {
           id: Date.now().toString(),
-          type: 'narrative',
+          type: 'narrative' as const,
           content: fullMessage,
           senderName: 'AI主持人',
           timestamp: new Date().toISOString(),
-        }]);
+        };
+        console.log('[DM] 添加叙事消息到列表');
+        setMessages(prev => {
+          const updated = [...prev, narrativeMessage];
+          console.log('[DM] 消息列表长度:', updated.length);
+          return updated;
+        });
+      } else {
+        console.log('[DM] 没有收到任何消息内容');
       }
       resetNarrative();
       dmMessageRef.current = ''; // 重置ref
     },
-    onError: (error) => toast.error(error),
+    onError: (error) => {
+      console.error('[DM] AI响应错误:', error);
+      toast.error(error);
+    },
   });
 
   // WebSocket连接
@@ -312,9 +325,31 @@ export default function RoomPage() {
 
   const handleSelectCharacter = async (characterId: string) => {
     try {
-      // 这里应该更新room_members表
-      setSelectedCharacterId(characterId);
-      toast.success('角色已选择');
+      // 调用 API 保存角色选择到数据库
+      const response = await fetch(`/api/rooms/${roomId}/member`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ characterId }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setSelectedCharacterId(characterId);
+        
+        // 更新本地 members 状态
+        setMembers(prev => prev.map(m => 
+          m.user_id === user?.id 
+            ? { ...m, character_id: characterId, characters: data.data.character }
+            : m
+        ));
+        
+        toast.success('角色已选择');
+      } else {
+        toast.error('选择角色失败');
+      }
     } catch (error) {
       console.error('选择角色失败:', error);
       toast.error('选择角色失败');
@@ -667,10 +702,25 @@ export default function RoomPage() {
   };
 
   const handlePlayerAction = () => {
-    if (!chatInput.trim() || isDMStreaming) return;
+    if (!chatInput.trim()) {
+      console.log('[handlePlayerAction] 输入为空，跳过');
+      return;
+    }
+    
+    if (isDMStreaming) {
+      console.log('[handlePlayerAction] AI正在响应中，跳过');
+      return;
+    }
 
     const character = characters.find(c => c.id === selectedCharacterId);
     const playerMessage = chatInput;
+    
+    console.log('[handlePlayerAction] 发送消息:', {
+      playerMessage,
+      character: character?.name,
+      sessionId,
+      isInGame,
+    });
     
     // 先添加玩家消息到消息列表
     const newMessage: Message = {
@@ -682,7 +732,13 @@ export default function RoomPage() {
       characterName: character?.name,
       timestamp: new Date().toISOString(),
     };
-    setMessages(prev => [...prev, newMessage]);
+    
+    console.log('[handlePlayerAction] 添加消息到列表:', newMessage);
+    setMessages(prev => {
+      const updated = [...prev, newMessage];
+      console.log('[handlePlayerAction] 消息列表长度:', updated.length);
+      return updated;
+    });
     
     // 发送玩家行动到WebSocket
     wsSend({
@@ -695,15 +751,19 @@ export default function RoomPage() {
     });
 
     // 获取AI响应 - 使用更新后的消息列表
+    const dialogHistory = [...messages, newMessage].map(m => ({
+      role: m.type === 'narrative' ? 'assistant' as const : 'user' as const,
+      content: m.type === 'narrative' ? m.content : `[${m.senderName || m.characterName || '玩家'}]: ${m.content}`,
+      timestamp: m.timestamp,
+    }));
+    
+    console.log('[handlePlayerAction] 对话历史长度:', dialogHistory.length);
+    
     streamDM({
       roomId,
       sessionId,
       gameState,
-      dialogHistory: [...messages, newMessage].map(m => ({
-        role: m.type === 'narrative' ? 'assistant' as const : 'user' as const,
-        content: m.type === 'narrative' ? m.content : `[${m.senderName || m.characterName || '玩家'}]: ${m.content}`,
-        timestamp: m.timestamp,
-      })),
+      dialogHistory,
       characters: members.map(m => m.characters).filter(Boolean),
       playerAction: `[${character?.name || '玩家'}]: ${playerMessage}`,
       scenarioName: currentScenarioName,
@@ -723,10 +783,21 @@ export default function RoomPage() {
         userId: user.id,
         isHost,
         status: room.status,
+        isInGame,
+        messagesCount: messages.length,
+        sessionId,
         showStartButton: isHost && room.status === 'waiting'
       });
     }
-  }, [room, user, isHost]);
+  }, [room, user, isHost, isInGame, messages.length, sessionId]);
+
+  // 监听消息变化
+  useEffect(() => {
+    console.log('[Messages] 消息列表更新，长度:', messages.length);
+    messages.forEach((msg, i) => {
+      console.log(`[Messages] ${i}: [${msg.type}] ${msg.senderName}: ${msg.content.substring(0, 50)}...`);
+    });
+  }, [messages]);
 
   if (authLoading || isLoading) {
     return (
