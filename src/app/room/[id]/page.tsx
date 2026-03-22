@@ -159,6 +159,8 @@ export default function RoomPage() {
   const dmMessageRef = useRef(''); // 使用ref保存AI主持人的发言，避免闭包问题
   const [sessionId, setSessionId] = useState<string>('');
   const [gameState, setGameState] = useState<Record<string, unknown>>({});
+  const [currentScenarioName, setCurrentScenarioName] = useState<string>('');
+  
   
   const { text: dmNarrative, appendText: appendNarrative, resetText: resetNarrative } = useTypewriter();
   const { stream: streamDM, isStreaming: isDMStreaming } = useAIStream({
@@ -618,6 +620,7 @@ export default function RoomPage() {
     }
 
     setShowScenarioDialog(false);
+    setCurrentScenarioName(selectedScenario); // 保存当前剧本名称
 
     // 创建游戏会话
     try {
@@ -651,6 +654,7 @@ export default function RoomPage() {
           characters: members.map(m => m.characters).filter(Boolean),
           scenarioName: selectedScenario,
           playerAction: '开始游戏',
+          dialogHistory: [],
         });
       }
     } catch (error) {
@@ -663,29 +667,43 @@ export default function RoomPage() {
     if (!chatInput.trim() || isDMStreaming) return;
 
     const character = characters.find(c => c.id === selectedCharacterId);
+    const playerMessage = chatInput;
     
-    // 发送玩家行动
+    // 先添加玩家消息到消息列表
+    const newMessage: Message = {
+      id: Date.now().toString(),
+      type: 'chat',
+      content: playerMessage,
+      senderId: user?.id,
+      senderName: character?.name || profile?.username || '玩家',
+      characterName: character?.name,
+      timestamp: new Date().toISOString(),
+    };
+    setMessages(prev => [...prev, newMessage]);
+    
+    // 发送玩家行动到WebSocket
     wsSend({
       type: 'game:action',
       payload: {
-        action: chatInput,
+        action: playerMessage,
         characterId: selectedCharacterId,
         characterName: character?.name,
       },
     });
 
-    // 获取AI响应
+    // 获取AI响应 - 使用更新后的消息列表
     streamDM({
       roomId,
       sessionId,
       gameState,
-      dialogHistory: messages.map(m => ({
+      dialogHistory: [...messages, newMessage].map(m => ({
         role: m.type === 'narrative' ? 'assistant' as const : 'user' as const,
-        content: m.content,
+        content: m.type === 'narrative' ? m.content : `[${m.senderName || m.characterName || '玩家'}]: ${m.content}`,
         timestamp: m.timestamp,
       })),
       characters: members.map(m => m.characters).filter(Boolean),
-      playerAction: chatInput,
+      playerAction: `[${character?.name || '玩家'}]: ${playerMessage}`,
+      scenarioName: currentScenarioName,
     });
 
     setChatInput('');
