@@ -4,10 +4,12 @@
   "private": true,
   "scripts": {
     "build": "bash ./scripts/build.sh",
+    "build:vercel": "next build",
     "dev": "bash ./scripts/dev.sh",
     "preinstall": "npx only-allow pnpm",
     "lint": "eslint",
     "start": "bash ./scripts/start.sh",
+    "start:vercel": "next start",
     "ts-check": "tsc -p tsconfig.json"
   },
   "dependencies": {
