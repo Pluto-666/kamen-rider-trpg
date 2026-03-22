@@ -218,9 +218,12 @@ export default function RoomPage() {
   });
 
   // WebSocket连接
+  const currentMember = members.find(m => m.user_id === user?.id);
+  const currentCharacter = characters.find(c => c.id === selectedCharacterId);
   const { send: wsSend } = useGameWebSocket({
     roomId,
     userId: user?.id || '',
+    characterName: currentCharacter?.name || currentMember?.characters?.name,
     onMessage: (msg) => {
       switch (msg.type) {
         case 'room:chat':
@@ -291,8 +294,26 @@ export default function RoomPage() {
           }
           break;
         case 'user:joined':
+          fetchRoomData();
+          // 添加系统消息
+          const joinedPayload = msg.payload as { userId?: string; characterName?: string };
+          setMessages(prev => [...prev, {
+            id: Date.now().toString(),
+            type: 'system',
+            content: `${joinedPayload.characterName || '玩家'} 进入了房间`,
+            timestamp: new Date().toISOString(),
+          }]);
+          break;
         case 'user:left':
           fetchRoomData();
+          // 添加系统消息
+          const leftPayload = msg.payload as { userId?: string; characterName?: string };
+          setMessages(prev => [...prev, {
+            id: Date.now().toString(),
+            type: 'system',
+            content: `${leftPayload.characterName || '玩家'} 离开了房间`,
+            timestamp: new Date().toISOString(),
+          }]);
           break;
       }
     },
@@ -483,17 +504,60 @@ export default function RoomPage() {
     if (!chatInput.trim()) return;
 
     const character = characters.find(c => c.id === selectedCharacterId);
+    const messageContent = chatInput;
     
+    // 检测是否艾特了AI主持人
+    const isMentioningDM = messageContent.includes('@AI主持人') || messageContent.includes('@DM') || messageContent.includes('@主持人');
+    
+    // 立即添加消息到本地消息列表（不等待WebSocket回显）
+    const newMessage: Message = {
+      id: Date.now().toString(),
+      type: 'chat',
+      content: messageContent,
+      senderId: user?.id,
+      senderName: character?.name || profile?.username || '玩家',
+      characterName: character?.name,
+      timestamp: new Date().toISOString(),
+    };
+    
+    setMessages(prev => [...prev, newMessage]);
+    
+    // 发送到WebSocket广播给其他玩家
     wsSend({
       type: 'room:chat',
       payload: {
-        content: chatInput,
+        content: messageContent,
         characterId: selectedCharacterId,
         characterName: character?.name || profile?.username,
       },
     });
 
     setChatInput('');
+    
+    // 如果艾特了AI主持人且游戏未开始，触发AI响应
+    if (isMentioningDM && !isInGame) {
+      console.log('[handleSendMessage] 检测到@AI主持人，触发响应');
+      
+      // 构建对话历史
+      const dialogHistory = [...messages, newMessage].map(m => ({
+        role: m.type === 'narrative' ? 'assistant' as const : 'user' as const,
+        content: m.type === 'narrative' ? m.content : `[${m.senderName || m.characterName || '玩家'}]: ${m.content}`,
+        timestamp: m.timestamp,
+      }));
+      
+      // 延迟调用AI响应
+      setTimeout(() => {
+        streamDM({
+          roomId,
+          sessionId: sessionId || 'pre-game',
+          gameState: {},
+          dialogHistory,
+          characters: members.map(m => m.characters).filter(Boolean),
+          playerAction: `[${character?.name || profile?.username || '玩家'}]: ${messageContent}`,
+          scenarioName: '',
+        });
+      }, 100);
+    }
   };
 
   const handleRollDice = (dice: string = '1d20') => {
@@ -1170,8 +1234,15 @@ export default function RoomPage() {
                           msg.type === 'chat' ? 'message-player p-3' : ''
                         } ${
                           msg.type === 'roll' ? 'message-roll p-3' : ''
+                        } ${
+                          msg.type === 'system' ? 'message-system p-2 text-center' : ''
                         }`}
                       >
+                        {msg.type === 'system' && (
+                          <div className="text-sm text-muted-foreground/80 italic">
+                            {msg.content}
+                          </div>
+                        )}
                         {msg.type === 'narrative' && (
                           <div className="flex items-center gap-2 text-xs text-accent mb-2 font-display tracking-wider">
                             <span className="text-lg">🎭</span>

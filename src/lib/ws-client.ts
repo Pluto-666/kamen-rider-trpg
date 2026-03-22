@@ -1,5 +1,11 @@
 import { WebSocket, type WebSocketServer } from 'ws';
 import type { IncomingMessage } from 'http';
+import { createClient } from '@supabase/supabase-js';
+
+// 创建 Supabase 客户端
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 // WebSocket 消息类型
 export interface WsMessage<T = unknown> {
@@ -43,6 +49,7 @@ export function setupGameRoomHandler(wss: WebSocketServer) {
   wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
     let currentRoomId: string | null = null;
     let userId: string | null = null;
+    let characterName: string | null = null;
 
     // 心跳机制
     let isAlive = true;
@@ -71,9 +78,14 @@ export function setupGameRoomHandler(wss: WebSocketServer) {
 
         switch (msg.type) {
           case 'room:join': {
-            const { roomId, userId: uid } = msg.payload as { roomId: string; userId: string };
+            const { roomId, userId: uid, characterName: charName } = msg.payload as { 
+              roomId: string; 
+              userId: string;
+              characterName?: string;
+            };
             currentRoomId = roomId;
             userId = uid;
+            characterName = charName || null;
 
             // 添加到房间连接
             const connections = getRoomConnections(roomId);
@@ -82,7 +94,11 @@ export function setupGameRoomHandler(wss: WebSocketServer) {
             // 通知其他成员
             broadcastToRoom(roomId, {
               type: 'user:joined',
-              payload: { userId, timestamp: new Date().toISOString() }
+              payload: { 
+                userId, 
+                characterName: characterName || '玩家',
+                timestamp: new Date().toISOString() 
+              }
             }, ws);
 
             // 发送欢迎消息
@@ -215,7 +231,11 @@ export function setupGameRoomHandler(wss: WebSocketServer) {
           // 通知其他成员
           broadcastToRoom(currentRoomId, {
             type: 'user:left',
-            payload: { userId, timestamp: new Date().toISOString() }
+            payload: { 
+              userId, 
+              characterName: characterName || '玩家',
+              timestamp: new Date().toISOString() 
+            }
           });
         }
       }

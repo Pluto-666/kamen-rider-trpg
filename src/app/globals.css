@@ -459,6 +459,11 @@ button[class*="ghost"]:hover {
     border-left: 3px solid #ffd700;
   }
   
+  .message-system {
+    background: rgba(100, 100, 120, 0.15);
+    border: none;
+  }
+  
   /* 头像框 */
   .avatar-frame {
     border: 2px solid transparent;

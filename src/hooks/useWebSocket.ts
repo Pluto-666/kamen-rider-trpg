@@ -10,6 +10,7 @@ interface WsMessage<T = unknown> {
 interface UseWebSocketOptions {
   roomId: string;
   userId: string;
+  characterName?: string;
   onMessage: (msg: WsMessage) => void;
   onOpen?: () => void;
   onClose?: () => void;
@@ -19,6 +20,7 @@ interface UseWebSocketOptions {
 export function useGameWebSocket({
   roomId,
   userId,
+  characterName,
   onMessage,
   onOpen,
   onClose,
@@ -44,7 +46,7 @@ export function useGameWebSocket({
       // 发送加入房间消息
       ws.send(JSON.stringify({
         type: 'room:join',
-        payload: { roomId, userId },
+        payload: { roomId, userId, characterName },
       }));
       onOpen?.();
     };
