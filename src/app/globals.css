@@ -126,6 +126,150 @@
   background: linear-gradient(180deg, #ff2d55 0%, #c41e3a 100%);
 }
 
+/* 强制修复Card组件背景和文字 */
+[class*="bg-card"] {
+  background: linear-gradient(145deg, #12121a 0%, #1a1a25 100%) !important;
+}
+
+[data-slot="card"] {
+  background: linear-gradient(145deg, #12121a 0%, #1a1a25 100%) !important;
+  border-color: rgba(192, 192, 200, 0.15) !important;
+  color: #e8e8f0 !important;
+}
+
+[data-slot="card"] * {
+  color: inherit;
+}
+
+[data-slot="card-header"] {
+  color: #e8e8f0 !important;
+}
+
+[data-slot="card-title"] {
+  color: #e8e8f0 !important;
+}
+
+[data-slot="card-description"] {
+  color: #8a8a9a !important;
+}
+
+[data-slot="card-content"] {
+  color: #e8e8f0 !important;
+}
+
+/* 修复Tabs组件 */
+[role="tablist"] {
+  background: rgba(26, 26, 37, 0.8) !important;
+}
+
+[role="tab"] {
+  color: #8a8a9a !important;
+}
+
+[role="tab"][data-state="active"] {
+  color: #e8e8f0 !important;
+  background: rgba(196, 30, 58, 0.2) !important;
+}
+
+/* 修复Input组件 */
+input, textarea {
+  background: rgba(10, 10, 15, 0.8) !important;
+  border-color: rgba(192, 192, 200, 0.2) !important;
+  color: #e8e8f0 !important;
+}
+
+input::placeholder, textarea::placeholder {
+  color: #6a6a7a !important;
+}
+
+input:focus, textarea:focus {
+  border-color: #c41e3a !important;
+  box-shadow: 0 0 15px rgba(196, 30, 58, 0.3) !important;
+}
+
+/* 修复Label */
+label {
+  color: #c0c0c8 !important;
+}
+
+/* 修复Alert */
+[data-slot="alert"] {
+  background: rgba(26, 26, 37, 0.8) !important;
+  border-color: rgba(192, 192, 200, 0.15) !important;
+}
+
+/* 修复Button variant outline */
+button[class*="outline"] {
+  background: transparent !important;
+  border-color: rgba(192, 192, 200, 0.3) !important;
+  color: #c0c0c8 !important;
+}
+
+button[class*="outline"]:hover {
+  border-color: #c41e3a !important;
+  color: #e8e8f0 !important;
+  background: rgba(196, 30, 58, 0.1) !important;
+}
+
+/* 修复Button variant secondary */
+button[class*="secondary"] {
+  background: linear-gradient(145deg, #1a1a25 0%, #252535 100%) !important;
+  color: #c0c0c8 !important;
+  border-color: rgba(192, 192, 200, 0.2) !important;
+}
+
+/* 修复Button variant ghost */
+button[class*="ghost"] {
+  color: #c0c0c8 !important;
+}
+
+button[class*="ghost"]:hover {
+  background: rgba(196, 30, 58, 0.1) !important;
+  color: #e8e8f0 !important;
+}
+
+/* 修复Badge */
+[data-slot="badge"] {
+  background: rgba(196, 30, 58, 0.2) !important;
+  color: #e8e8f0 !important;
+  border-color: rgba(196, 30, 58, 0.3) !important;
+}
+
+/* 修复Dialog */
+[data-slot="dialog-content"] {
+  background: linear-gradient(145deg, #12121a 0%, #1a1a25 100%) !important;
+  border-color: rgba(196, 30, 58, 0.3) !important;
+  color: #e8e8f0 !important;
+}
+
+[data-slot="dialog-title"] {
+  color: #e8e8f0 !important;
+}
+
+[data-slot="dialog-description"] {
+  color: #8a8a9a !important;
+}
+
+/* 修复Dropdown */
+[data-slot="dropdown-menu-content"] {
+  background: linear-gradient(145deg, #12121a 0%, #1a1a25 100%) !important;
+  border-color: rgba(192, 192, 200, 0.15) !important;
+}
+
+[data-slot="dropdown-menu-item"] {
+  color: #c0c0c8 !important;
+}
+
+[data-slot="dropdown-menu-item"]:hover {
+  background: rgba(196, 30, 58, 0.2) !important;
+  color: #e8e8f0 !important;
+}
+
+/* 修复Separator */
+[data-slot="separator"] {
+  background: rgba(192, 192, 200, 0.15) !important;
+}
+
 @layer base {
   * {
     @apply border-border;
@@ -141,6 +285,21 @@
   h1, h2, h3, .font-display {
     font-family: var(--font-display);
     letter-spacing: 0.05em;
+  }
+  
+  /* 确保所有文本在深色背景上可见 */
+  p, span, li, label, div:not(.bg-primary):not(.bg-accent) {
+    color: var(--foreground);
+  }
+  
+  /* 修复Card组件文字颜色 */
+  .text-card-foreground {
+    color: var(--card-foreground) !important;
+  }
+  
+  /* 修复muted文字 */
+  .text-muted-foreground {
+    color: var(--muted-foreground) !important;
   }
 }
 
