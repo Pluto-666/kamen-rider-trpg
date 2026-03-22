@@ -1016,29 +1016,33 @@ export default function RoomPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-card">
+    <div className="min-h-screen bg-background bg-texture">
+      {/* Header - 假面骑士风格 */}
+      <header className="border-b border-border/50 bg-gradient-to-r from-[#12121a] via-[#1a1a25] to-[#12121a]">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" onClick={handleLeaveRoom}>
+            <Button variant="ghost" size="sm" onClick={handleLeaveRoom} className="text-muted-foreground hover:text-primary hover:bg-primary/10">
               ← 退出房间
             </Button>
-            <div>
-              <h1 className="text-xl font-bold">{room?.name}</h1>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Badge variant={room?.status === 'waiting' ? 'secondary' : 'default'}>
-                  {room?.status === 'waiting' ? '等待中' : '游戏中'}
+            <div className="relative">
+              <h1 className="text-xl font-bold font-display text-gradient-rider tracking-wider">{room?.name}</h1>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+                <Badge className={`${room?.status === 'waiting' ? 'bg-secondary text-secondary-foreground' : 'bg-primary text-primary-foreground'} text-xs font-display`}>
+                  {room?.status === 'waiting' ? '⏳ 等待中' : '⚔️ 游戏中'}
                 </Badge>
-                <span>{members.length}人在线</span>
+                <span className="text-xs">{members.length}人在线</span>
               </div>
             </div>
           </div>
 
           <div className="flex items-center gap-4">
             {isHost && room?.status === 'waiting' && (
-              <Button onClick={handleStartGame} disabled={isStartingGame}>
-                {isStartingGame ? '准备中...' : '开始游戏'}
+              <Button 
+                onClick={handleStartGame} 
+                disabled={isStartingGame}
+                className="kamen-btn-primary px-6 py-2 rounded"
+              >
+                {isStartingGame ? '⏳ 准备中...' : '⚡ 开始游戏'}
               </Button>
             )}
           </div>
@@ -1049,49 +1053,52 @@ export default function RoomPage() {
         <div className="grid grid-cols-12 gap-4 h-full">
           {/* Left Sidebar - Members */}
           <div className="col-span-2">
-            <Card className="h-full">
-              <CardHeader className="py-3">
-                <CardTitle className="text-sm">房间成员</CardTitle>
+            <Card className="h-full kamen-card rounded-lg">
+              <CardHeader className="py-3 border-b border-border/30">
+                <CardTitle className="text-sm font-display text-accent tracking-wider">👥 房间成员</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-3">
                 <div className="space-y-2">
                   {/* AI主持人 - 始终显示 */}
                   <div
-                    className="flex items-center gap-2 p-2 rounded bg-primary/10 border border-primary/20 cursor-pointer hover:bg-primary/20 transition-colors"
+                    className="flex items-center gap-2 p-2 rounded-lg bg-gradient-to-r from-primary/20 to-primary/5 border border-primary/30 cursor-pointer hover:from-primary/30 hover:to-primary/10 transition-all duration-300"
                     onClick={() => handleMentionMember('AI主持人')}
                     title="点击@AI主持人"
                   >
-                    <Avatar className="h-8 w-8 bg-primary/20">
-                      <AvatarFallback className="bg-primary/20 text-primary">
-                        🎭
-                      </AvatarFallback>
-                    </Avatar>
+                    <div className="relative">
+                      <Avatar className="h-8 w-8 bg-primary/30 border border-primary/50">
+                        <AvatarFallback className="bg-transparent text-primary text-lg">
+                          🎭
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full status-playing"></div>
+                    </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-primary">
+                      <div className="text-sm font-medium text-primary font-display">
                         AI主持人
                       </div>
                       <div className="text-xs text-muted-foreground">
                         游戏主持人
                       </div>
                     </div>
-                    <Badge className="text-xs">DM</Badge>
+                    <Badge className="text-xs bg-primary/80 text-white font-display">DM</Badge>
                   </div>
                   
                   {/* 玩家成员 */}
                   {members.map((member) => (
                     <div
                       key={member.id}
-                      className="flex items-center gap-2 p-2 rounded bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
+                      className="flex items-center gap-2 p-2 rounded-lg bg-muted/30 hover:bg-muted/50 border border-transparent hover:border-accent/30 transition-all duration-300 cursor-pointer"
                       onClick={() => handleMentionMember(member.characters?.name || member.profiles?.username || '玩家')}
                       title="点击@该成员"
                     >
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback>
+                      <Avatar className="h-8 w-8 avatar-frame">
+                        <AvatarFallback className="bg-muted text-muted-foreground">
                           {(member.characters?.name || member.profiles?.username)?.charAt(0).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium truncate">
+                        <div className="text-sm font-medium truncate text-foreground">
                           {member.characters?.name || member.profiles?.username}
                         </div>
                         {member.characters?.title && (
@@ -1105,7 +1112,7 @@ export default function RoomPage() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-6 w-6"
+                            className="h-6 w-6 text-muted-foreground hover:text-accent hover:bg-accent/10"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleViewCharacter(member);
@@ -1116,7 +1123,7 @@ export default function RoomPage() {
                           </Button>
                         )}
                         {member.user_id === room?.host_id && (
-                          <Badge variant="outline" className="text-xs">房主</Badge>
+                          <Badge variant="outline" className="text-xs text-accent border-accent/50 font-display">房主</Badge>
                         )}
                       </div>
                     </div>
@@ -1150,59 +1157,63 @@ export default function RoomPage() {
 
           {/* Main Chat Area */}
           <div className="col-span-8">
-            <Card className="h-full flex flex-col">
-              <CardContent className="flex-1 p-0">
+            <Card className="h-full flex flex-col kamen-card rounded-lg overflow-hidden">
+              <CardContent className="flex-1 p-0 bg-gradient-to-b from-[#0d0d12] to-[#12121a]">
                 <ScrollArea className="h-[calc(100vh-200px)] p-4">
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {messages.map((msg) => (
                       <div
                         key={msg.id}
-                        className={`${
-                          msg.type === 'narrative' ? 'bg-muted/50 p-3 rounded-lg' : ''
+                        className={`rounded-lg transition-all duration-300 ${
+                          msg.type === 'narrative' ? 'message-dm p-4' : ''
                         } ${
-                          msg.type === 'chat' ? 'p-2' : ''
+                          msg.type === 'chat' ? 'message-player p-3' : ''
+                        } ${
+                          msg.type === 'roll' ? 'message-roll p-3' : ''
                         }`}
                       >
                         {msg.type === 'narrative' && (
-                          <div className="text-xs text-muted-foreground mb-1 font-medium">
-                            🎭 DM
+                          <div className="flex items-center gap-2 text-xs text-accent mb-2 font-display tracking-wider">
+                            <span className="text-lg">🎭</span>
+                            <span>DM 叙事</span>
                           </div>
                         )}
                         {msg.type === 'roll' && (
                           <div className="flex items-center gap-2 text-sm">
-                            <span className="font-medium">{msg.senderName || '玩家'}</span>
-                            <Badge variant="secondary">掷骰</Badge>
+                            <span className="font-medium text-foreground">{msg.senderName || '玩家'}</span>
+                            <Badge className="text-xs bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 font-display">🎲 掷骰</Badge>
                           </div>
                         )}
                         {msg.type === 'chat' && (
                           <div className="flex items-start gap-2">
-                            <span className="font-medium text-sm shrink-0 text-primary">
+                            <span className="font-medium text-sm shrink-0 text-primary font-display">
                               {msg.senderName || '玩家'}:
                             </span>
-                            <span className="text-sm flex-1">{msg.content}</span>
+                            <span className="text-sm flex-1 text-foreground/90">{msg.content}</span>
                           </div>
                         )}
                         {msg.type === 'narrative' && (
-                          <div className="text-sm prose prose-sm dark:prose-invert whitespace-pre-wrap">
+                          <div className="text-sm prose prose-sm dark:prose-invert whitespace-pre-wrap text-foreground/90 leading-relaxed">
                             {msg.content}
                           </div>
                         )}
                         {msg.type === 'roll' && (
-                          <div className="text-sm mt-1">{msg.content}</div>
+                          <div className="text-sm mt-1 text-yellow-300 font-mono">{msg.content}</div>
                         )}
-                        <div className="text-xs text-muted-foreground mt-1">
+                        <div className="text-xs text-muted-foreground/50 mt-2">
                           {new Date(msg.timestamp).toLocaleTimeString()}
                         </div>
                       </div>
                     ))}
                     {dmNarrative && (
-                      <div className="bg-muted/50 p-3 rounded-lg">
-                        <div className="text-xs text-muted-foreground mb-1 font-medium">
-                          🎭 DM
+                      <div className="message-dm p-4 rounded-lg border border-accent/20 animate-pulse">
+                        <div className="flex items-center gap-2 text-xs text-accent mb-2 font-display tracking-wider">
+                          <span className="text-lg">🎭</span>
+                          <span>DM 叙事</span>
                         </div>
-                        <div className="prose prose-sm dark:prose-invert whitespace-pre-wrap">
+                        <div className="prose prose-sm dark:prose-invert whitespace-pre-wrap text-foreground/90 leading-relaxed">
                           {dmNarrative}
-                          <span className="animate-pulse">▌</span>
+                          <span className="inline-block w-2 h-4 bg-accent animate-pulse ml-1"></span>
                         </div>
                       </div>
                     )}
@@ -1212,10 +1223,10 @@ export default function RoomPage() {
               </CardContent>
 
               {/* Input Area */}
-              <div className="border-t p-4">
-                <div className="flex gap-2">
+              <div className="border-t border-border/30 p-4 bg-[#0d0d12]">
+                <div className="flex gap-3">
                   <Input
-                    placeholder={isInGame ? "输入你的行动..." : "输入消息..."}
+                    placeholder={isInGame ? "⚔️ 输入你的行动..." : "💬 输入消息..."}
                     value={chatInput}
                     onChange={(e) => setChatInput(e.target.value)}
                     onKeyDown={(e) => {
@@ -1229,27 +1240,29 @@ export default function RoomPage() {
                       }
                     }}
                     disabled={isDMStreaming}
+                    className="kamen-input rounded-lg"
                   />
                   <Button
                     onClick={isInGame ? handlePlayerAction : handleSendMessage}
                     disabled={isDMStreaming || !chatInput.trim()}
+                    className="kamen-btn-primary rounded-lg px-6"
                   >
-                    发送
+                    {isDMStreaming ? '⏳' : '🚀'} 发送
                   </Button>
                 </div>
 
                 {/* Dice Roll Buttons */}
                 {isInGame && (
-                  <div className="space-y-2 mt-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-muted-foreground whitespace-nowrap">投掷</span>
+                  <div className="space-y-2 mt-3 p-3 bg-muted/20 rounded-lg border border-border/20">
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm text-muted-foreground whitespace-nowrap font-display tracking-wide">🎲 投掷</span>
                       <input
                         type="number"
                         min="1"
                         max="20"
                         value={diceCount}
                         onChange={(e) => setDiceCount(e.target.value)}
-                        className="w-16 px-2 py-1 text-center border rounded-md text-sm"
+                        className="w-16 px-2 py-1 text-center border border-accent/30 rounded-md text-sm bg-muted/30 text-accent focus:border-accent focus:ring-1 focus:ring-accent/50"
                         placeholder="数量"
                       />
                       <span className="text-sm text-muted-foreground">个</span>
@@ -1259,7 +1272,7 @@ export default function RoomPage() {
                         variant="outline" 
                         size="sm" 
                         onClick={() => handleRollDice(`${diceCount || '1'}d4`)}
-                        className="min-w-[60px]"
+                        className="dice-btn min-w-[60px] rounded-md"
                       >
                         {diceCount || '1'}d4
                       </Button>
@@ -1267,7 +1280,7 @@ export default function RoomPage() {
                         variant="outline" 
                         size="sm" 
                         onClick={() => handleRollDice(`${diceCount || '1'}d6`)}
-                        className="min-w-[60px]"
+                        className="dice-btn min-w-[60px] rounded-md"
                       >
                         {diceCount || '1'}d6
                       </Button>
@@ -1275,7 +1288,7 @@ export default function RoomPage() {
                         variant="outline" 
                         size="sm" 
                         onClick={() => handleRollDice(`${diceCount || '1'}d8`)}
-                        className="min-w-[60px]"
+                        className="dice-btn min-w-[60px] rounded-md"
                       >
                         {diceCount || '1'}d8
                       </Button>
@@ -1283,7 +1296,7 @@ export default function RoomPage() {
                         variant="outline" 
                         size="sm" 
                         onClick={() => handleRollDice(`${diceCount || '1'}d20`)}
-                        className="min-w-[60px]"
+                        className="dice-btn min-w-[60px] rounded-md"
                       >
                         {diceCount || '1'}d20
                       </Button>
@@ -1291,7 +1304,7 @@ export default function RoomPage() {
                         variant="outline" 
                         size="sm" 
                         onClick={() => handleRollDice(`${diceCount || '1'}d100`)}
-                        className="min-w-[60px]"
+                        className="dice-btn min-w-[60px] rounded-md"
                       >
                         {diceCount || '1'}d100
                       </Button>
@@ -1304,25 +1317,27 @@ export default function RoomPage() {
 
           {/* Right Sidebar - Game Info */}
           <div className="col-span-2">
-            <Card className="h-full">
-              <CardHeader className="py-3">
-                <CardTitle className="text-sm">游戏信息</CardTitle>
+            <Card className="h-full kamen-card rounded-lg overflow-hidden">
+              <CardHeader className="py-3 bg-gradient-to-r from-secondary/5 to-transparent border-b border-border/30">
+                <CardTitle className="text-sm font-display tracking-wider flex items-center gap-2">
+                  <span className="text-base">📊</span> 游戏信息
+                </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-4">
                 <div className="space-y-4 text-sm">
-                  <div>
-                    <div className="text-muted-foreground">剧本</div>
-                    <div className="font-medium">{selectedScenario || '未开始'}</div>
+                  <div className="p-3 bg-muted/20 rounded-lg border border-border/20">
+                    <div className="text-muted-foreground text-xs font-display tracking-wide">剧本</div>
+                    <div className="font-medium text-secondary mt-1">{selectedScenario || '未开始'}</div>
                   </div>
                   
-                  <Separator />
+                  <Separator className="opacity-30" />
                   
                   <div>
-                    <div className="text-muted-foreground mb-2">快捷操作</div>
+                    <div className="text-muted-foreground text-xs mb-2 font-display tracking-wide">快捷操作</div>
                     <div className="space-y-2">
                       <Button 
                         variant="outline" 
-                        className="w-full justify-start" 
+                        className="w-full justify-start rounded-md border-border/30 hover:border-accent/50 hover:bg-accent/5" 
                         size="sm"
                         onClick={handleViewMyCharacter}
                       >
@@ -1330,7 +1345,7 @@ export default function RoomPage() {
                       </Button>
                       <Button 
                         variant="outline" 
-                        className="w-full justify-start" 
+                        className="w-full justify-start rounded-md border-border/30 hover:border-primary/50 hover:bg-primary/5" 
                         size="sm"
                         onClick={() => setShowRuleQuery(true)}
                       >
@@ -1338,7 +1353,7 @@ export default function RoomPage() {
                       </Button>
                       <Button 
                         variant="outline" 
-                        className="w-full justify-start" 
+                        className="w-full justify-start rounded-md border-border/30 hover:border-secondary/50 hover:bg-secondary/5" 
                         size="sm"
                         onClick={() => setShowSaveDialog(true)}
                         disabled={!isInGame}
@@ -1347,7 +1362,7 @@ export default function RoomPage() {
                       </Button>
                       <Button 
                         variant="outline" 
-                        className="w-full justify-start" 
+                        className="w-full justify-start rounded-md border-border/30 hover:border-primary/50 hover:bg-primary/5" 
                         size="sm"
                         onClick={() => {
                           loadSaveList();
@@ -1359,16 +1374,16 @@ export default function RoomPage() {
                     </div>
                   </div>
                   
-                  <Separator />
+                  <Separator className="opacity-30" />
                   
                   <div>
                     <Button 
                       variant="destructive" 
-                      className="w-full" 
+                      className="w-full rounded-md" 
                       size="sm"
                       onClick={handleLeaveRoom}
                     >
-                      退出房间
+                      🚪 退出房间
                     </Button>
                   </div>
                 </div>
