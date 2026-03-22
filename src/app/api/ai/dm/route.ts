@@ -300,10 +300,32 @@ ${availableScenarios}
 - 【战斗】战斗相关
 - 【可选行动】玩家可采取的行动`;
 
-    const messages = [
-      { role: 'system' as const, content: systemPrompt },
-      { role: 'user' as const, content: playerAction || '请开始游戏，根据我的角色背景将我代入剧情' }
+    // 构建消息数组 - 正确包含对话历史
+    const conversationMessages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
+      { role: 'system', content: systemPrompt }
     ];
+
+    // 添加对话历史（最近15条，保持上下文连贯）
+    if (dialogHistory && dialogHistory.length > 0) {
+      const recentHistory = dialogHistory.slice(-15);
+      for (const msg of recentHistory) {
+        if (msg.role === 'user') {
+          conversationMessages.push({ role: 'user', content: msg.content });
+        } else {
+          conversationMessages.push({ role: 'assistant', content: msg.content });
+        }
+      }
+    }
+
+    // 添加当前玩家行动
+    if (playerAction) {
+      conversationMessages.push({ role: 'user', content: playerAction });
+    }
+
+    // 如果没有对话历史和玩家行动，发送开始游戏的消息
+    if (!dialogHistory?.length && !playerAction) {
+      conversationMessages.push({ role: 'user', content: '请开始游戏，根据我的角色背景将我代入剧情' });
+    }
 
     // 创建流式响应
     const encoder = new TextEncoder();
@@ -311,7 +333,7 @@ ${availableScenarios}
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          const llmStream = llmClient.stream(messages, {
+          const llmStream = llmClient.stream(conversationMessages, {
             model: 'doubao-seed-1-8-251228',
             temperature: 0.9,
           });

@@ -173,6 +173,7 @@ export default function RoomPage() {
   }>>([]);
   const [isLoadingSaves, setIsLoadingSaves] = useState(false);
   const [saveName, setSaveName] = useState('');
+  const [diceCount, setDiceCount] = useState('1'); // 骰子数量
   
   
   const { text: dmNarrative, appendText: appendNarrative, resetText: resetNarrative } = useTypewriter();
@@ -1203,19 +1204,62 @@ export default function RoomPage() {
 
                 {/* Dice Roll Buttons */}
                 {isInGame && (
-                  <div className="flex gap-2 mt-2">
-                    <Button variant="outline" size="sm" onClick={() => handleRollDice('1d20')}>
-                      1d20
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => handleRollDice('1d6')}>
-                      1d6
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => handleRollDice('2d6')}>
-                      2d6
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => handleRollDice('1d100')}>
-                      1d100
-                    </Button>
+                  <div className="space-y-2 mt-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground whitespace-nowrap">投掷</span>
+                      <input
+                        type="number"
+                        min="1"
+                        max="20"
+                        value={diceCount}
+                        onChange={(e) => setDiceCount(e.target.value)}
+                        className="w-16 px-2 py-1 text-center border rounded-md text-sm"
+                        placeholder="数量"
+                      />
+                      <span className="text-sm text-muted-foreground">个</span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => handleRollDice(`${diceCount || '1'}d4`)}
+                        className="min-w-[60px]"
+                      >
+                        {diceCount || '1'}d4
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => handleRollDice(`${diceCount || '1'}d6`)}
+                        className="min-w-[60px]"
+                      >
+                        {diceCount || '1'}d6
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => handleRollDice(`${diceCount || '1'}d8`)}
+                        className="min-w-[60px]"
+                      >
+                        {diceCount || '1'}d8
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => handleRollDice(`${diceCount || '1'}d20`)}
+                        className="min-w-[60px]"
+                      >
+                        {diceCount || '1'}d20
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => handleRollDice(`${diceCount || '1'}d100`)}
+                        className="min-w-[60px]"
+                      >
+                        {diceCount || '1'}d100
+                      </Button>
+                    </div>
                   </div>
                 )}
               </div>
