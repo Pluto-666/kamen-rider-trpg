@@ -74,20 +74,21 @@ except Exception as e:
 function getSupabaseCredentials(): SupabaseCredentials {
   loadEnv();
 
-  const url = process.env.COZE_SUPABASE_URL;
-  const anonKey = process.env.COZE_SUPABASE_ANON_KEY;
+  // 支持两种环境变量命名方式（优先使用 COZE_ 前缀，兼容 NEXT_PUBLIC_ 前缀）
+  const url = process.env.COZE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.COZE_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!url) {
-    throw new Error('COZE_SUPABASE_URL is not set');
+    throw new Error('COZE_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_URL is not set');
   }
   if (!anonKey) {
-    throw new Error('COZE_SUPABASE_ANON_KEY is not set');
+    throw new Error('COZE_SUPABASE_ANON_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY is not set');
   }
 
   return { 
     url, 
     anonKey,
-    dbUrl: process.env.COZE_SUPABASE_DB_URL,
+    dbUrl: process.env.COZE_SUPABASE_DB_URL || process.env.DATABASE_URL || process.env.POSTGRES_URL,
   };
 }
 
