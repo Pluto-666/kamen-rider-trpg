@@ -1168,13 +1168,13 @@ export default function CharactersPage() {
               </ScrollArea>
 
               <DialogFooter className="flex-shrink-0">
-                <Button variant="outline" size="sm" onClick={() => setDetailDialogOpen(false)}>
+                <Button variant="outline" size="sm" onClick={() => setDetailDialogOpen(false)} className="border-[#c41e3a]/30 text-[#c0c0c8] hover:border-[#c41e3a] hover:text-[#e8e8f0] hover:bg-[#c41e3a]/10">
                   关闭
                 </Button>
                 <Button size="sm" onClick={() => {
                   handleExportCharacter(selectedCharacter.id);
                   setDetailDialogOpen(false);
-                }}>
+                }} className="kamen-btn-primary">
                   <Download className="mr-1 h-3 w-3" />
                   导出xlsx
                 </Button>
@@ -1186,58 +1186,59 @@ export default function CharactersPage() {
 
       {/* 保存确认对话框 - 使用更高的z-index确保显示在创建对话框之上 */}
       <Dialog open={confirmSaveOpen} onOpenChange={setConfirmSaveOpen}>
-        <DialogContent className="max-w-md z-[100]">
+        <DialogContent className="max-w-md z-[100] kamen-dialog bg-[#1e1e28]/95 backdrop-blur-sm border-[#c41e3a]/35">
           <DialogHeader>
-            <DialogTitle>保存角色卡</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-[#e8e8f0]">保存角色卡</DialogTitle>
+            <DialogDescription className="text-[#8a8a9a]">
               确认角色信息并保存
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">角色名称 *</label>
+              <label className="text-sm font-medium text-[#e8e8f0]">角色名称 *</label>
               <Input
                 value={editingName}
                 onChange={(e) => setEditingName(e.target.value)}
                 placeholder="输入角色名称"
                 autoFocus
+                className="bg-[#0a0a0f]/80 border-[#c41e3a]/20 text-[#e8e8f0] placeholder:text-[#6a6a7a] focus:border-[#c41e3a] focus:ring-[#c41e3a]/30"
               />
             </div>
             
             {pendingCharacterData.race && (
-              <div className="text-sm">
-                <span className="text-muted-foreground">种族:</span> {pendingCharacterData.race}
+              <div className="text-sm text-[#c0c0c8]">
+                <span className="text-[#9a9aaa]">种族:</span> {pendingCharacterData.race}
               </div>
             )}
             
             {pendingCharacterData.age && (
-              <div className="text-sm">
-                <span className="text-muted-foreground">年龄:</span> {pendingCharacterData.age}
+              <div className="text-sm text-[#c0c0c8]">
+                <span className="text-[#9a9aaa]">年龄:</span> {pendingCharacterData.age}
               </div>
             )}
             
             {pendingCharacterData.gender && (
-              <div className="text-sm">
-                <span className="text-muted-foreground">性别:</span> {pendingCharacterData.gender}
+              <div className="text-sm text-[#c0c0c8]">
+                <span className="text-[#9a9aaa]">性别:</span> {pendingCharacterData.gender}
               </div>
             )}
             
             {pendingCharacterData.occupation && (
-              <div className="text-sm">
-                <span className="text-muted-foreground">职业:</span> {pendingCharacterData.occupation}
+              <div className="text-sm text-[#c0c0c8]">
+                <span className="text-[#9a9aaa]">职业:</span> {pendingCharacterData.occupation}
               </div>
             )}
             
             {pendingCharacterData.background && (
-              <div className="text-sm">
-                <span className="text-muted-foreground">背景:</span> {pendingCharacterData.background}
+              <div className="text-sm text-[#c0c0c8]">
+                <span className="text-[#9a9aaa]">背景:</span> {pendingCharacterData.background}
               </div>
             )}
             
             {pendingCharacterData.rider_data?.riderSystem && (
-              <div className="text-sm">
-                <span className="text-muted-foreground">骑士系统:</span> {pendingCharacterData.rider_data.riderSystem}
+              <div className="text-sm text-[#c0c0c8]">
+                <span className="text-[#9a9aaa]">骑士系统:</span> {pendingCharacterData.rider_data.riderSystem}
               </div>
             )}
           </div>
@@ -1246,10 +1247,10 @@ export default function CharactersPage() {
             <Button variant="outline" onClick={() => {
               setConfirmSaveOpen(false);
               setCreateDialogOpen(true); // 取消时重新打开创建对话框
-            }} disabled={isSaving}>
+            }} disabled={isSaving} className="border-[#c41e3a]/30 text-[#c0c0c8] hover:border-[#c41e3a] hover:text-[#e8e8f0] hover:bg-[#c41e3a]/10">
               取消
             </Button>
-            <Button onClick={confirmSaveCharacter} disabled={isSaving}>
+            <Button onClick={confirmSaveCharacter} disabled={isSaving} className="kamen-btn-primary">
               {isSaving ? (
                 <>
                   <span className="mr-1 h-3 w-3 animate-spin">⏳</span>
