@@ -161,13 +161,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [refreshTokenValue]);
 
   const login = async (email: string, password: string) => {
-    const response = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email, password }),
-    });
+    let response;
+    try {
+      response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+    } catch (fetchError) {
+      console.error('登录请求失败:', fetchError);
+      throw new Error('网络连接失败，请检查网络后重试');
+    }
 
     if (!response.ok) {
       const error = await response.json();
@@ -184,13 +190,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const register = async (email: string, password: string, username: string) => {
-    const response = await fetch('/api/auth/register', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email, password, username }),
-    });
+    let response;
+    try {
+      response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password, username }),
+      });
+    } catch (fetchError) {
+      console.error('注册请求失败:', fetchError);
+      throw new Error('网络连接失败，请检查网络后重试');
+    }
 
     if (!response.ok) {
       const error = await response.json();

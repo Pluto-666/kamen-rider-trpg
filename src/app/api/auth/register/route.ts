@@ -28,7 +28,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const supabase = getSupabaseClient();
+    let supabase;
+    try {
+      supabase = getSupabaseClient();
+    } catch (envError) {
+      console.error('Supabase 环境变量错误:', envError);
+      return NextResponse.json(
+        { error: '服务器配置错误，请联系管理员' },
+        { status: 500 }
+      );
+    }
 
     // 检查用户名是否已存在
     const { data: existingProfile } = await supabase
