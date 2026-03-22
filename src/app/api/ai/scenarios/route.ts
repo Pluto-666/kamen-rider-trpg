@@ -9,6 +9,82 @@ import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 // 首个剧本固定为《被扭曲的世界》
 const FIRST_SCENARIO = '被扭曲的世界';
+// 首次推荐剧本数量
+const INITIAL_SCENARIO_COUNT = 4;
+
+// 从规则书搜索剧本详细信息
+async function getScenarioDetails(scenarioName: string): Promise<{
+  description: string;
+  difficulty: string;
+  mainEnemy: string;
+  keyLocations: string[];
+  storyOutline: string;
+}> {
+  const result = await searchScenarioModule(scenarioName);
+  
+  const defaultInfo = {
+    description: '来自规则书的经典剧本模组',
+    difficulty: '普通',
+    mainEnemy: '未知',
+    keyLocations: ['城市'],
+    storyOutline: ''
+  };
+  
+  if (!result.found || !result.content) {
+    return defaultInfo;
+  }
+  
+  // 从搜索结果中提取信息
+  const content = result.content;
+  
+  // 提取故事概述
+  let storyOutline = '';
+  const storyMatch = content.match(/故事概述[■\s]*([\s\S]*?)(?=■|PC列表|■舞台|$)/i);
+  if (storyMatch) {
+    storyOutline = storyMatch[1].trim().substring(0, 300);
+  }
+  
+  // 提取舞台信息
+  let keyLocations: string[] = [];
+  const stageMatch = content.match(/舞台[：:]\s*([^\n■]+)/i);
+  if (stageMatch) {
+    keyLocations = stageMatch[1].split(/[，、\s]+/).filter((s: string) => s.length > 0);
+  }
+  
+  // 提取话数作为难度参考
+  let difficulty = '普通';
+  const chapterMatch = content.match(/话数[：:]\s*全(\d+)话/i);
+  if (chapterMatch) {
+    const chapters = parseInt(chapterMatch[1]);
+    if (chapters <= 2) difficulty = '简单';
+    else if (chapters >= 4) difficulty = '困难';
+  }
+  
+  // 提取敌人信息
+  let mainEnemy = '未知';
+  const enemyPatterns = [
+    /phantom/i,
+    /Roidmude/i,
+    /Undead/i,
+    /怪人/i,
+    /镜怪兽/i,
+    /魔化魍/i,
+  ];
+  for (const pattern of enemyPatterns) {
+    if (pattern.test(content)) {
+      mainEnemy = content.match(pattern)?.[0] || '未知';
+      break;
+    }
+  }
+  
+  return {
+    description: storyOutline || `来自规则书的${scenarioName}模组`,
+    difficulty,
+    mainEnemy,
+    keyLocations: keyLocations.length > 0 ? keyLocations : ['城市'],
+    storyOutline
+  };
+}
 
 // AI推荐剧本
 export async function POST(request: NextRequest) {
@@ -42,28 +118,57 @@ export async function POST(request: NextRequest) {
       ...completedScenarios
     ])];
 
-    // 如果是第一次生成剧本，固定返回《被扭曲的世界》
+    // 过滤已通关的剧本，获取可用模组
+    const availableModules = SCENARIO_MODULES.filter(
+      m => !allPlayedScenarios.includes(m.name)
+    );
+
+    // 如果是第一次生成剧本，返回4个规则书剧本（固定包含《被扭曲的世界》）
     if (isFirstScenario && !refresh) {
-      const firstScenarioResult = await searchScenarioModule(FIRST_SCENARIO);
+      const firstScenarios = [];
       
-      const firstScenario = {
-        name: FIRST_SCENARIO,
-        description: firstScenarioResult.found 
-          ? '来自规则书的入门剧本，适合新手玩家体验假面骑士TRPG的核心玩法。'
-          : '假面骑士TRPG的入门剧本，玩家将面对被扭曲的现实，寻找真相并拯救世界。',
-        difficulty: '普通',
-        duration: '2-3小时',
-        reason: '推荐新手玩家首先体验此剧本，了解游戏基本规则和玩法',
-        isOriginal: false,
-        source: '规则书模组',
-        mainEnemy: '未知',
-        keyLocations: ['城市', '神秘遗迹']
-      };
+      // 确保第一个是《被扭曲的世界》
+      const firstModule = SCENARIO_MODULES.find(m => m.name === FIRST_SCENARIO);
+      if (firstModule && !allPlayedScenarios.includes(firstModule.name)) {
+        const details = await getScenarioDetails(firstModule.name);
+        firstScenarios.push({
+          name: firstModule.name,
+          description: details.storyOutline || details.description,
+          difficulty: details.difficulty,
+          duration: '2-3小时',
+          reason: '推荐新手玩家首先体验此剧本，了解游戏基本规则和玩法',
+          isOriginal: false,
+          source: '规则书模组',
+          mainEnemy: details.mainEnemy,
+          keyLocations: details.keyLocations,
+          isStarter: true
+        });
+      }
+      
+      // 添加其他可用剧本，直到凑够4个
+      for (const module of availableModules) {
+        if (module.name === FIRST_SCENARIO) continue; // 跳过已添加的
+        if (firstScenarios.length >= INITIAL_SCENARIO_COUNT) break;
+        
+        const details = await getScenarioDetails(module.name);
+        firstScenarios.push({
+          name: module.name,
+          description: details.storyOutline || details.description,
+          difficulty: details.difficulty,
+          duration: '2-3小时',
+          reason: module.isStarter ? '适合新手入门的剧本' : '来自规则书的经典模组',
+          isOriginal: false,
+          source: '规则书模组',
+          mainEnemy: details.mainEnemy,
+          keyLocations: details.keyLocations,
+          isStarter: module.isStarter || false
+        });
+      }
 
       return NextResponse.json({
         success: true,
         data: {
-          scenarios: [firstScenario],
+          scenarios: firstScenarios,
           availableModules: SCENARIO_MODULES.map(m => m.name),
           isFirstScenario: true,
           completedScenarios: allPlayedScenarios,
@@ -71,27 +176,44 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 过滤已通关的剧本
-    const availableModules = SCENARIO_MODULES.filter(
-      m => !allPlayedScenarios.includes(m.name)
-    );
+    // 非首次生成或刷新请求：返回3个新剧本
 
     // 如果所有预设剧本都通关了，生成原创剧本
     const needsOriginalScenario = availableModules.length === 0;
 
-    // 搜索可用剧本模组的内容
-    const scenarioDetails: string[] = [];
-    
+    // 如果还有预设剧本，直接返回规则书模组
     if (!needsOriginalScenario) {
-      for (const module of availableModules.slice(0, 3)) {
-        const result = await searchScenarioModule(module.name);
-        if (result.found) {
-          scenarioDetails.push(`### ${module.name}\n${result.content.substring(0, 500)}...`);
-        }
+      const scenarios = [];
+      const count = Math.min(3, availableModules.length);
+      
+      for (let i = 0; i < count; i++) {
+        const module = availableModules[i];
+        const details = await getScenarioDetails(module.name);
+        scenarios.push({
+          name: module.name,
+          description: details.storyOutline || details.description,
+          difficulty: details.difficulty,
+          duration: '2-3小时',
+          reason: '来自规则书的经典模组',
+          isOriginal: false,
+          source: '规则书模组',
+          mainEnemy: details.mainEnemy,
+          keyLocations: details.keyLocations
+        });
       }
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          scenarios,
+          availableModules: availableModules.map(m => m.name),
+          isFirstScenario: false,
+          completedScenarios: allPlayedScenarios,
+        },
+      });
     }
-    
-    // 搜索世界观设定用于原创剧本
+
+    // 所有预设剧本已通关，创作原创剧本
     const worldResult = await searchRulebook('世界观 假面骑士 设定');
 
     // 角色信息
@@ -105,18 +227,13 @@ export async function POST(request: NextRequest) {
     ).join('\n') || '无角色信息';
 
     // 系统提示词
-    const systemPrompt = `你是假面骑士TRPG游戏的剧本推荐助手。
+    const systemPrompt = `你是假面骑士TRPG游戏的剧本创作助手。
 
-${needsOriginalScenario ? `
 ## 所有预设剧本已通关！
 玩家已经完成了所有规则书中的预设剧本。请根据世界观和角色特点，创作全新的原创剧本。
-` : `
-## 可选的规则书剧本模组（已过滤已通关的剧本）
-${scenarioDetails.length > 0 ? scenarioDetails.join('\n\n') : '正在检索规则书...'}
-`}
 
-## 世界观设定（用于剧本创作）
-${worldResult.found ? worldResult.content.substring(0, 1000) : '假面骑士通用世界观'}
+## 世界观设定
+${worldResult.found ? worldResult.content.substring(0, 1500) : '假面骑士通用世界观'}
 
 ## 玩家角色
 ${charactersInfo}
@@ -124,36 +241,28 @@ ${charactersInfo}
 ## 玩家偏好
 ${preferences || '无特殊偏好'}
 
-## 已通关的剧本（不要推荐）
-${allPlayedScenarios.join('、') || '无'}
+## 已通关的剧本（不要重复）
+${allPlayedScenarios.join('、')}
 
 ## 任务
-根据角色特点和玩家偏好，推荐3个适合的剧本：
-
-${needsOriginalScenario ? `
-由于所有预设剧本都已通关，请创作3个全新的原创剧本，确保：
+创作3个全新的原创剧本，确保：
 1. 剧情新颖有趣，与之前的剧本不重复
 2. 符合假面骑士世界观
 3. 适合当前角色组合
 4. 难度适中或略高（玩家已有经验）
-` : `
-1. 优先从可选的规则书剧本模组中推荐
-2. 如果没有合适的模组，可以创作原创剧本
-3. 考虑角色种族和背景是否契合剧情
-4. 注意难度平衡
-`}
+5. 每个剧本应该有明确的故事背景、主要敌人和关键地点
 
 请用JSON格式返回：
 {
   "scenarios": [
     {
       "name": "剧本名称",
-      "description": "剧本描述（2-3句话）",
+      "description": "剧本描述（2-3句话，包含故事背景）",
       "difficulty": "简单/普通/困难",
       "duration": "预计时长（如：2-3小时）",
       "reason": "推荐理由",
-      "isOriginal": false,
-      "source": "规则书模组/原创",
+      "isOriginal": true,
+      "source": "原创",
       "mainEnemy": "主要敌人/组织",
       "keyLocations": ["地点1", "地点2"]
     }
@@ -162,7 +271,7 @@ ${needsOriginalScenario ? `
 
     const messages = [
       { role: 'system' as const, content: systemPrompt },
-      { role: 'user' as const, content: refresh ? '请重新推荐剧本（刷新）' : '请推荐适合我们的剧本' }
+      { role: 'user' as const, content: '请为我们创作全新的剧本' }
     ];
 
     const response = await llmClient.invoke(messages, {
@@ -180,32 +289,16 @@ ${needsOriginalScenario ? `
       }
     } catch {
       console.error('解析剧本JSON失败');
-      // 如果解析失败，使用剩余的默认剧本列表
-      scenarios = availableModules.slice(0, 3).map(m => ({
-        name: m.name,
-        description: '来自规则书的经典剧本模组',
-        difficulty: '普通',
-        duration: '2-3小时',
-        reason: '规则书推荐剧本',
-        isOriginal: false,
-        source: '规则书模组'
-      }));
     }
-
-    // 再次过滤确保不包含已通关剧本
-    scenarios = scenarios.filter((s: { name: string }) => 
-      !allPlayedScenarios.includes(s.name)
-    );
 
     return NextResponse.json({
       success: true,
       data: {
         scenarios,
-        availableModules: availableModules.map(m => m.name),
+        availableModules: [],
         isFirstScenario: false,
         completedScenarios: allPlayedScenarios,
-        allModulesCompleted: needsOriginalScenario,
-        rawResponse: response.content,
+        allModulesCompleted: true,
       },
     });
   } catch (error) {

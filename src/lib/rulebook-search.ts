@@ -7,17 +7,17 @@ import { KnowledgeClient, Config } from 'coze-coding-dev-sdk';
 import fs from 'fs';
 import path from 'path';
 
-// 规则书中的剧本模组列表
+// 规则书中的剧本模组列表（与规则书完全一致的名称）
 export const SCENARIO_MODULES = [
-  { name: '被扭曲的世界', keywords: ['被扭曲的世界', '扭曲', '世界'] },
-  { name: '假面骑士部 连接未来的希望之所', keywords: ['假面骑士部', '连接未来', '希望之所'] },
-  { name: '另一个全球冻结之夜', keywords: ['全球冻结', '另一个', '冻结之夜'] },
-  { name: '镜世界疾驰之人', keywords: ['镜世界', '疾驰', '镜'] },
-  { name: '成为那片晴空', keywords: ['晴空', '成为', '晴'] },
-  { name: '圆桌的骑士', keywords: ['圆桌', '骑士', '圆桌骑士'] },
-  { name: '镜中映照的鬼', keywords: ['镜中', '映照', '鬼'] },
-  { name: '真夏夜之噩梦', keywords: ['真夏夜', '噩梦', '真夏'] },
-  { name: '轮回的宿命', keywords: ['轮回', '宿命', '轮回宿命'] },
+  { name: '被扭曲的世界', keywords: ['被扭曲的世界', '扭曲', '世界', 'phantom', '沼川市'], isStarter: true },
+  { name: '假面骑士部 连接未来的希望之所', keywords: ['假面骑士部', '连接未来', '希望之所', '灯志郎', '再兴'] },
+  { name: '另一个 全球冻结之夜', keywords: ['全球冻结', '另一个', '冻结之夜', 'Roidmude', '重加速'] },
+  { name: '镜世界疾驰之人', keywords: ['镜世界', '疾驰', 'Undead', 'BOARD', '卡牌'] },
+  { name: '成为那片晴空', keywords: ['晴空', '成为', '新手模组', '入门'], isStarter: true },
+  { name: 'Knights·of·the·round', keywords: ['圆桌', '骑士', '卡利巴', '圆之丘市', 'Knights', 'round'] },
+  { name: '镜中映照的鬼', keywords: ['镜中', '映照', '鬼', '镜怪兽', '镜魔境'] },
+  { name: '真夏夜之噩梦', keywords: ['真夏夜', '噩梦', '真夏', '学园'] },
+  { name: '轮回的宿命', keywords: ['轮回', '宿命', 'Smart Brain', 'Kaixa', '流星塾'] },
 ];
 
 // 检索结果接口
