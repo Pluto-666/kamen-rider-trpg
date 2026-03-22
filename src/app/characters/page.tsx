@@ -635,69 +635,69 @@ export default function CharactersPage() {
 
   if (authLoading || !isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background relative overflow-hidden">
+      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0f] relative overflow-hidden">
         {/* 背景图 */}
         <div 
           className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-20"
           style={{ backgroundImage: 'url(/kamen-rider-bg-2.jpeg)' }}
         />
-        <div className="absolute inset-0 bg-gradient-to-br from-background via-background/90 to-card" />
+        <div className="absolute inset-0 bg-gradient-to-br from-[#0a0a0f] via-[#0a0a0f]/90 to-[#1a1a25]" />
         
         <div className="text-center relative z-10">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">加载中...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#c41e3a] mx-auto"></div>
+          <p className="mt-4 text-[#8a8a9a]">加载中...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden">
+    <div className="min-h-screen bg-[#0a0a0f] relative overflow-hidden">
       {/* 背景图 */}
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-15"
         style={{ backgroundImage: 'url(/kamen-rider-bg-2.jpeg)' }}
       />
-      <div className="absolute inset-0 bg-gradient-to-b from-background via-transparent to-background" />
+      <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0f] via-transparent to-[#0a0a0f]" />
       
       {/* Header */}
-      <header className="border-b border-primary/20 bg-card/95 backdrop-blur-sm sticky top-0 z-40">
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
+      <header className="border-b border-[#c41e3a]/20 bg-[#1e1e28]/95 backdrop-blur-sm sticky top-0 z-40">
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#c41e3a]/50 to-transparent" />
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/lobby" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-lg shadow-primary/20 group-hover:shadow-primary/40 transition-shadow">
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#c41e3a] to-[#8b0000] flex items-center justify-center shadow-lg shadow-[#c41e3a]/20 group-hover:shadow-[#c41e3a]/40 transition-shadow">
               <Swords className="h-5 w-5 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold font-display tracking-wide group-hover:text-primary transition-colors cursor-pointer">
-                假面骑士 <span className="text-accent">TRPG</span>
+              <h1 className="text-xl font-bold font-display tracking-wide group-hover:text-[#c41e3a] transition-colors cursor-pointer">
+                假面骑士 <span className="text-[#00d4ff]">TRPG</span>
               </h1>
             </div>
           </Link>
 
           <div className="flex items-center gap-4">
             <Link href="/lobby">
-              <Button variant="outline" className="border-primary/30 text-foreground hover:border-primary hover:text-card-foreground hover:bg-primary/10">
+              <Button variant="outline" className="border-[#c41e3a]/30 text-[#c0c0c8] hover:border-[#c41e3a] hover:text-[#e8e8f0] hover:bg-[#c41e3a]/10">
                 返回大厅
               </Button>
             </Link>
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="flex items-center gap-2 hover:bg-primary/10">
-                  <Avatar className="h-8 w-8 border-2 border-primary/30">
+                <Button variant="ghost" className="flex items-center gap-2 hover:bg-[#c41e3a]/10">
+                  <Avatar className="h-8 w-8 border-2 border-[#c41e3a]/30">
                     <AvatarImage src={profile?.avatar} />
-                    <AvatarFallback className="bg-primary/20 text-primary">
+                    <AvatarFallback className="bg-[#c41e3a]/20 text-[#c41e3a]">
                       {profile?.username?.charAt(0).toUpperCase() || 'U'}
                     </AvatarFallback>
                   </Avatar>
-                  <span className="hidden sm:inline text-foreground">{profile?.username || profile?.display_name || '用户'}</span>
+                  <span className="hidden sm:inline text-[#c0c0c8]">{profile?.username || profile?.display_name || '用户'}</span>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="bg-muted border-primary/20">
-                <DropdownMenuLabel className="text-foreground">我的账户</DropdownMenuLabel>
-                <DropdownMenuSeparator className="bg-primary/10" />
-                <DropdownMenuItem onClick={handleLogout} className="text-foreground hover:text-card-foreground hover:bg-primary/10 focus:bg-primary/10">
+              <DropdownMenuContent align="end" className="bg-[#12121a] border-[#c41e3a]/20">
+                <DropdownMenuLabel className="text-[#c0c0c8]">我的账户</DropdownMenuLabel>
+                <DropdownMenuSeparator className="bg-[#c41e3a]/10" />
+                <DropdownMenuItem onClick={handleLogout} className="text-[#c0c0c8] hover:text-[#e8e8f0] hover:bg-[#c41e3a]/10 focus:bg-[#c41e3a]/10">
                   退出登录
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -710,11 +710,11 @@ export default function CharactersPage() {
       <main className="container mx-auto px-4 py-8 relative z-10">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h2 className="text-3xl font-bold font-display tracking-wide text-card-foreground">
+            <h2 className="text-3xl font-bold font-display tracking-wide text-[#e8e8f0]">
               我的角色卡
             </h2>
-            <p className="text-muted-foreground mt-2 flex items-center gap-2">
-              <Shield className="w-4 h-4 text-primary" />
+            <p className="text-[#8a8a9a] mt-2 flex items-center gap-2">
+              <Shield className="w-4 h-4 text-[#c41e3a]" />
               管理你的假面骑士角色
             </p>
           </div>
@@ -728,17 +728,17 @@ export default function CharactersPage() {
         {/* Character List */}
         {isLoading ? (
           <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-            <p className="mt-4 text-muted-foreground">加载角色卡...</p>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#c41e3a] mx-auto"></div>
+            <p className="mt-4 text-[#8a8a9a]">加载角色卡...</p>
           </div>
         ) : characters.length === 0 ? (
-          <Card className="text-center py-12 kamen-card backdrop-blur-sm bg-card/95">
+          <Card className="text-center py-12 kamen-card backdrop-blur-sm bg-[#1e1e28]/95">
             <CardContent className="flex flex-col items-center">
-              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary/25 to-accent/15 flex items-center justify-center mb-4">
-                <User className="h-10 w-10 text-primary" />
+              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#c41e3a]/25 to-[#00d4ff]/15 flex items-center justify-center mb-4">
+                <User className="h-10 w-10 text-[#c41e3a]" />
               </div>
-              <p className="text-foreground mb-2 text-lg">你还没有创建任何角色卡</p>
-              <p className="text-muted-foreground text-sm mb-6">创建你的第一个假面骑士角色，开始你的冒险之旅</p>
+              <p className="text-[#c0c0c8] mb-2 text-lg">你还没有创建任何角色卡</p>
+              <p className="text-[#6a6a7a] text-sm mb-6">创建你的第一个假面骑士角色，开始你的冒险之旅</p>
               <Button onClick={handleStartCreation} className="kamen-btn-primary">
                 <Sparkles className="mr-2 h-4 w-4" />
                 创建第一个角色
@@ -750,22 +750,22 @@ export default function CharactersPage() {
             {characters.map((character) => (
               <Card 
                 key={character.id} 
-                className="kamen-card backdrop-blur-sm bg-card/95 hover:shadow-[0_0_30px_rgba(196,30,58,0.25)] transition-all cursor-pointer group border-primary/15 hover:border-primary/35"
+                className="kamen-card backdrop-blur-sm bg-[#1e1e28]/95 hover:shadow-[0_0_30px_rgba(196,30,58,0.25)] transition-all cursor-pointer group border-[#c41e3a]/15 hover:border-[#c41e3a]/35"
                 onClick={() => handleViewCharacter(character)}
               >
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
-                      <Avatar className="h-12 w-12 border-2 border-primary/30 group-hover:border-primary transition-colors">
+                      <Avatar className="h-12 w-12 border-2 border-[#c41e3a]/30 group-hover:border-[#c41e3a] transition-colors">
                         <AvatarImage src={character.image_url} />
-                        <AvatarFallback className="bg-gradient-to-br from-primary/20 to-accent/10 text-primary">
+                        <AvatarFallback className="bg-gradient-to-br from-[#c41e3a]/20 to-[#00d4ff]/10 text-[#c41e3a]">
                           {character.name?.charAt(0)}
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <CardTitle className="text-xl text-card-foreground group-hover:text-primary transition-colors">{character.name}</CardTitle>
+                        <CardTitle className="text-xl text-[#e8e8f0] group-hover:text-[#c41e3a] transition-colors">{character.name}</CardTitle>
                         {character.player_name && (
-                          <CardDescription className="text-sm text-muted-foreground">
+                          <CardDescription className="text-sm text-[#8a8a9a]">
                             玩家: {character.player_name}
                           </CardDescription>
                         )}
@@ -773,25 +773,25 @@ export default function CharactersPage() {
                     </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                        <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-card-foreground hover:bg-primary/10">
+                        <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 text-[#6a6a7a] hover:text-[#e8e8f0] hover:bg-[#c41e3a]/10">
                           <MoreVertical className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="bg-muted border-primary/20">
+                      <DropdownMenuContent align="end" className="bg-[#12121a] border-[#c41e3a]/20">
                         <DropdownMenuItem onClick={(e) => {
                           e.stopPropagation();
                           handleExportCharacter(character.id);
-                        }} className="text-foreground hover:text-card-foreground hover:bg-primary/10">
+                        }} className="text-[#c0c0c8] hover:text-[#e8e8f0] hover:bg-[#c41e3a]/10">
                           <Download className="mr-2 h-4 w-4" />
                           导出xlsx
                         </DropdownMenuItem>
-                        <DropdownMenuSeparator className="bg-primary/10" />
+                        <DropdownMenuSeparator className="bg-[#c41e3a]/10" />
                         <DropdownMenuItem 
                           onClick={(e) => {
                             e.stopPropagation();
                             handleDeleteCharacter(character.id);
                           }}
-                          className="text-red-400 hover:text-red-300 hover:bg-red-400/10 focus:bg-red-400/10"
+                          className="text-[#ff6b6b] hover:text-[#ff8888] hover:bg-[#ff6b6b]/10 focus:bg-[#ff6b6b]/10"
                         >
                           <Trash2 className="mr-2 h-4 w-4" />
                           删除角色
@@ -804,16 +804,16 @@ export default function CharactersPage() {
                   {/* Basic Info */}
                   <div className="flex flex-wrap gap-2 mb-4">
                     {character.race && (
-                      <Badge className="bg-primary/20 text-card-foreground border-primary/30">{character.race}</Badge>
+                      <Badge className="bg-[#c41e3a]/20 text-[#e8e8f0] border-[#c41e3a]/30">{character.race}</Badge>
                     )}
                     {character.occupation && (
-                      <Badge variant="outline" className="border-accent/30 text-accent">{character.occupation}</Badge>
+                      <Badge variant="outline" className="border-[#00d4ff]/30 text-[#00d4ff]">{character.occupation}</Badge>
                     )}
                     {character.age && (
-                      <Badge variant="outline" className="border-border/30 text-foreground">{character.age}岁</Badge>
+                      <Badge variant="outline" className="border-[#c0c0c8]/30 text-[#c0c0c8]">{character.age}岁</Badge>
                     )}
                     {character.gender && (
-                      <Badge variant="outline" className="border-border/30 text-foreground">{character.gender}</Badge>
+                      <Badge variant="outline" className="border-[#c0c0c8]/30 text-[#c0c0c8]">{character.gender}</Badge>
                     )}
                   </div>
 
@@ -826,30 +826,30 @@ export default function CharactersPage() {
                       { name: '意志', value: character.attributes?.willNormal || 0 },
                       { name: '机知', value: character.attributes?.witNormal || 0 },
                     ].map((attr) => (
-                      <div key={attr.name} className="text-center p-1.5 bg-muted rounded border border-primary/10">
-                        <div className="text-muted-foreground">{attr.name}</div>
-                        <div className="font-bold text-sm text-accent">{attr.value}</div>
+                      <div key={attr.name} className="text-center p-1.5 bg-[#1a1a25] rounded border border-[#c41e3a]/10">
+                        <div className="text-[#6a6a7a]">{attr.name}</div>
+                        <div className="font-bold text-sm text-[#00d4ff]">{attr.value}</div>
                       </div>
                     ))}
                   </div>
 
                   {/* HP */}
                   <div className="flex items-center gap-2 text-sm">
-                    <Heart className="h-4 w-4 text-primary" />
-                    <span className="text-foreground">HP: <span className="text-primary font-bold">{character.attributes?.totalHP || 0}</span></span>
+                    <Heart className="h-4 w-4 text-[#c41e3a]" />
+                    <span className="text-[#c0c0c8]">HP: <span className="text-[#c41e3a] font-bold">{character.attributes?.totalHP || 0}</span></span>
                     {character.active_power && (
                       <>
-                        <Separator orientation="vertical" className="h-4 bg-primary/20" />
-                        <Sparkles className="h-4 w-4 text-amber-500" />
-                        <span className="text-foreground">活跃力: <span className="text-amber-500 font-bold">{character.active_power}</span></span>
+                        <Separator orientation="vertical" className="h-4 bg-[#c41e3a]/20" />
+                        <Sparkles className="h-4 w-4 text-[#ffd700]" />
+                        <span className="text-[#c0c0c8]">活跃力: <span className="text-[#ffd700] font-bold">{character.active_power}</span></span>
                       </>
                     )}
                   </div>
 
                   {/* Rider System */}
                   {character.rider_data?.riderSystem && (
-                    <div className="mt-3 text-sm text-muted-foreground flex items-center gap-1">
-                      <Swords className="h-4 w-4 text-primary" />
+                    <div className="mt-3 text-sm text-[#8a8a9a] flex items-center gap-1">
+                      <Swords className="h-4 w-4 text-[#c41e3a]" />
                       {character.rider_data.riderSystem}
                     </div>
                   )}
@@ -862,31 +862,31 @@ export default function CharactersPage() {
 
       {/* AI Character Creation Dialog */}
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-        <DialogContent className="sm:max-w-3xl h-[85vh] flex flex-col kamen-dialog bg-card/95 backdrop-blur-sm border-primary/35">
+        <DialogContent className="sm:max-w-3xl h-[85vh] flex flex-col kamen-dialog bg-[#1e1e28]/95 backdrop-blur-sm border-[#c41e3a]/35">
           <DialogHeader className="flex-shrink-0">
-            <DialogTitle className="flex items-center gap-2 text-card-foreground">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center">
+            <DialogTitle className="flex items-center gap-2 text-[#e8e8f0]">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#c41e3a] to-[#8b0000] flex items-center justify-center">
                 <Sparkles className="h-4 w-4 text-white" />
               </div>
               AI角色创建助手
             </DialogTitle>
-            <DialogDescription className="text-muted-foreground">
+            <DialogDescription className="text-[#8a8a9a]">
               和AI一起创建你的假面骑士角色，AI会记住你说的所有信息
             </DialogDescription>
           </DialogHeader>
 
           <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
             {/* Chat History */}
-            <ScrollArea className="flex-1 min-h-0 max-h-[50vh] p-4 bg-background/50 rounded-lg mb-3 border border-primary/10" ref={scrollRef}>
+            <ScrollArea className="flex-1 min-h-0 max-h-[50vh] p-4 bg-[#0a0a0f]/50 rounded-lg mb-3 border border-[#c41e3a]/10" ref={scrollRef}>
               <div className="space-y-4">
                 {chatHistory.length === 0 && !currentResponse && (
-                  <div className="text-center text-muted-foreground py-8">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-primary/20 to-accent/10 mb-4">
-                      <Sparkles className="w-8 h-8 text-primary" />
+                  <div className="text-center text-[#8a8a9a] py-8">
+                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-[#c41e3a]/20 to-[#00d4ff]/10 mb-4">
+                      <Sparkles className="w-8 h-8 text-[#c41e3a]" />
                     </div>
-                    <p className="text-lg mb-2 text-card-foreground">欢迎来到角色创建！</p>
-                    <p className="text-muted-foreground">请告诉我你想创建什么样的假面骑士角色？</p>
-                    <p className="text-sm mt-2 text-muted-foreground">例如：我想创建一个假面骑士，名字叫...</p>
+                    <p className="text-lg mb-2 text-[#e8e8f0]">欢迎来到角色创建！</p>
+                    <p className="text-[#8a8a9a]">请告诉我你想创建什么样的假面骑士角色？</p>
+                    <p className="text-sm mt-2 text-[#6a6a7a]">例如：我想创建一个假面骑士，名字叫...</p>
                   </div>
                 )}
                 
@@ -898,12 +898,12 @@ export default function CharactersPage() {
                     <div
                       className={`max-w-[80%] p-3 rounded-lg ${
                         msg.role === 'user'
-                          ? 'bg-gradient-to-br from-primary to-primary/70 text-white'
-                          : 'bg-muted border border-accent/20 text-card-foreground'
+                          ? 'bg-gradient-to-br from-[#c41e3a] to-[#8b0000] text-white'
+                          : 'bg-[#1a1a25] border border-[#00d4ff]/20 text-[#e8e8f0]'
                       }`}
                     >
                       {msg.role === 'assistant' && (
-                        <div className="text-xs text-accent mb-1 font-medium flex items-center gap-1">
+                        <div className="text-xs text-[#00d4ff] mb-1 font-medium flex items-center gap-1">
                           <Sparkles className="h-3 w-3" />
                           DM
                         </div>
@@ -915,14 +915,14 @@ export default function CharactersPage() {
                 
                 {currentResponse && (
                   <div className="flex justify-start">
-                    <div className="max-w-[80%] p-3 rounded-lg bg-muted border border-accent/20 text-card-foreground">
-                      <div className="text-xs text-accent mb-1 font-medium flex items-center gap-1">
+                    <div className="max-w-[80%] p-3 rounded-lg bg-[#1a1a25] border border-[#00d4ff]/20 text-[#e8e8f0]">
+                      <div className="text-xs text-[#00d4ff] mb-1 font-medium flex items-center gap-1">
                         <Sparkles className="h-3 w-3" />
                         DM
                       </div>
                       <div className="whitespace-pre-wrap text-sm">
                         {currentResponse}
-                        <span className="inline-block w-2 h-4 bg-accent animate-pulse ml-1"></span>
+                        <span className="inline-block w-2 h-4 bg-[#00d4ff] animate-pulse ml-1"></span>
                       </div>
                     </div>
                   </div>
@@ -932,26 +932,26 @@ export default function CharactersPage() {
 
             {/* Current Character Data - Compact */}
             {Object.keys(currentCharacterData).length > 0 && (
-              <div className="flex-shrink-0 mb-3 p-2 bg-primary/10 rounded-lg border border-primary/20">
-                <div className="text-xs font-medium text-primary mb-1 flex items-center gap-1">
+              <div className="flex-shrink-0 mb-3 p-2 bg-[#c41e3a]/10 rounded-lg border border-[#c41e3a]/20">
+                <div className="text-xs font-medium text-[#c41e3a] mb-1 flex items-center gap-1">
                   <Shield className="w-3 h-3" />
                   已记录信息
                 </div>
                 <div className="flex flex-wrap gap-1">
                   {currentCharacterData.name && (
-                    <Badge className="text-xs bg-primary/20 text-card-foreground border-primary/30">姓名: {currentCharacterData.name}</Badge>
+                    <Badge className="text-xs bg-[#c41e3a]/20 text-[#e8e8f0] border-[#c41e3a]/30">姓名: {currentCharacterData.name}</Badge>
                   )}
                   {currentCharacterData.age && (
-                    <Badge variant="outline" className="text-xs border-accent/30 text-accent">{currentCharacterData.age}岁</Badge>
+                    <Badge variant="outline" className="text-xs border-[#00d4ff]/30 text-[#00d4ff]">{currentCharacterData.age}岁</Badge>
                   )}
                   {currentCharacterData.gender && (
-                    <Badge variant="outline" className="text-xs border-border/30 text-foreground">{currentCharacterData.gender}</Badge>
+                    <Badge variant="outline" className="text-xs border-[#c0c0c8]/30 text-[#c0c0c8]">{currentCharacterData.gender}</Badge>
                   )}
                   {currentCharacterData.race && (
-                    <Badge variant="outline" className="text-xs border-primary/30 text-primary">{currentCharacterData.race}</Badge>
+                    <Badge variant="outline" className="text-xs border-[#c41e3a]/30 text-[#c41e3a]">{currentCharacterData.race}</Badge>
                   )}
                   {currentCharacterData.occupation && (
-                    <Badge variant="outline" className="text-xs border-amber-500/30 text-amber-500">{currentCharacterData.occupation}</Badge>
+                    <Badge variant="outline" className="text-xs border-[#ffd700]/30 text-[#ffd700]">{currentCharacterData.occupation}</Badge>
                   )}
                 </div>
               </div>
@@ -970,14 +970,14 @@ export default function CharactersPage() {
                   }
                 }}
                 disabled={isStreaming}
-                className="min-h-[60px] max-h-[120px] resize-none text-sm bg-background/80 border-primary/20 text-card-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-primary/30"
+                className="min-h-[60px] max-h-[120px] resize-none text-sm bg-[#0a0a0f]/80 border-[#c41e3a]/20 text-[#e8e8f0] placeholder:text-[#6a6a7a] focus:border-[#c41e3a] focus:ring-[#c41e3a]/30"
               />
               <div className="flex justify-between items-center pt-1">
-                <p className="text-xs text-muted-foreground hidden sm:block">
+                <p className="text-xs text-[#6a6a7a] hidden sm:block">
                   告诉AI角色名称、年龄、性别、背景等
                 </p>
                 <div className="flex gap-2 ml-auto">
-                  <Button variant="ghost" size="sm" onClick={() => setCreateDialogOpen(false)} className="text-muted-foreground hover:text-card-foreground hover:bg-primary/10">
+                  <Button variant="ghost" size="sm" onClick={() => setCreateDialogOpen(false)} className="text-[#8a8a9a] hover:text-[#e8e8f0] hover:bg-[#c41e3a]/10">
                     取消
                   </Button>
                   <Button 
@@ -985,7 +985,7 @@ export default function CharactersPage() {
                     size="sm"
                     onClick={openSaveConfirm}
                     disabled={isStreaming || chatHistory.length < 2}
-                    className="border-accent/30 text-accent hover:bg-accent/10 hover:border-accent"
+                    className="border-[#00d4ff]/30 text-[#00d4ff] hover:bg-[#00d4ff]/10 hover:border-[#00d4ff]"
                   >
                     <Save className="mr-1 h-3 w-3" />
                     保存
@@ -1007,18 +1007,18 @@ export default function CharactersPage() {
 
       {/* Character Detail Dialog */}
       <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
-        <DialogContent className="sm:max-w-2xl h-[85vh] flex flex-col kamen-dialog bg-card/95 backdrop-blur-sm border-primary/35">
+        <DialogContent className="sm:max-w-2xl h-[85vh] flex flex-col kamen-dialog bg-[#1e1e28]/95 backdrop-blur-sm border-[#c41e3a]/35">
           {selectedCharacter && (
             <>
               <DialogHeader className="flex-shrink-0">
-                <DialogTitle className="flex items-center gap-2 text-card-foreground">
-                  <Avatar className="h-10 w-10 border-2 border-primary/30">
+                <DialogTitle className="flex items-center gap-2 text-[#e8e8f0]">
+                  <Avatar className="h-10 w-10 border-2 border-[#c41e3a]/30">
                     <AvatarImage src={selectedCharacter.image_url} />
-                    <AvatarFallback className="bg-gradient-to-br from-primary/20 to-accent/10 text-primary">{selectedCharacter.name?.charAt(0)}</AvatarFallback>
+                    <AvatarFallback className="bg-gradient-to-br from-[#c41e3a]/20 to-[#00d4ff]/10 text-[#c41e3a]">{selectedCharacter.name?.charAt(0)}</AvatarFallback>
                   </Avatar>
                   {selectedCharacter.name}
                 </DialogTitle>
-                <DialogDescription className="text-muted-foreground">
+                <DialogDescription className="text-[#8a8a9a]">
                   {selectedCharacter.player_name && `玩家: ${selectedCharacter.player_name}`}
                 </DialogDescription>
               </DialogHeader>
@@ -1027,32 +1027,32 @@ export default function CharactersPage() {
                 <div className="space-y-4 pr-4">
                   {/* Basic Info */}
                   <div>
-                    <h4 className="font-semibold mb-2 flex items-center gap-2 text-sm text-card-foreground">
-                      <User className="h-4 w-4 text-primary" />
+                    <h4 className="font-semibold mb-2 flex items-center gap-2 text-sm text-[#e8e8f0]">
+                      <User className="h-4 w-4 text-[#c41e3a]" />
                       基本信息
                     </h4>
                     <div className="flex flex-wrap gap-2">
                       {selectedCharacter.race && (
-                        <Badge className="text-xs bg-primary/20 text-card-foreground border-primary/30">种族: {selectedCharacter.race}</Badge>
+                        <Badge className="text-xs bg-[#c41e3a]/20 text-[#e8e8f0] border-[#c41e3a]/30">种族: {selectedCharacter.race}</Badge>
                       )}
                       {selectedCharacter.occupation && (
-                        <Badge variant="outline" className="text-xs border-accent/30 text-accent">职业: {selectedCharacter.occupation}</Badge>
+                        <Badge variant="outline" className="text-xs border-[#00d4ff]/30 text-[#00d4ff]">职业: {selectedCharacter.occupation}</Badge>
                       )}
                       {selectedCharacter.age && (
-                        <Badge variant="outline" className="text-xs border-border/30 text-foreground">{selectedCharacter.age}岁</Badge>
+                        <Badge variant="outline" className="text-xs border-[#c0c0c8]/30 text-[#c0c0c8]">{selectedCharacter.age}岁</Badge>
                       )}
                       {selectedCharacter.gender && (
-                        <Badge variant="outline" className="text-xs border-border/30 text-foreground">{selectedCharacter.gender}</Badge>
+                        <Badge variant="outline" className="text-xs border-[#c0c0c8]/30 text-[#c0c0c8]">{selectedCharacter.gender}</Badge>
                       )}
                       {selectedCharacter.active_power && (
-                        <Badge className="text-xs bg-amber-500/20 text-amber-500 border-amber-500/30">活跃力: {selectedCharacter.active_power}</Badge>
+                        <Badge className="text-xs bg-[#ffd700]/20 text-[#ffd700] border-[#ffd700]/30">活跃力: {selectedCharacter.active_power}</Badge>
                       )}
                     </div>
                   </div>
 
                   {/* Attributes */}
                   <div>
-                    <h4 className="font-semibold mb-2 text-sm text-card-foreground">能力值（通常 / 变身后）</h4>
+                    <h4 className="font-semibold mb-2 text-sm text-[#e8e8f0]">能力值（通常 / 变身后）</h4>
                     <div className="grid grid-cols-5 gap-2 text-center text-xs">
                       {[
                         { name: '肉体', normal: selectedCharacter.attributes?.bodyNormal, transform: selectedCharacter.attributes?.bodyTransform },
@@ -1061,10 +1061,10 @@ export default function CharactersPage() {
                         { name: '意志', normal: selectedCharacter.attributes?.willNormal, transform: selectedCharacter.attributes?.willTransform },
                         { name: '机知', normal: selectedCharacter.attributes?.witNormal, transform: selectedCharacter.attributes?.witTransform },
                       ].map((attr) => (
-                        <div key={attr.name} className="p-2 bg-muted rounded border border-primary/10">
-                          <div className="text-muted-foreground">{attr.name}</div>
-                          <div className="font-bold text-card-foreground">{attr.normal || 0}</div>
-                          <div className="text-primary">变身: {attr.transform || 0}</div>
+                        <div key={attr.name} className="p-2 bg-[#1a1a25] rounded border border-[#c41e3a]/10">
+                          <div className="text-[#6a6a7a]">{attr.name}</div>
+                          <div className="font-bold text-[#e8e8f0]">{attr.normal || 0}</div>
+                          <div className="text-[#c41e3a]">变身: {attr.transform || 0}</div>
                         </div>
                       ))}
                     </div>
@@ -1073,41 +1073,41 @@ export default function CharactersPage() {
                   {/* Secondary Attributes */}
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <h4 className="font-semibold mb-1 text-sm text-card-foreground">移动力</h4>
-                      <div className="text-xs text-foreground">
-                        通常: <span className="text-card-foreground">{selectedCharacter.attributes?.movementNormal || 0}</span> / 
-                        变身: <span className="text-accent">{selectedCharacter.attributes?.movementTransform || 0}</span>
+                      <h4 className="font-semibold mb-1 text-sm text-[#e8e8f0]">移动力</h4>
+                      <div className="text-xs text-[#c0c0c8]">
+                        通常: <span className="text-[#e8e8f0]">{selectedCharacter.attributes?.movementNormal || 0}</span> / 
+                        变身: <span className="text-[#00d4ff]">{selectedCharacter.attributes?.movementTransform || 0}</span>
                       </div>
                     </div>
                     <div>
-                      <h4 className="font-semibold mb-1 text-sm text-card-foreground">先制力</h4>
-                      <div className="text-xs text-foreground">
-                        通常: <span className="text-card-foreground">{selectedCharacter.attributes?.initiativeNormal || 0}</span> / 
-                        变身: <span className="text-accent">{selectedCharacter.attributes?.initiativeTransform || 0}</span>
+                      <h4 className="font-semibold mb-1 text-sm text-[#e8e8f0]">先制力</h4>
+                      <div className="text-xs text-[#c0c0c8]">
+                        通常: <span className="text-[#e8e8f0]">{selectedCharacter.attributes?.initiativeNormal || 0}</span> / 
+                        变身: <span className="text-[#00d4ff]">{selectedCharacter.attributes?.initiativeTransform || 0}</span>
                       </div>
                     </div>
                   </div>
 
                   {/* HP */}
                   <div>
-                    <h4 className="font-semibold mb-1 flex items-center gap-2 text-sm text-card-foreground">
-                      <Heart className="h-4 w-4 text-primary" />
+                    <h4 className="font-semibold mb-1 flex items-center gap-2 text-sm text-[#e8e8f0]">
+                      <Heart className="h-4 w-4 text-[#c41e3a]" />
                       HP
                     </h4>
-                    <div className="text-xs text-foreground">
-                      通常: <span className="text-primary font-bold">{selectedCharacter.attributes?.totalHP || 0}</span> / 
-                      变身: <span className="text-primary font-bold">{selectedCharacter.attributes?.transformHP || 0}</span>
+                    <div className="text-xs text-[#c0c0c8]">
+                      通常: <span className="text-[#c41e3a] font-bold">{selectedCharacter.attributes?.totalHP || 0}</span> / 
+                      变身: <span className="text-[#c41e3a] font-bold">{selectedCharacter.attributes?.transformHP || 0}</span>
                     </div>
                   </div>
 
                   {/* Rider Data */}
                   {selectedCharacter.rider_data && (
                     <div>
-                      <h4 className="font-semibold mb-1 flex items-center gap-2 text-sm text-card-foreground">
-                        <Swords className="h-4 w-4 text-primary" />
+                      <h4 className="font-semibold mb-1 flex items-center gap-2 text-sm text-[#e8e8f0]">
+                        <Swords className="h-4 w-4 text-[#c41e3a]" />
                         骑士系统
                       </h4>
-                      <div className="space-y-1 text-xs text-foreground">
+                      <div className="space-y-1 text-xs text-[#c0c0c8]">
                         {selectedCharacter.rider_data.riderSystem && (
                           <div>系统: {selectedCharacter.rider_data.riderSystem}</div>
                         )}

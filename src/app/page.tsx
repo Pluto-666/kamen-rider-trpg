@@ -68,24 +68,24 @@ export default function LoginPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background relative overflow-hidden">
+      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0f] relative overflow-hidden">
         {/* 背景图 */}
         <div 
           className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-30"
           style={{ backgroundImage: 'url(/kamen-rider-bg-1.jpeg)' }}
         />
-        <div className="absolute inset-0 bg-gradient-to-br from-background via-background/80 to-background" />
+        <div className="absolute inset-0 bg-gradient-to-br from-[#0a0a0f] via-[#0a0a0f]/80 to-[#1a1a25]" />
         
         <div className="text-center relative z-10">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">加载中...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#c41e3a] mx-auto"></div>
+          <p className="mt-4 text-[#8a8a9a]">加载中...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-background relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-[#0a0a0f] relative overflow-hidden">
       {/* 背景图 */}
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-25"
@@ -93,37 +93,43 @@ export default function LoginPage() {
       />
       
       {/* 渐变遮罩 */}
-      <div className="absolute inset-0 bg-gradient-to-br from-background via-transparent to-background" />
-      <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-background/50" />
+      <div className="absolute inset-0 bg-gradient-to-br from-[#0a0a0f] via-transparent to-[#0a0a0f]" />
+      <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0f] via-transparent to-[#0a0a0f]/50" />
       
       {/* 能量线条动画 */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-px h-full bg-gradient-to-b from-transparent via-primary/20 to-transparent animate-pulse" />
-        <div className="absolute top-0 right-1/3 w-px h-full bg-gradient-to-b from-transparent via-accent/20 to-transparent animate-pulse" style={{ animationDelay: '1s' }} />
-        <div className="absolute top-0 left-1/2 w-px h-full bg-gradient-to-b from-transparent via-primary/10 to-transparent animate-pulse" style={{ animationDelay: '2s' }} />
+        <div className="absolute top-0 left-1/4 w-px h-full bg-gradient-to-b from-transparent via-[#c41e3a]/20 to-transparent animate-pulse" />
+        <div className="absolute top-0 right-1/3 w-px h-full bg-gradient-to-b from-transparent via-[#00d4ff]/20 to-transparent animate-pulse" style={{ animationDelay: '1s' }} />
+        <div className="absolute top-0 left-1/2 w-px h-full bg-gradient-to-b from-transparent via-[#c41e3a]/10 to-transparent animate-pulse" style={{ animationDelay: '2s' }} />
       </div>
       
       <div className="w-full max-w-md relative z-10">
         {/* Logo and Title */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-primary to-primary/70 mb-4 shadow-lg shadow-primary/30">
-            <Swords className="w-10 h-10 text-primary-foreground" />
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-[#c41e3a] to-[#8b0000] mb-4 shadow-lg shadow-[#c41e3a]/30">
+            <Swords className="w-10 h-10 text-white" />
           </div>
           <h1 className="text-5xl font-bold font-display tracking-wider">
             <span className="text-gradient-rider">假面骑士</span>
           </h1>
-          <h2 className="text-2xl font-display tracking-widest text-accent mt-1">TRPG</h2>
-          <p className="text-muted-foreground mt-3 text-sm tracking-wide">在线跑团平台</p>
+          <h2 className="text-2xl font-display tracking-widest text-[#00d4ff] mt-1">TRPG</h2>
+          <p className="text-[#8a8a9a] mt-3 text-sm tracking-wide">在线跑团平台</p>
         </div>
 
-        <Card className="kamen-card backdrop-blur-sm">
+        <Card className="kamen-card backdrop-blur-sm bg-[#12121a]/90 border-[#c41e3a]/20">
           <Tabs defaultValue="login" className="w-full">
             <CardHeader className="pb-2">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="login">
+              <TabsList className="grid w-full grid-cols-2 bg-[#1a1a25]/80">
+                <TabsTrigger 
+                  value="login"
+                  className="data-[state=active]:bg-[#c41e3a]/20 data-[state=active]:text-[#e8e8f0] text-[#8a8a9a]"
+                >
                   登录
                 </TabsTrigger>
-                <TabsTrigger value="register">
+                <TabsTrigger 
+                  value="register"
+                  className="data-[state=active]:bg-[#c41e3a]/20 data-[state=active]:text-[#e8e8f0] text-[#8a8a9a]"
+                >
                   注册
                 </TabsTrigger>
               </TabsList>
@@ -131,15 +137,15 @@ export default function LoginPage() {
 
             <CardContent className="pt-4">
               {error && (
-                <Alert variant="destructive" className="mb-4">
-                  <AlertDescription>{error}</AlertDescription>
+                <Alert variant="destructive" className="mb-4 bg-[#dc2626]/10 border-[#dc2626]/30">
+                  <AlertDescription className="text-[#ff6b6b]">{error}</AlertDescription>
                 </Alert>
               )}
 
               <TabsContent value="login">
                 <form onSubmit={handleLogin} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="login-email">邮箱</Label>
+                    <Label htmlFor="login-email" className="text-[#c0c0c8]">邮箱</Label>
                     <Input
                       id="login-email"
                       type="email"
@@ -147,16 +153,18 @@ export default function LoginPage() {
                       value={loginEmail}
                       onChange={(e) => setLoginEmail(e.target.value)}
                       required
+                      className="bg-[#0a0a0f]/80 border-[#c0c0c8]/20 text-[#e8e8f0] placeholder:text-[#6a6a7a] focus:border-[#c41e3a] focus:ring-[#c41e3a]/30"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="login-password">密码</Label>
+                    <Label htmlFor="login-password" className="text-[#c0c0c8]">密码</Label>
                     <Input
                       id="login-password"
                       type="password"
                       value={loginPassword}
                       onChange={(e) => setLoginPassword(e.target.value)}
                       required
+                      className="bg-[#0a0a0f]/80 border-[#c0c0c8]/20 text-[#e8e8f0] placeholder:text-[#6a6a7a] focus:border-[#c41e3a] focus:ring-[#c41e3a]/30"
                     />
                   </div>
                   <Button 
@@ -172,7 +180,7 @@ export default function LoginPage() {
               <TabsContent value="register">
                 <form onSubmit={handleRegister} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="register-username">用户名</Label>
+                    <Label htmlFor="register-username" className="text-[#c0c0c8]">用户名</Label>
                     <Input
                       id="register-username"
                       type="text"
@@ -182,13 +190,14 @@ export default function LoginPage() {
                       required
                       minLength={2}
                       maxLength={20}
+                      className="bg-[#0a0a0f]/80 border-[#c0c0c8]/20 text-[#e8e8f0] placeholder:text-[#6a6a7a] focus:border-[#c41e3a] focus:ring-[#c41e3a]/30"
                     />
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-[#6a6a7a]">
                       2-20个字符，支持中文、英文、数字和下划线
                     </p>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="register-email">邮箱</Label>
+                    <Label htmlFor="register-email" className="text-[#c0c0c8]">邮箱</Label>
                     <Input
                       id="register-email"
                       type="email"
@@ -196,10 +205,11 @@ export default function LoginPage() {
                       value={registerEmail}
                       onChange={(e) => setRegisterEmail(e.target.value)}
                       required
+                      className="bg-[#0a0a0f]/80 border-[#c0c0c8]/20 text-[#e8e8f0] placeholder:text-[#6a6a7a] focus:border-[#c41e3a] focus:ring-[#c41e3a]/30"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="register-password">密码</Label>
+                    <Label htmlFor="register-password" className="text-[#c0c0c8]">密码</Label>
                     <Input
                       id="register-password"
                       type="password"
@@ -207,19 +217,21 @@ export default function LoginPage() {
                       onChange={(e) => setRegisterPassword(e.target.value)}
                       required
                       minLength={6}
+                      className="bg-[#0a0a0f]/80 border-[#c0c0c8]/20 text-[#e8e8f0] placeholder:text-[#6a6a7a] focus:border-[#c41e3a] focus:ring-[#c41e3a]/30"
                     />
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-[#6a6a7a]">
                       至少6个字符
                     </p>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="confirm-password">确认密码</Label>
+                    <Label htmlFor="confirm-password" className="text-[#c0c0c8]">确认密码</Label>
                     <Input
                       id="confirm-password"
                       type="password"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       required
+                      className="bg-[#0a0a0f]/80 border-[#c0c0c8]/20 text-[#e8e8f0] placeholder:text-[#6a6a7a] focus:border-[#c41e3a] focus:ring-[#c41e3a]/30"
                     />
                   </div>
                   <Button 
@@ -237,26 +249,26 @@ export default function LoginPage() {
 
         {/* Feature Highlights */}
         <div className="mt-8 grid grid-cols-3 gap-4 text-center text-sm">
-          <div className="p-4 rounded-lg bg-card/80 backdrop-blur-sm border border-primary/10 hover:border-primary/30 transition-colors group">
-            <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-primary/15 mb-2 group-hover:bg-primary/25 transition-colors">
-              <Shield className="w-5 h-5 text-primary" />
+          <div className="p-4 rounded-lg bg-[#12121a]/80 backdrop-blur-sm border border-[#c41e3a]/10 hover:border-[#c41e3a]/30 transition-colors group">
+            <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-[#c41e3a]/20 mb-2 group-hover:bg-[#c41e3a]/30 transition-colors">
+              <Shield className="w-5 h-5 text-[#c41e3a]" />
             </div>
-            <div className="text-card-foreground font-medium">创建角色</div>
-            <div className="text-muted-foreground text-xs mt-1">打造专属骑士</div>
+            <div className="text-[#e8e8f0] font-medium">创建角色</div>
+            <div className="text-[#6a6a7a] text-xs mt-1">打造专属骑士</div>
           </div>
-          <div className="p-4 rounded-lg bg-card/80 backdrop-blur-sm border border-accent/10 hover:border-accent/30 transition-colors group">
-            <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-accent/15 mb-2 group-hover:bg-accent/25 transition-colors">
-              <Users className="w-5 h-5 text-accent" />
+          <div className="p-4 rounded-lg bg-[#12121a]/80 backdrop-blur-sm border border-[#00d4ff]/10 hover:border-[#00d4ff]/30 transition-colors group">
+            <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-[#00d4ff]/20 mb-2 group-hover:bg-[#00d4ff]/30 transition-colors">
+              <Users className="w-5 h-5 text-[#00d4ff]" />
             </div>
-            <div className="text-card-foreground font-medium">多人房间</div>
-            <div className="text-muted-foreground text-xs mt-1">在线跑团</div>
+            <div className="text-[#e8e8f0] font-medium">多人房间</div>
+            <div className="text-[#6a6a7a] text-xs mt-1">在线跑团</div>
           </div>
-          <div className="p-4 rounded-lg bg-card/80 backdrop-blur-sm border border-amber-500/10 hover:border-amber-500/30 transition-colors group">
-            <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-amber-500/15 mb-2 group-hover:bg-amber-500/25 transition-colors">
-              <Bot className="w-5 h-5 text-amber-500" />
+          <div className="p-4 rounded-lg bg-[#12121a]/80 backdrop-blur-sm border border-[#ffd700]/10 hover:border-[#ffd700]/30 transition-colors group">
+            <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-[#ffd700]/20 mb-2 group-hover:bg-[#ffd700]/30 transition-colors">
+              <Bot className="w-5 h-5 text-[#ffd700]" />
             </div>
-            <div className="text-card-foreground font-medium">AI主持</div>
-            <div className="text-muted-foreground text-xs mt-1">智能DM</div>
+            <div className="text-[#e8e8f0] font-medium">AI主持</div>
+            <div className="text-[#6a6a7a] text-xs mt-1">智能DM</div>
           </div>
         </div>
       </div>

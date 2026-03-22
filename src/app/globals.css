@@ -2,7 +2,7 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
-/* 假面骑士主题配色 - 浅色系内容 + 深色背景 */
+/* 假面骑士主题配色 */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -48,94 +48,94 @@
   --font-display: 'Orbitron', 'Noto Sans SC', sans-serif;
 }
 
-/* 浅色内容主题 - 背景保持深色 */
+/* 暗色主题 - 假面骑士风格 */
 :root {
-  /* 深邃黑暗背景 - 保持不变 */
+  /* 深邃黑暗背景 */
   --background: #0a0a0f;
-  --foreground: #2a2a35;
+  --foreground: #e8e8f0;
   
-  /* 卡片 - 浅色系 */
-  --card: #f5f5f8;
-  --card-foreground: #1a1a25;
+  /* 卡片 - 深灰色带微红调，增加层次感 */
+  --card: #1e1e28;
+  --card-foreground: #e8e8f0;
   
-  /* 弹出层 - 浅色 */
-  --popover: #ffffff;
-  --popover-foreground: #1a1a25;
+  /* 弹出层 */
+  --popover: #1e1e28;
+  --popover-foreground: #e8e8f0;
   
   /* 主色调 - 骑士红 */
   --primary: #c41e3a;
   --primary-foreground: #ffffff;
   
-  /* 次要色 - 浅灰 */
-  --secondary: #e8e8f0;
-  --secondary-foreground: #3a3a45;
+  /* 次要色 - 深灰色 */
+  --secondary: #2a2a35;
+  --secondary-foreground: #c0c0c8;
   
   /* 柔和色 */
-  --muted: #f0f0f5;
-  --muted-foreground: #6a6a7a;
+  --muted: #252530;
+  --muted-foreground: #9a9aaa;
   
   /* 强调色 - 能量蓝 */
-  --accent: #00b4d8;
-  --accent-foreground: #ffffff;
+  --accent: #00d4ff;
+  --accent-foreground: #0a0a0f;
   
   /* 危险色 */
   --destructive: #dc2626;
   
-  /* 边框 */
-  --border: rgba(42, 42, 53, 0.2);
-  --input: rgba(42, 42, 53, 0.15);
+  /* 边框 - 更亮的边框 */
+  --border: rgba(192, 192, 200, 0.25);
+  --input: rgba(192, 192, 200, 0.15);
   --ring: #c41e3a;
   
   /* 图表颜色 */
   --chart-1: #c41e3a;
-  --chart-2: #00b4d8;
-  --chart-3: #f59e0b;
-  --chart-4: #10b981;
-  --chart-5: #6366f1;
+  --chart-2: #00d4ff;
+  --chart-3: #ffd700;
+  --chart-4: #00ff88;
+  --chart-5: #ff6b35;
   
   --radius: 0.5rem;
   
-  /* 侧边栏 - 浅色 */
-  --sidebar: #f8f8fb;
-  --sidebar-foreground: #1a1a25;
+  /* 侧边栏 */
+  --sidebar: #15151f;
+  --sidebar-foreground: #e8e8f0;
   --sidebar-primary: #c41e3a;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #e8e8f0;
-  --sidebar-accent-foreground: #3a3a45;
-  --sidebar-border: rgba(42, 42, 53, 0.15);
+  --sidebar-accent: #1a1a25;
+  --sidebar-accent-foreground: #c0c0c8;
+  --sidebar-border: rgba(192, 192, 200, 0.1);
   --sidebar-ring: #c41e3a;
 }
 
-/* 自定义滚动条 - 浅色系 */
+/* 自定义滚动条 */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #e8e8f0;
+  background: #0a0a0f;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #c41e3a 0%, #a01830 100%);
+  background: linear-gradient(180deg, #c41e3a 0%, #8b0000 100%);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, #e02040 0%, #c41e3a 100%);
+  background: linear-gradient(180deg, #ff2d55 0%, #c41e3a 100%);
 }
 
-/* 强制修复Card组件 - 浅色背景 */
+/* 强制修复Card组件背景和文字 */
 [class*="bg-card"] {
-  background: linear-gradient(145deg, #f5f5f8 0%, #ffffff 100%) !important;
+  background: linear-gradient(145deg, #1e1e28 0%, #252532 100%) !important;
 }
 
 [data-slot="card"] {
-  background: linear-gradient(145deg, #f5f5f8 0%, #ffffff 100%) !important;
-  border-color: rgba(42, 42, 53, 0.15) !important;
-  color: #1a1a25 !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+  background: linear-gradient(145deg, #1e1e28 0%, #252532 100%) !important;
+  border-color: rgba(192, 192, 200, 0.25) !important;
+  color: #e8e8f0 !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.03) !important;
 }
 
 [data-slot="card"] * {
@@ -143,138 +143,137 @@
 }
 
 [data-slot="card-header"] {
-  color: #1a1a25 !important;
+  color: #e8e8f0 !important;
 }
 
 [data-slot="card-title"] {
-  color: #1a1a25 !important;
+  color: #e8e8f0 !important;
 }
 
 [data-slot="card-description"] {
-  color: #6a6a7a !important;
+  color: #9a9aaa !important;
 }
 
 [data-slot="card-content"] {
-  color: #2a2a35 !important;
+  color: #e8e8f0 !important;
 }
 
-/* 修复Tabs组件 - 浅色 */
+/* 修复Tabs组件 */
 [role="tablist"] {
-  background: linear-gradient(145deg, #f0f0f5 0%, #e8e8f0 100%) !important;
-  border: 1px solid rgba(42, 42, 53, 0.15) !important;
+  background: linear-gradient(145deg, #1e1e28 0%, #252532 100%) !important;
+  border: 1px solid rgba(192, 192, 200, 0.2) !important;
 }
 
 [role="tab"] {
-  color: #6a6a7a !important;
+  color: #9a9aaa !important;
 }
 
 [role="tab"][data-state="active"] {
-  color: #1a1a25 !important;
-  background: linear-gradient(145deg, #ffffff 0%, #f8f8fb 100%) !important;
-  border-color: rgba(196, 30, 58, 0.3) !important;
-  box-shadow: 0 2px 8px rgba(196, 30, 58, 0.15) !important;
+  color: #e8e8f0 !important;
+  background: linear-gradient(145deg, rgba(196, 30, 58, 0.25) 0%, rgba(196, 30, 58, 0.15) 100%) !important;
+  border-color: rgba(196, 30, 58, 0.4) !important;
 }
 
-/* 修复Input组件 - 浅色 */
+/* 修复Input组件 */
 input, textarea {
-  background: #ffffff !important;
-  border-color: rgba(42, 42, 53, 0.2) !important;
-  color: #1a1a25 !important;
+  background: #151520 !important;
+  border-color: rgba(192, 192, 200, 0.25) !important;
+  color: #e8e8f0 !important;
 }
 
 input::placeholder, textarea::placeholder {
-  color: #9a9aaa !important;
+  color: #6a6a7a !important;
 }
 
 input:focus, textarea:focus {
   border-color: #c41e3a !important;
-  box-shadow: 0 0 0 3px rgba(196, 30, 58, 0.15) !important;
-  background: #ffffff !important;
+  box-shadow: 0 0 20px rgba(196, 30, 58, 0.3) !important;
+  background: #1a1a25 !important;
 }
 
 /* 修复Label */
 label {
-  color: #3a3a45 !important;
+  color: #c0c0c8 !important;
 }
 
-/* 修复Alert - 浅色 */
+/* 修复Alert */
 [data-slot="alert"] {
-  background: linear-gradient(145deg, #ffffff 0%, #f8f8fb 100%) !important;
-  border-color: rgba(42, 42, 53, 0.15) !important;
+  background: linear-gradient(145deg, #1e1e28 0%, #252532 100%) !important;
+  border-color: rgba(192, 192, 200, 0.25) !important;
 }
 
-/* 修复Button variant outline - 浅色 */
+/* 修复Button variant outline */
 button[class*="outline"] {
   background: transparent !important;
-  border-color: rgba(42, 42, 53, 0.25) !important;
-  color: #3a3a45 !important;
+  border-color: rgba(192, 192, 200, 0.35) !important;
+  color: #c0c0c8 !important;
 }
 
 button[class*="outline"]:hover {
   border-color: #c41e3a !important;
-  color: #c41e3a !important;
-  background: rgba(196, 30, 58, 0.08) !important;
+  color: #e8e8f0 !important;
+  background: rgba(196, 30, 58, 0.15) !important;
 }
 
-/* 修复Button variant secondary - 浅色 */
+/* 修复Button variant secondary */
 button[class*="secondary"] {
-  background: linear-gradient(145deg, #e8e8f0 0%, #f0f0f5 100%) !important;
-  color: #3a3a45 !important;
-  border-color: rgba(42, 42, 53, 0.15) !important;
+  background: linear-gradient(145deg, #252532 0%, #2a2a38 100%) !important;
+  color: #c0c0c8 !important;
+  border-color: rgba(192, 192, 200, 0.25) !important;
 }
 
-/* 修复Button variant ghost - 浅色 */
+/* 修复Button variant ghost */
 button[class*="ghost"] {
-  color: #3a3a45 !important;
+  color: #c0c0c8 !important;
 }
 
 button[class*="ghost"]:hover {
-  background: rgba(196, 30, 58, 0.08) !important;
-  color: #c41e3a !important;
+  background: rgba(196, 30, 58, 0.15) !important;
+  color: #e8e8f0 !important;
 }
 
-/* 修复Badge - 浅色 */
+/* 修复Badge */
 [data-slot="badge"] {
-  background: rgba(196, 30, 58, 0.12) !important;
-  color: #c41e3a !important;
-  border-color: rgba(196, 30, 58, 0.25) !important;
+  background: rgba(196, 30, 58, 0.25) !important;
+  color: #e8e8f0 !important;
+  border-color: rgba(196, 30, 58, 0.4) !important;
 }
 
-/* 修复Dialog - 浅色 */
+/* 修复Dialog */
 [data-slot="dialog-content"] {
-  background: linear-gradient(145deg, #ffffff 0%, #f8f8fb 100%) !important;
-  border-color: rgba(196, 30, 58, 0.25) !important;
-  color: #1a1a25 !important;
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15), 0 0 100px rgba(196, 30, 58, 0.05) !important;
+  background: linear-gradient(145deg, #1e1e28 0%, #252532 100%) !important;
+  border-color: rgba(196, 30, 58, 0.4) !important;
+  color: #e8e8f0 !important;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5), 0 0 100px rgba(196, 30, 58, 0.1) !important;
 }
 
 [data-slot="dialog-title"] {
-  color: #1a1a25 !important;
+  color: #e8e8f0 !important;
 }
 
 [data-slot="dialog-description"] {
-  color: #6a6a7a !important;
+  color: #9a9aaa !important;
 }
 
-/* 修复Dropdown - 浅色 */
+/* 修复Dropdown */
 [data-slot="dropdown-menu-content"] {
-  background: linear-gradient(145deg, #ffffff 0%, #f8f8fb 100%) !important;
-  border-color: rgba(42, 42, 53, 0.15) !important;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12) !important;
+  background: linear-gradient(145deg, #1e1e28 0%, #252532 100%) !important;
+  border-color: rgba(196, 30, 58, 0.3) !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4) !important;
 }
 
 [data-slot="dropdown-menu-item"] {
-  color: #3a3a45 !important;
+  color: #c0c0c8 !important;
 }
 
 [data-slot="dropdown-menu-item"]:hover {
-  background: rgba(196, 30, 58, 0.08) !important;
-  color: #c41e3a !important;
+  background: rgba(196, 30, 58, 0.2) !important;
+  color: #e8e8f0 !important;
 }
 
 /* 修复Separator */
 [data-slot="separator"] {
-  background: rgba(42, 42, 53, 0.15) !important;
+  background: rgba(192, 192, 200, 0.25) !important;
 }
 
 @layer base {
@@ -294,7 +293,7 @@ button[class*="ghost"]:hover {
     letter-spacing: 0.05em;
   }
   
-  /* 确保所有文本在浅色背景上可见 */
+  /* 确保所有文本在深色背景上可见 */
   p, span, li, label, div:not(.bg-primary):not(.bg-accent) {
     color: var(--foreground);
   }
@@ -310,16 +309,16 @@ button[class*="ghost"]:hover {
   }
 }
 
-/* 假面骑士风格组件 - 浅色系 */
+/* 假面骑士风格组件 */
 
 /* 金属质感卡片 */
 @layer components {
   .kamen-card {
-    background: linear-gradient(145deg, #f5f5f8 0%, #ffffff 100%);
-    border: 1px solid rgba(42, 42, 53, 0.15);
+    background: linear-gradient(145deg, #1e1e28 0%, #28283a 100%);
+    border: 1px solid rgba(192, 192, 200, 0.3);
     box-shadow: 
-      0 4px 25px rgba(0, 0, 0, 0.08),
-      inset 0 1px 0 rgba(255, 255, 255, 0.9);
+      0 4px 25px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
     position: relative;
     overflow: hidden;
   }
@@ -330,15 +329,15 @@ button[class*="ghost"]:hover {
     top: 0;
     left: 0;
     right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, transparent, #c41e3a, transparent);
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(196, 30, 58, 0.6), transparent);
   }
   
   /* 发光边框效果 */
   .kamen-glow {
     box-shadow: 
-      0 0 25px rgba(196, 30, 58, 0.25),
-      0 0 50px rgba(196, 30, 58, 0.1);
+      0 0 25px rgba(196, 30, 58, 0.35),
+      0 0 50px rgba(196, 30, 58, 0.15);
   }
   
   /* 能量线条 */
@@ -353,15 +352,15 @@ button[class*="ghost"]:hover {
     left: 0;
     right: 0;
     height: 2px;
-    background: linear-gradient(90deg, #c41e3a, #00b4d8, #c41e3a);
+    background: linear-gradient(90deg, #c41e3a, #00d4ff, #c41e3a);
     background-size: 200% 100%;
     animation: energy-flow 3s linear infinite;
   }
   
   /* 变身按钮 */
   .kamen-btn-primary {
-    background: linear-gradient(135deg, #c41e3a 0%, #a01830 100%);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: linear-gradient(135deg, #c41e3a 0%, #8b0000 100%);
+    border: 1px solid rgba(255, 255, 255, 0.15);
     color: white;
     font-family: var(--font-display);
     text-transform: uppercase;
@@ -369,7 +368,7 @@ button[class*="ghost"]:hover {
     position: relative;
     overflow: hidden;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(196, 30, 58, 0.25);
+    box-shadow: 0 4px 15px rgba(196, 30, 58, 0.3);
   }
   
   .kamen-btn-primary::before {
@@ -379,7 +378,7 @@ button[class*="ghost"]:hover {
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
     transition: left 0.5s ease;
   }
   
@@ -389,47 +388,47 @@ button[class*="ghost"]:hover {
   
   .kamen-btn-primary:hover {
     box-shadow: 
-      0 0 25px rgba(196, 30, 58, 0.4),
-      0 0 50px rgba(196, 30, 58, 0.2);
+      0 0 25px rgba(196, 30, 58, 0.5),
+      0 0 50px rgba(196, 30, 58, 0.3);
     transform: translateY(-2px);
   }
   
   /* 次要按钮 */
   .kamen-btn-secondary {
     background: transparent;
-    border: 1px solid rgba(42, 42, 53, 0.25);
-    color: #3a3a45;
+    border: 1px solid rgba(192, 192, 200, 0.4);
+    color: #c0c0c8;
     font-family: var(--font-display);
     letter-spacing: 0.05em;
     transition: all 0.3s ease;
   }
   
   .kamen-btn-secondary:hover {
-    border-color: #00b4d8;
-    color: #00b4d8;
-    box-shadow: 0 0 20px rgba(0, 180, 216, 0.25);
+    border-color: #00d4ff;
+    color: #00d4ff;
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.35);
   }
   
   /* 输入框 */
   .kamen-input {
-    background: #ffffff;
-    border: 1px solid rgba(42, 42, 53, 0.2);
-    color: #1a1a25;
+    background: #151520;
+    border: 1px solid rgba(192, 192, 200, 0.3);
+    color: #e8e8f0;
     transition: all 0.3s ease;
   }
   
   .kamen-input:focus {
     border-color: #c41e3a;
-    box-shadow: 0 0 0 3px rgba(196, 30, 58, 0.15);
+    box-shadow: 0 0 20px rgba(196, 30, 58, 0.35);
     outline: none;
-    background: #ffffff;
+    background: #1a1a28;
   }
   
   /* 骰子按钮 */
   .dice-btn {
-    background: linear-gradient(145deg, #f0f0f5 0%, #e8e8f0 100%);
-    border: 1px solid rgba(0, 180, 216, 0.3);
-    color: #00b4d8;
+    background: linear-gradient(145deg, #252535 0%, #2a2a40 100%);
+    border: 1px solid rgba(0, 212, 255, 0.4);
+    color: #00d4ff;
     font-family: var(--font-display);
     font-weight: 600;
     transition: all 0.3s ease;
@@ -437,50 +436,49 @@ button[class*="ghost"]:hover {
   }
   
   .dice-btn:hover {
-    border-color: #00b4d8;
+    border-color: #00d4ff;
     box-shadow: 
-      0 0 25px rgba(0, 180, 216, 0.35),
-      inset 0 0 20px rgba(0, 180, 216, 0.08);
+      0 0 25px rgba(0, 212, 255, 0.45),
+      inset 0 0 20px rgba(0, 212, 255, 0.15);
     transform: scale(1.05);
-    color: #0096c7;
   }
   
-  /* 消息气泡 - 浅色 */
+  /* 消息气泡 */
   .message-player {
-    background: linear-gradient(135deg, rgba(196, 30, 58, 0.1) 0%, rgba(196, 30, 58, 0.05) 100%);
+    background: linear-gradient(135deg, rgba(196, 30, 58, 0.25) 0%, rgba(139, 0, 0, 0.15) 100%);
     border-left: 3px solid #c41e3a;
   }
   
   .message-dm {
-    background: linear-gradient(135deg, rgba(0, 180, 216, 0.1) 0%, rgba(0, 180, 216, 0.05) 100%);
-    border-left: 3px solid #00b4d8;
+    background: linear-gradient(135deg, rgba(0, 212, 255, 0.15) 0%, rgba(0, 150, 200, 0.08) 100%);
+    border-left: 3px solid #00d4ff;
   }
   
   .message-roll {
-    background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(245, 158, 11, 0.05) 100%);
-    border-left: 3px solid #f59e0b;
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, rgba(200, 170, 0, 0.08) 100%);
+    border-left: 3px solid #ffd700;
   }
   
   /* 头像框 */
   .avatar-frame {
     border: 2px solid transparent;
-    background: linear-gradient(#ffffff, #ffffff) padding-box,
-                linear-gradient(135deg, #c41e3a, #00b4d8) border-box;
+    background: linear-gradient(#1e1e28, #1e1e28) padding-box,
+                linear-gradient(135deg, #c41e3a, #00d4ff) border-box;
   }
   
   /* 状态指示器 */
   .status-online {
-    background: #10b981;
-    box-shadow: 0 0 12px rgba(16, 185, 129, 0.5);
+    background: #00ff88;
+    box-shadow: 0 0 12px rgba(0, 255, 136, 0.6);
   }
   
   .status-offline {
-    background: #9ca3af;
+    background: #666;
   }
   
   .status-playing {
     background: #c41e3a;
-    box-shadow: 0 0 12px rgba(196, 30, 58, 0.5);
+    box-shadow: 0 0 12px rgba(196, 30, 58, 0.6);
     animation: pulse-glow 2s ease-in-out infinite;
   }
 }
@@ -519,17 +517,17 @@ button[class*="ghost"]:hover {
   }
 }
 
-/* 背景纹理 - 保持深色 */
+/* 背景纹理 */
 .bg-texture {
   background-image: 
-    radial-gradient(circle at 20% 80%, rgba(196, 30, 58, 0.15) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(0, 180, 216, 0.12) 0%, transparent 50%),
+    radial-gradient(circle at 20% 80%, rgba(196, 30, 58, 0.12) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(0, 212, 255, 0.1) 0%, transparent 50%),
     radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0.5) 0%, transparent 100%);
 }
 
 /* 渐变文字 */
 .text-gradient-rider {
-  background: linear-gradient(135deg, #c41e3a, #e02040, #c41e3a);
+  background: linear-gradient(135deg, #c41e3a, #ff6b6b, #c41e3a);
   background-size: 200% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -546,39 +544,27 @@ button[class*="ghost"]:hover {
   }
 }
 
-/* 对话框样式 - 浅色 */
+/* 对话框样式 */
 .kamen-dialog {
-  background: linear-gradient(145deg, #ffffff 0%, #f8f8fb 100%);
-  border: 1px solid rgba(196, 30, 58, 0.25);
+  background: linear-gradient(145deg, #1e1e28 0%, #28283a 100%);
+  border: 1px solid rgba(196, 30, 58, 0.4);
   box-shadow: 
-    0 25px 50px rgba(0, 0, 0, 0.15),
-    0 0 100px rgba(196, 30, 58, 0.05);
+    0 25px 50px rgba(0, 0, 0, 0.5),
+    0 0 100px rgba(196, 30, 58, 0.1);
 }
 
 /* Badge 样式覆盖 */
 .badge-primary {
-  background: linear-gradient(135deg, #c41e3a 0%, #a01830 100%);
+  background: linear-gradient(135deg, #c41e3a 0%, #8b0000 100%);
   color: white;
 }
 
 .badge-accent {
-  background: linear-gradient(135deg, #00b4d8 0%, #0096c7 100%);
-  color: white;
+  background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
+  color: #0a0a0f;
 }
 
 .badge-gold {
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-  color: white;
-}
-
-/* 深色背景页面容器 */
-.bg-dark-page {
-  background: #0a0a0f;
-  min-height: 100vh;
-}
-
-/* 浅色内容区域 */
-.content-light {
-  background: linear-gradient(145deg, #f5f5f8 0%, #ffffff 100%);
-  color: #1a1a25;
+  background: linear-gradient(135deg, #ffd700 0%, #cc9900 100%);
+  color: #0a0a0f;
 }
