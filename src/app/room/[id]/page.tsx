@@ -170,7 +170,9 @@ export default function RoomPage() {
     id: string;
     save_name: string;
     created_at: string;
-    current_scene?: { scenarioName?: string };
+    room_id: string;
+    current_scene?: { scenarioName?: string; gameState?: Record<string, unknown> };
+    room_snapshot?: { name?: string; scenario?: string };
   }>>([]);
   const [isLoadingSaves, setIsLoadingSaves] = useState(false);
   const [saveName, setSaveName] = useState('');
@@ -563,7 +565,8 @@ export default function RoomPage() {
     
     setIsLoadingSaves(true);
     try {
-      const response = await fetch(`/api/saves?roomId=${roomId}`, {
+      // 获取所有存档，不限制房间
+      const response = await fetch('/api/saves', {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -1765,16 +1768,28 @@ export default function RoomPage() {
               saveList.map((save) => (
                 <div
                   key={save.id}
-                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                  className={`flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors ${
+                    save.room_id === roomId ? 'ring-2 ring-primary/50 bg-primary/5' : ''
+                  }`}
                 >
                   <div className="flex-1">
-                    <h4 className="font-medium">{save.save_name}</h4>
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-medium">{save.save_name}</h4>
+                      {save.room_id === roomId && (
+                        <Badge variant="default" className="text-xs">当前房间</Badge>
+                      )}
+                    </div>
                     <p className="text-sm text-muted-foreground">
                       {new Date(save.created_at).toLocaleString('zh-CN')}
                     </p>
                     {save.current_scene?.scenarioName && (
                       <p className="text-sm text-muted-foreground">
-                        场景: {save.current_scene.scenarioName}
+                        剧本: {save.current_scene.scenarioName}
+                      </p>
+                    )}
+                    {save.room_snapshot?.name && (
+                      <p className="text-xs text-muted-foreground">
+                        房间: {save.room_snapshot.name}
                       </p>
                     )}
                   </div>
