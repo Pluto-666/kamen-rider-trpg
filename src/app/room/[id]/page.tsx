@@ -646,6 +646,9 @@ export default function RoomPage() {
         setSessionId(data.data.id);
         setGameState(data.data.game_state);
         
+        // 更新本地房间状态为游戏中
+        setRoom(prev => prev ? { ...prev, status: 'playing' } : null);
+        
         // 开始AI叙事
         streamDM({
           roomId,
@@ -880,6 +883,8 @@ export default function RoomPage() {
                         key={msg.id}
                         className={`${
                           msg.type === 'narrative' ? 'bg-muted/50 p-3 rounded-lg' : ''
+                        } ${
+                          msg.type === 'chat' ? 'p-2' : ''
                         }`}
                       >
                         {msg.type === 'narrative' && (
@@ -895,14 +900,20 @@ export default function RoomPage() {
                         )}
                         {msg.type === 'chat' && (
                           <div className="flex items-start gap-2">
-                            <div className="font-medium text-sm">
+                            <span className="font-medium text-sm shrink-0 text-primary">
                               {msg.senderName || '玩家'}:
-                            </div>
+                            </span>
+                            <span className="text-sm flex-1">{msg.content}</span>
                           </div>
                         )}
-                        <div className={`text-sm ${msg.type === 'narrative' ? 'prose prose-sm dark:prose-invert' : ''}`}>
-                          {msg.content}
-                        </div>
+                        {msg.type === 'narrative' && (
+                          <div className="text-sm prose prose-sm dark:prose-invert whitespace-pre-wrap">
+                            {msg.content}
+                          </div>
+                        )}
+                        {msg.type === 'roll' && (
+                          <div className="text-sm mt-1">{msg.content}</div>
+                        )}
                         <div className="text-xs text-muted-foreground mt-1">
                           {new Date(msg.timestamp).toLocaleTimeString()}
                         </div>
@@ -913,7 +924,7 @@ export default function RoomPage() {
                         <div className="text-xs text-muted-foreground mb-1 font-medium">
                           🎭 DM
                         </div>
-                        <div className="prose prose-sm dark:prose-invert">
+                        <div className="prose prose-sm dark:prose-invert whitespace-pre-wrap">
                           {dmNarrative}
                           <span className="animate-pulse">▌</span>
                         </div>
