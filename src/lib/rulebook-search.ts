@@ -1,13 +1,12 @@
 /**
  * 规则书检索工具
- * 提供统一的规则书搜索接口，支持知识库和文件搜索
+ * 使用本地文件搜索规则书内容
  */
 
-import { KnowledgeClient, Config } from 'coze-coding-dev-sdk';
 import fs from 'fs';
 import path from 'path';
 
-// 规则书中的剧本模组列表（与规则书完全一致的名称）
+// 规则书中的剧本模组列表
 export const SCENARIO_MODULES = [
   { 
     name: '被扭曲的世界', 
@@ -89,7 +88,7 @@ export const SCENARIO_MODULES = [
 export interface SearchResult {
   found: boolean;
   content: string;
-  source: 'knowledge' | 'file' | 'none' | 'mixed';
+  source: 'file' | 'none';
   chunks?: string[];
 }
 
@@ -100,6 +99,7 @@ function searchInRulebookFile(query: string, maxChunks: number = 5): string[] {
   try {
     const rulebookPath = path.join(process.cwd(), 'assets', '规则书.txt');
     if (!fs.existsSync(rulebookPath)) {
+      console.log('规则书文件不存在:', rulebookPath);
       return [];
     }
     
@@ -107,13 +107,11 @@ function searchInRulebookFile(query: string, maxChunks: number = 5): string[] {
     const lines = content.split('\n');
     const results: string[] = [];
     
-    // 关键词匹配 - 更宽松的匹配策略
     const keywords = query.toLowerCase()
       .replace(/[？?！!，。、]/g, ' ')
       .split(/\s+/)
       .filter(k => k.length > 1);
     
-    // 额外拆分长关键词
     const expandedKeywords: string[] = [];
     for (const k of keywords) {
       expandedKeywords.push(k);
@@ -150,44 +148,16 @@ function searchInRulebookFile(query: string, maxChunks: number = 5): string[] {
 
 /**
  * 搜索规则书内容
- * 优先使用知识库，如果无结果则使用文件搜索
  */
 export async function searchRulebook(
   query: string,
   options: {
     maxChunks?: number;
     minScore?: number;
-    datasetName?: string;
   } = {}
 ): Promise<SearchResult> {
-  const { maxChunks = 5, minScore = 0.2, datasetName = 'kamen_rider_trpg_rulebook' } = options;
+  const { maxChunks = 5 } = options;
   
-  const config = new Config();
-  const client = new KnowledgeClient(config);
-  
-  // 首先尝试知识库搜索
-  try {
-    const searchResponse = await client.search(
-      query,
-      undefined, // 搜索所有数据集
-      maxChunks,
-      minScore
-    );
-    
-    if (searchResponse.code === 0 && searchResponse.chunks.length > 0) {
-      return {
-        found: true,
-        content: searchResponse.chunks.map(c => c.content).join('\n\n---\n\n'),
-        source: 'knowledge',
-        chunks: searchResponse.chunks.map(c => c.content),
-      };
-    }
-  } catch (error) {
-    console.error('知识库搜索错误:', error);
-  }
-  
-  // 如果知识库无结果，使用文件搜索
-  console.log('知识库无结果，使用文件搜索备用方案');
   const fileResults = searchInRulebookFile(query, maxChunks);
   
   if (fileResults.length > 0) {
@@ -213,10 +183,9 @@ export async function searchMultipleQueries(
   queries: string[],
   options: {
     maxChunksPerQuery?: number;
-    minScore?: number;
   } = {}
 ): Promise<SearchResult> {
-  const { maxChunksPerQuery = 3, minScore = 0.2 } = options;
+  const { maxChunksPerQuery = 3 } = options;
   
   const allChunks: string[] = [];
   const seenChunks = new Set<string>();
@@ -224,10 +193,7 @@ export async function searchMultipleQueries(
   for (const query of queries) {
     if (!query) continue;
     
-    const result = await searchRulebook(query, {
-      maxChunks: maxChunksPerQuery,
-      minScore,
-    });
+    const result = await searchRulebook(query, { maxChunks: maxChunksPerQuery });
     
     if (result.found && result.chunks) {
       for (const chunk of result.chunks) {
@@ -244,7 +210,7 @@ export async function searchMultipleQueries(
     return {
       found: true,
       content: allChunks.join('\n\n---\n\n'),
-      source: 'mixed',
+      source: 'file',
       chunks: allChunks,
     };
   }
@@ -260,18 +226,16 @@ export async function searchMultipleQueries(
  * 搜索特定剧本模组
  */
 export async function searchScenarioModule(scenarioName: string): Promise<SearchResult> {
-  // 查找匹配的模组
   const module = SCENARIO_MODULES.find(m => 
     m.name === scenarioName || 
     m.keywords.some(k => scenarioName.includes(k))
   );
   
   if (module) {
-    return searchRulebook(module.name, { maxChunks: 10, minScore: 0.1 });
+    return searchRulebook(module.name, { maxChunks: 10 });
   }
   
-  // 如果不是预设模组，搜索自定义剧本关键词
-  return searchRulebook(`剧本 ${scenarioName}`, { maxChunks: 5, minScore: 0.1 });
+  return searchRulebook(`剧本 ${scenarioName}`, { maxChunks: 5 });
 }
 
 /**

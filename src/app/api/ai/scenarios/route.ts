@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { LLMClient, Config, HeaderUtils } from 'coze-coding-dev-sdk';
+import { deepSeekChat } from '@/lib/deepseek-client';
 import { 
   searchRulebook, 
   searchScenarioModule,
@@ -7,12 +7,9 @@ import {
 } from '@/lib/rulebook-search';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 
-// 首个剧本固定为《被扭曲的世界》
 const FIRST_SCENARIO = '被扭曲的世界';
-// 首次推荐剧本数量
 const INITIAL_SCENARIO_COUNT = 4;
 
-// 从规则书搜索剧本详细信息
 async function getScenarioDetails(scenarioName: string): Promise<{
   description: string;
   difficulty: string;
@@ -20,7 +17,6 @@ async function getScenarioDetails(scenarioName: string): Promise<{
   keyLocations: string[];
   storyOutline: string;
 }> {
-  // 首先检查预定义的模组信息
   const predefinedModule = SCENARIO_MODULES.find(m => m.name === scenarioName);
   
   if (predefinedModule && predefinedModule.description) {
@@ -33,7 +29,6 @@ async function getScenarioDetails(scenarioName: string): Promise<{
     };
   }
   
-  // 如果没有预定义信息，从规则书搜索
   const result = await searchScenarioModule(scenarioName);
   
   const defaultInfo = {
@@ -48,24 +43,20 @@ async function getScenarioDetails(scenarioName: string): Promise<{
     return defaultInfo;
   }
   
-  // 从搜索结果中提取信息
   const content = result.content;
   
-  // 提取故事概述
   let storyOutline = '';
   const storyMatch = content.match(/故事概述[■\s]*([\s\S]*?)(?=■|PC列表|■舞台|$)/i);
   if (storyMatch) {
     storyOutline = storyMatch[1].trim().substring(0, 300);
   }
   
-  // 提取舞台信息
   let keyLocations: string[] = [];
   const stageMatch = content.match(/舞台[：:]\s*([^\n■]+)/i);
   if (stageMatch) {
     keyLocations = stageMatch[1].split(/[，、\s]+/).filter((s: string) => s.length > 0);
   }
   
-  // 提取话数作为难度参考
   let difficulty = '普通';
   const chapterMatch = content.match(/话数[：:]\s*全(\d+)话/i);
   if (chapterMatch) {
@@ -74,16 +65,8 @@ async function getScenarioDetails(scenarioName: string): Promise<{
     else if (chapters >= 4) difficulty = '困难';
   }
   
-  // 提取敌人信息
   let mainEnemy = '未知';
-  const enemyPatterns = [
-    /phantom/i,
-    /Roidmude/i,
-    /Undead/i,
-    /怪人/i,
-    /镜怪兽/i,
-    /魔化魍/i,
-  ];
+  const enemyPatterns = [/phantom/i, /Roidmude/i, /Undead/i, /怪人/i, /镜怪兽/i, /魔化魍/i];
   for (const pattern of enemyPatterns) {
     if (pattern.test(content)) {
       mainEnemy = content.match(pattern)?.[0] || '未知';
@@ -100,23 +83,19 @@ async function getScenarioDetails(scenarioName: string): Promise<{
   };
 }
 
-// AI推荐剧本
+// AI推荐剧本 (使用 DeepSeek API)
 export async function POST(request: NextRequest) {
   try {
     const { 
-      characters,     // 玩家角色信息
-      preferences,    // 玩家偏好
-      previousScenarios, // 之前玩过的剧本
-      isFirstScenario, // 是否是第一次生成剧本
-      refresh = false  // 是否是刷新请求
+      characters,
+      preferences,
+      previousScenarios,
+      isFirstScenario,
+      refresh = false
     } = await request.json();
     
-    const customHeaders = HeaderUtils.extractForwardHeaders(request.headers);
-    const config = new Config();
-    const llmClient = new LLMClient(config, customHeaders);
     const supabase = getSupabaseClient();
 
-    // 获取已通关的剧本列表
     const { data: completedSessions } = await supabase
       .from('game_sessions')
       .select('scenario_name')
@@ -126,22 +105,18 @@ export async function POST(request: NextRequest) {
       ?.map((s: { scenario_name: string }) => s.scenario_name)
       .filter(Boolean) || [];
     
-    // 合并之前玩过的剧本和已通关的剧本
     const allPlayedScenarios = [...new Set([
       ...(previousScenarios || []),
       ...completedScenarios
     ])];
 
-    // 过滤已通关的剧本，获取可用模组
     const availableModules = SCENARIO_MODULES.filter(
       m => !allPlayedScenarios.includes(m.name)
     );
 
-    // 如果是第一次生成剧本，返回4个规则书剧本（固定包含《被扭曲的世界》）
     if (isFirstScenario && !refresh) {
       const firstScenarios = [];
       
-      // 确保第一个是《被扭曲的世界》
       const firstModule = SCENARIO_MODULES.find(m => m.name === FIRST_SCENARIO);
       if (firstModule && !allPlayedScenarios.includes(firstModule.name)) {
         const details = await getScenarioDetails(firstModule.name);
@@ -159,9 +134,8 @@ export async function POST(request: NextRequest) {
         });
       }
       
-      // 添加其他可用剧本，直到凑够4个
       for (const module of availableModules) {
-        if (module.name === FIRST_SCENARIO) continue; // 跳过已添加的
+        if (module.name === FIRST_SCENARIO) continue;
         if (firstScenarios.length >= INITIAL_SCENARIO_COUNT) break;
         
         const details = await getScenarioDetails(module.name);
@@ -190,12 +164,8 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 非首次生成或刷新请求：返回3个新剧本
-
-    // 如果所有预设剧本都通关了，生成原创剧本
     const needsOriginalScenario = availableModules.length === 0;
 
-    // 如果还有预设剧本，直接返回规则书模组
     if (!needsOriginalScenario) {
       const scenarios = [];
       const count = Math.min(3, availableModules.length);
@@ -230,7 +200,6 @@ export async function POST(request: NextRequest) {
     // 所有预设剧本已通关，创作原创剧本
     const worldResult = await searchRulebook('世界观 假面骑士 设定');
 
-    // 角色信息
     const charactersInfo = characters?.map((c: { 
       name: string; 
       title?: string; 
@@ -240,7 +209,6 @@ export async function POST(request: NextRequest) {
       `【${c.name}】${c.title || ''}（${c.race || '人类'}）：${c.background || '无背景'}`
     ).join('\n') || '无角色信息';
 
-    // 系统提示词
     const systemPrompt = `你是假面骑士TRPG游戏的剧本创作助手。
 
 ## 所有预设剧本已通关！
@@ -288,15 +256,14 @@ ${allPlayedScenarios.join('、')}
       { role: 'user' as const, content: '请为我们创作全新的剧本' }
     ];
 
-    const response = await llmClient.invoke(messages, {
-      model: 'doubao-seed-1-8-251228',
+    const response = await deepSeekChat(messages, {
+      model: 'deepseek-chat',
       temperature: 0.9,
     });
 
-    // 解析AI返回的JSON
     let scenarios = [];
     try {
-      const jsonMatch = response.content.match(/\{[\s\S]*\}/);
+      const jsonMatch = response.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]);
         scenarios = parsed.scenarios || [];

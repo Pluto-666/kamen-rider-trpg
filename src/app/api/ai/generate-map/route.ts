@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { LLMClient, Config, HeaderUtils } from 'coze-coding-dev-sdk';
+import { deepSeekChat } from '@/lib/deepseek-client';
 import { searchRulebook } from '@/lib/rulebook-search';
 
 interface MapGenerationRequest {
@@ -11,7 +11,7 @@ interface MapGenerationRequest {
   mapStyle?: '2d' | '3d';
 }
 
-// 地图生成API
+// 地图生成API (使用 DeepSeek API)
 export async function POST(request: NextRequest) {
   try {
     const { 
@@ -22,12 +22,7 @@ export async function POST(request: NextRequest) {
       description,
       mapStyle = '2d'
     }: MapGenerationRequest = await request.json();
-    
-    const customHeaders = HeaderUtils.extractForwardHeaders(request.headers);
-    const config = new Config();
-    const llmClient = new LLMClient(config, customHeaders);
 
-    // 检索相关场景的规则书内容
     const locationResult = await searchRulebook(`${location} 场景 环境`);
     const combatResult = sceneType === 'battle' 
       ? await searchRulebook('战斗 地图 位置') 
@@ -67,33 +62,11 @@ ${mapStyle === '2d' ? `
   "mapData": {
     "ascii": "ASCII地图字符串（如果是2D）",
     "spatial": "立体空间描述（如果是3D）",
-    "legend": {
-      "符号": "含义"
-    },
-    "dimensions": {
-      "width": 宽度,
-      "height": 高度
-    },
-    "zones": [
-      {
-        "name": "区域名称",
-        "description": "区域描述",
-        "connections": ["连接的其他区域"],
-        "features": ["特殊特征"]
-      }
-    ],
-    "enemyPlacements": [
-      {
-        "enemy": "敌人名称",
-        "position": "位置描述"
-      }
-    ],
-    "playerStartPositions": [
-      {
-        "player": "玩家名称",
-        "suggestedPosition": "建议起始位置"
-      }
-    ]
+    "legend": { "符号": "含义" },
+    "dimensions": { "width": 宽度, "height": 高度 },
+    "zones": [{ "name": "区域名称", "description": "区域描述", "connections": ["连接的其他区域"], "features": ["特殊特征"] }],
+    "enemyPlacements": [{ "enemy": "敌人名称", "position": "位置描述" }],
+    "playerStartPositions": [{ "player": "玩家名称", "suggestedPosition": "建议起始位置" }]
   },
   "narrativeDescription": "场景的叙事描述"
 }`;
@@ -103,15 +76,11 @@ ${mapStyle === '2d' ? `
       { role: 'user' as const, content: `请生成${location}的${sceneType === 'battle' ? '战斗' : ''}地图` }
     ];
 
-    const response = await llmClient.invoke(messages, {
-      model: 'doubao-seed-1-8-251228',
-      temperature: 0.7,
-    });
+    const response = await deepSeekChat(messages, { temperature: 0.7 });
 
-    // 解析JSON
     let mapData = null;
     try {
-      const jsonMatch = response.content.match(/\{[\s\S]*\}/);
+      const jsonMatch = response.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         mapData = JSON.parse(jsonMatch[0]);
       }
@@ -121,10 +90,7 @@ ${mapStyle === '2d' ? `
 
     return NextResponse.json({
       success: true,
-      data: {
-        mapData,
-        rawResponse: response.content,
-      },
+      data: { mapData, rawResponse: response },
     });
   } catch (error) {
     console.error('地图生成错误:', error);

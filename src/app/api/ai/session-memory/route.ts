@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
-import { LLMClient, Config, HeaderUtils } from 'coze-coding-dev-sdk';
+import { deepSeekChat } from '@/lib/deepseek-client';
 
-// 游戏会话记忆检索API
-// 用于解决长时间游玩后AI遗忘之前内容的问题
+// 游戏会话记忆检索API (使用 DeepSeek API)
 
 interface MemorySearchRequest {
   sessionId: string;
@@ -11,19 +10,13 @@ interface MemorySearchRequest {
   limit?: number;
 }
 
-interface MemorySummaryRequest {
-  sessionId: string;
-  maxMessages?: number;
-}
-
 // 搜索游戏历史记录
 export async function POST(request: NextRequest) {
   try {
-    const { sessionId, query, limit = 10 }: MemorySearchRequest = await request.json();
+    const { sessionId, query }: MemorySearchRequest = await request.json();
     
     const supabase = getSupabaseClient();
     
-    // 从session_logs表中检索相关记录
     const { data: logs, error } = await supabase
       .from('session_logs')
       .select('*')
@@ -39,21 +32,12 @@ export async function POST(request: NextRequest) {
     if (!logs || logs.length === 0) {
       return NextResponse.json({
         success: true,
-        data: {
-          memories: [],
-          message: '没有找到游戏记录'
-        }
+        data: { memories: [], message: '没有找到游戏记录' }
       });
     }
     
-    // 使用AI筛选与查询相关的记忆
-    const customHeaders = HeaderUtils.extractForwardHeaders(request.headers);
-    const config = new Config();
-    const llmClient = new LLMClient(config, customHeaders);
-    
-    // 构建日志文本
     const logText = logs
-      .slice(0, 50) // 取最近50条
+      .slice(0, 50)
       .map((log: { role: string; content: string; created_at: string }) => 
         `[${log.created_at}] ${log.role}: ${log.content}`
       )
@@ -91,15 +75,11 @@ ${logText}
       { role: 'user' as const, content: query }
     ];
 
-    const response = await llmClient.invoke(messages, {
-      model: 'doubao-seed-1-8-251228',
-      temperature: 0.3,
-    });
+    const response = await deepSeekChat(messages, { temperature: 0.3 });
 
-    // 解析结果
     let memoryResult = { found: false, relevantMemories: [], summary: '' };
     try {
-      const jsonMatch = response.content.match(/\{[\s\S]*\}/);
+      const jsonMatch = response.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         memoryResult = JSON.parse(jsonMatch[0]);
       }
@@ -107,17 +87,14 @@ ${logText}
       console.error('解析记忆检索结果失败');
     }
 
-    return NextResponse.json({
-      success: true,
-      data: memoryResult,
-    });
+    return NextResponse.json({ success: true, data: memoryResult });
   } catch (error) {
     console.error('记忆检索错误:', error);
     return NextResponse.json({ error: '服务器错误' }, { status: 500 });
   }
 }
 
-// 获取游戏历史摘要（用于上下文压缩）
+// 获取游戏历史摘要
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -130,7 +107,6 @@ export async function GET(request: NextRequest) {
     
     const supabase = getSupabaseClient();
     
-    // 获取所有游戏日志
     const { data: logs, error } = await supabase
       .from('session_logs')
       .select('*')
@@ -145,21 +121,11 @@ export async function GET(request: NextRequest) {
     if (!logs || logs.length === 0) {
       return NextResponse.json({
         success: true,
-        data: {
-          summary: '无游戏记录',
-          keyEvents: [],
-          recentMessages: []
-        }
+        data: { summary: '无游戏记录', keyEvents: [], recentMessages: [] }
       });
     }
     
-    // 最近的对话（保持完整）
     const recentMessages = logs.slice(-maxMessages);
-    
-    // 使用AI生成历史摘要
-    const customHeaders = HeaderUtils.extractForwardHeaders(request.headers);
-    const config = new Config();
-    const llmClient = new LLMClient(config, customHeaders);
     
     const allLogsText = logs
       .map((log: { role: string; content: string; created_at: string }) => 
@@ -181,13 +147,7 @@ ${allLogsText}
 请用JSON格式返回：
 {
   "summary": "游戏整体摘要（2-3句话）",
-  "keyEvents": [
-    {
-      "event": "事件描述",
-      "outcome": "结果",
-      "timestamp": "时间"
-    }
-  ],
+  "keyEvents": [{ "event": "事件描述", "outcome": "结果", "timestamp": "时间" }],
   "importantNPCs": ["重要NPC列表"],
   "playerDecisions": ["玩家做出的重要决定"],
   "currentObjectives": ["当前目标"]
@@ -198,12 +158,8 @@ ${allLogsText}
       { role: 'user' as const, content: '请生成游戏摘要' }
     ];
 
-    const response = await llmClient.invoke(messages, {
-      model: 'doubao-seed-1-8-251228',
-      temperature: 0.3,
-    });
+    const response = await deepSeekChat(messages, { temperature: 0.3 });
 
-    // 解析结果
     let summaryResult = {
       summary: '',
       keyEvents: [],
@@ -212,7 +168,7 @@ ${allLogsText}
       currentObjectives: []
     };
     try {
-      const jsonMatch = response.content.match(/\{[\s\S]*\}/);
+      const jsonMatch = response.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         summaryResult = JSON.parse(jsonMatch[0]);
       }

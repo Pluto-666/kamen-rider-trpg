@@ -1,49 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { LLMClient, Config, HeaderUtils, KnowledgeClient } from 'coze-coding-dev-sdk';
+import { deepSeekChat } from '@/lib/deepseek-client';
+import { searchRulebook } from '@/lib/rulebook-search';
 
-// AI判定 - 骰子检定和结果判定
+// AI判定 - 骰子检定和结果判定 (使用 DeepSeek API)
 export async function POST(request: NextRequest) {
   try {
     const { 
-      rollType,      // 检定类型：attribute, skill, combat
-      attribute,     // 检定属性
-      difficulty,    // 难度等级
-      character,     // 角色信息
-      context,       // 上下文描述
-      scenario       // 场景信息
+      rollType,
+      attribute,
+      difficulty,
+      character,
+      context,
     } = await request.json();
-    
-    const customHeaders = HeaderUtils.extractForwardHeaders(request.headers);
-    const config = new Config();
-    const llmClient = new LLMClient(config, customHeaders);
-    const knowledgeClient = new KnowledgeClient(config, customHeaders);
 
     // 搜索规则书中关于检定的内容
-    const searchResponse = await knowledgeClient.search(
-      `${rollType}检定 ${attribute} 难度${difficulty}`,
-      ['kamen_rider_trpg_rulebook'],
-      3,
-      0.5
-    );
-    
-    let ruleContext = '';
-    if (searchResponse.code === 0 && searchResponse.chunks.length > 0) {
-      ruleContext = searchResponse.chunks
-        .map(chunk => chunk.content)
-        .join('\n\n');
-    }
+    const ruleResult = await searchRulebook(`${rollType}检定 ${attribute} 难度`);
+    const ruleContext = ruleResult.found ? ruleResult.content : '';
 
-    // 模拟骰子检定（实际应该由前端执行）
+    // 模拟骰子检定
     const d20Result = Math.floor(Math.random() * 20) + 1;
     const attributeValue = character?.attributes?.[attribute] || 10;
     const total = d20Result + Math.floor((attributeValue - 10) / 2);
 
-    // 判定成功与否
     const success = total >= difficulty;
     const criticalHit = d20Result === 20;
     const criticalFail = d20Result === 1;
 
-    // 系统提示词
     const systemPrompt = `你是假面骑士TRPG游戏的判定助手。
 
 ## 检定结果
@@ -76,11 +58,7 @@ ${ruleContext || '暂无相关规则'}
       { role: 'user' as const, content: '请描述这次检定的结果' }
     ];
 
-    // 获取AI描述
-    const response = await llmClient.invoke(messages, {
-      model: 'doubao-seed-1-8-251228',
-      temperature: 0.8,
-    });
+    const response = await deepSeekChat(messages, { temperature: 0.8 });
 
     return NextResponse.json({
       success: true,
@@ -95,7 +73,7 @@ ${ruleContext || '暂无相关规则'}
           criticalHit,
           criticalFail,
         },
-        description: response.content,
+        description: response,
       },
     });
   } catch (error) {

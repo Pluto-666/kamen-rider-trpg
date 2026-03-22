@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { LLMClient, Config, HeaderUtils } from 'coze-coding-dev-sdk';
+import { deepSeekStream } from '@/lib/deepseek-client';
 import { 
   searchRulebook, 
   searchCombatRules, 
@@ -8,9 +8,8 @@ import {
   searchWorldSetting,
   SCENARIO_MODULES
 } from '@/lib/rulebook-search';
-import { getSupabaseClient } from '@/storage/database/supabase-client';
 
-// AI主持人 - 流式输出
+// AI主持人 - 流式输出 (使用 DeepSeek API)
 export async function POST(request: NextRequest) {
   try {
     const { 
@@ -23,10 +22,6 @@ export async function POST(request: NextRequest) {
       scenarioName,
       currentScene,
     } = await request.json();
-    
-    const customHeaders = HeaderUtils.extractForwardHeaders(request.headers);
-    const config = new Config();
-    const llmClient = new LLMClient(config, customHeaders);
 
     // 判断是否是游戏开始
     const isGameStart = playerAction?.includes('开始游戏') || 
@@ -333,16 +328,12 @@ ${availableScenarios}
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          const llmStream = llmClient.stream(conversationMessages, {
-            model: 'doubao-seed-1-8-251228',
+          // 使用 DeepSeek 流式输出
+          for await (const chunk of deepSeekStream(conversationMessages, {
+            model: 'deepseek-chat',
             temperature: 0.9,
-          });
-
-          for await (const chunk of llmStream) {
-            if (chunk.content) {
-              const text = chunk.content.toString();
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: text })}\n\n`));
-            }
+          })) {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: chunk })}\n\n`));
           }
 
           controller.enqueue(encoder.encode('data: [DONE]\n\n'));
