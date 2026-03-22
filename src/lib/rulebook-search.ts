@@ -258,6 +258,114 @@ export async function searchCharacterCreationRules(
 }
 
 /**
+ * 种族能力值分配点数据（从规则书提取的核心规则）
+ */
+export const RACE_ABILITY_POINTS: Record<string, number> = {
+  '人类': 10,
+  '人类（林多）': 10,
+  '林多': 10,
+  '古朗基': 15,
+  '古朗基族': 15,
+  '奥菲以诺': 15,
+  'Unknown': 18,
+  'Undead': 22,
+  'Worm': 15,
+  '异虫': 15,
+  '原虫': 15,
+  'Fangire': 15,
+  'Fangire族': 15,
+  'Kivat族': 15,
+  '传说偶兽族': 15,
+  '哥布林（鬼）族': 15,
+  '狼人族': 13,
+  '鱼人族': 13,
+  '人鱼族': 13,
+  '科学怪人族': 13,
+  '巨人族': 13,
+  '霍比特族': 13,
+  '异魔神': 15,
+  'Greed': 15,
+  'Phantom': 15,
+  '恶魔族': 15,
+  'Roidmude': 15,
+  '机械变异体': 15,
+  'Bugster': 15,
+  '崩源体': 13,
+  '兽人': 15,
+  '魔之国的魔人': 15,
+  '克莱西斯人': 10,
+  '怪魔机器人': 15,
+  '怪魔异生兽': 15,
+  '人造人类': 15,
+  '霸主异域者': 22,
+  'SOLU': 10,
+  '宇宙铁人': 15,
+  '傀儡': 15,
+};
+
+/**
+ * 能力值种类与关联项目
+ */
+export const ABILITY_TYPES = {
+  '肉体': '腕力、体力、强韧。近身武器的DP、HP、回避（招架）',
+  '运动': '运动能力全项目，近距离武器的命中、移动',
+  '器用': '灵巧度、精细操作。远距离武器的命中、DP',
+  '意志': '精神力、忍耐力。精神攻击的DP、HP',
+  '机知': '智力、判断力。知识判定、先制判定',
+};
+
+/**
+ * 搜索种族能力值分配规则（精确搜索）
+ */
+export async function searchRaceAbilityRules(raceName?: string): Promise<SearchResult> {
+  // 首先查找预定义的种族数据
+  const abilityPoints = raceName ? RACE_ABILITY_POINTS[raceName] : undefined;
+  
+  // 构建精确的搜索查询
+  const queries: string[] = [];
+  
+  if (raceName) {
+    // 搜索特定种族的能力值分配点
+    queries.push(`${raceName} 能力值分配点`);
+    queries.push(`【${raceName}】能力值`);
+    
+    // 尝试不同的名称变体
+    if (raceName.includes('人类') || raceName === '林多') {
+      queries.push('人类（林多） 能力值分配点');
+    }
+    if (raceName.includes('古朗基')) {
+      queries.push('古朗基族 能力值分配点');
+    }
+    if (raceName.includes('奥菲')) {
+      queries.push('奥菲以诺 能力值分配点');
+    }
+  }
+  
+  // 添加通用的能力值分配规则
+  queries.push('能力值分配点 种族');
+  queries.push('能力值的种类 肉体 运动');
+  
+  const result = await searchMultipleQueries(queries, { maxChunksPerQuery: 3 });
+  
+  // 如果找到了预定义数据，添加到结果中
+  if (abilityPoints !== undefined && result.found) {
+    const predefinedInfo = `
+【核心规则 - 种族能力值分配点】
+${raceName}的能力值分配点为 ${abilityPoints} 点。
+
+这是选择种族时获得的点数，可以自由分配到五项能力值（肉体、运动、器用、意志、机知）上。
+每个能力值最少需分配1点。
+`;
+    return {
+      ...result,
+      content: predefinedInfo + '\n\n---规则书原文---\n\n' + result.content,
+    };
+  }
+  
+  return result;
+}
+
+/**
  * 搜索战斗规则
  */
 export async function searchCombatRules(

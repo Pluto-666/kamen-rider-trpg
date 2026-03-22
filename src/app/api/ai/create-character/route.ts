@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { deepSeekStream } from '@/lib/deepseek-client';
 import { 
   searchCharacterCreationRules,
-  searchRulebook 
+  searchRulebook,
+  searchRaceAbilityRules,
+  RACE_ABILITY_POINTS,
+  ABILITY_TYPES
 } from '@/lib/rulebook-search';
 
 interface Message {
@@ -170,6 +173,9 @@ export async function POST(request: NextRequest) {
     console.log('检索角色创建规则...');
     const raceParam = (characterData as CharacterData).race;
     const occupationParam = (characterData as CharacterData).occupation;
+    
+    // 使用新的精确种族能力值检索
+    const raceAbilityResult = await searchRaceAbilityRules(raceParam);
     const ruleResult = await searchCharacterCreationRules(raceParam, occupationParam);
     
     let additionalRules = '';
@@ -188,63 +194,58 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const ruleContext = (ruleResult.found ? ruleResult.content : '') + '\n\n' + additionalRules;
+    // 合并规则内容，种族能力值规则优先
+    const ruleContext = (raceAbilityResult.found ? raceAbilityResult.content : '') + '\n\n' + 
+                        (ruleResult.found ? ruleResult.content : '') + '\n\n' + additionalRules;
 
     // 构建消息历史
     const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [];
 
+    // 构建种族能力值分配点参考表
+    const racePointsRef = Object.entries(RACE_ABILITY_POINTS)
+      .map(([race, points]) => `- ${race}: ${points}点`)
+      .join('\n');
+
     const systemPrompt = `你是一位专业的假面骑士TRPG游戏主持人(DM)，正在帮助玩家创建他们的角色卡。
 
-## 核心职责（必须遵守！）
-1. **严格遵守规则书**：所有角色创建相关的规则、属性计算必须基于规则书内容
-2. **逐一收集信息**：按照顺序收集信息，每次只问一个问题
-3. **记住已提供的信息**：玩家提供的信息后，要确认并记录
-4. **主动引导下一步**：确认后，问下一个需要的信息
-5. **引用规则书**：当玩家询问规则时，引用规则书原文或准确概述
+## ⚠️ 核心规则 - 必须严格遵守（违反此规则是严重错误！）
+
+### 1. 种族能力值分配点（绝对规则）
+选择种族时获得的能力值分配点数是**固定**的，绝不可随意修改：
+
+${racePointsRef}
+
+### 2. 能力值分配规则
+- 每项能力值（肉体、运动、器用、意志、机知）**初始值为1**（这是固定基础，不占用分配点）
+- 能力值分配点可以自由分配到五项能力值上
+- **每个能力值最少需分配1点**（加上初始1点，最少为2）
+- 能力值种类说明：
+  - 【肉体】＝腕力、体力、强韧。近身武器的DP、HP、回避（招架）
+  - 【运动】＝运动能力全项目，近距离武器的命中、移动
+  - 【器用】＝灵巧度、精细操作。远距离武器的命中、DP
+  - 【意志】＝精神力、忍耐力。精神攻击的DP、HP
+  - 【机知】＝智力、判断力。知识判定、先制判定
+
+### 3. 禁止行为
+- ❌ 绝对不可以自行发明或修改种族能力值分配点数
+- ❌ 绝对不可以凭空编造规则（如"基础20点"等错误说法）
+- ❌ 当玩家指出规则书内容时，必须核实并承认错误
 
 ## 角色创建流程（按顺序引导）
 1. 【基本信息】角色名称 + 假面骑士称号
 2. 【基本信息】年龄、性别
-3. 【基本信息】种族（人类/古朗基/奥菲以诺/Unknown等）
+3. 【基本信息】种族（人类/古朗基/奥菲以诺/Unknown等）→ 根据种族确定能力值分配点！
 4. 【基本信息】职业
 5. 【背景】简短的背景故事（2-3句话）
-6. 【属性】根据种族和职业分配初始属性
+6. 【属性】根据种族分配能力值分配点到五项属性
 7. 【骑士系统】变身道具名称
 8. 【骑士系统】必杀技名称
 9. 【骑士系统】变身口号
 
-## 重要：当玩家一次性提供大量信息时
-如果玩家一次提供了多个信息，你要：
-1. 确认收到的所有信息
-2. 根据提供的信息计算属性值（参考规则书）
-3. 补充缺失的信息（可以假设合理的默认值）
-4. 在回复的最后，输出完整的角色卡数据
-
-## 输出角色卡数据格式
-当信息收集完成后，在回复最后必须输出以下格式的JSON数据：
-\`\`\`json
-{
-  "name": "角色名称",
-  "playerName": "玩家名",
-  "age": 年龄数字,
-  "gender": "性别",
-  "race": "种族",
-  "occupation": "职业",
-  "background": "完整的背景故事，2-3句话",
-  "attributes": {
-    "body": 体力值,
-    "athletics": 运动值,
-    "dexterity": 器用值,
-    "will": 意志值,
-    "wit": 机知值,
-    "hp": 生命值
-  },
-  "riderSystem": "假面骑士系统名称",
-  "transformItem": "变身道具/驱动器名称",
-  "transformPhrase": "变身口号",
-  "finisherMove": "必杀技名称"
-}
-\`\`\`
+## 回复规范
+1. 当玩家选择种族后，必须明确说明该种族的能力值分配点数（引用规则书）
+2. 帮助玩家分配点数时，要说明初始值和分配规则
+3. 当玩家质疑规则时，优先查阅规则书内容，承认错误并更正
 
 ## 当前已确认的角色信息
 ${Object.keys(characterData).length > 0 
