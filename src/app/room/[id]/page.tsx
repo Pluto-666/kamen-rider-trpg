@@ -158,6 +158,7 @@ export default function RoomPage() {
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const dmMessageRef = useRef(''); // 使用ref保存AI主持人的发言，避免闭包问题
+  const messagesRef = useRef<Message[]>([]); // 使用ref保存消息列表，避免闭包问题
   const [sessionId, setSessionId] = useState<string>('');
   const [gameState, setGameState] = useState<Record<string, unknown>>({});
   const [currentScenarioName, setCurrentScenarioName] = useState<string>('');
@@ -249,7 +250,7 @@ export default function RoomPage() {
             difficulty?: number;
             total: number;
           };
-          const rollMessage = {
+          const rollMessage: Message = {
             id: Date.now().toString(),
             type: 'roll' as const,
             content: `掷骰 ${rollPayload.dice}: [${rollPayload.rolls.join(', ')}] = ${rollPayload.total}${rollPayload.difficulty ? ` (难度 ${rollPayload.difficulty})` : ''}`,
@@ -262,15 +263,29 @@ export default function RoomPage() {
           // 如果是当前用户的掷骰且游戏进行中，自动触发AI判定
           if (rollPayload.userId === user?.id && selectedCharacterId && room?.status === 'playing') {
             const character = characters.find(c => c.id === selectedCharacterId);
-            // 发送掷骰结果给AI进行判定
-            wsSend({
-              type: 'game:player_action',
-              payload: {
-                action: `[掷骰检定] ${rollMessage.content}`,
-                characterId: selectedCharacterId,
-                characterName: character?.name || profile?.username || '玩家',
-              },
-            });
+            
+            // 计算成功数（5和6为成功）
+            const successes = rollPayload.rolls.filter(r => r >= 5).length;
+            
+            // 构建对话历史（使用 messagesRef 获取最新消息）
+            const dialogHistory = [...messagesRef.current, rollMessage].map(m => ({
+              role: m.type === 'narrative' ? 'assistant' as const : 'user' as const,
+              content: m.type === 'narrative' ? m.content : `[${m.senderName || m.characterName || '玩家'}]: ${m.content}`,
+              timestamp: m.timestamp,
+            }));
+            
+            // 延迟调用 streamDM，确保状态已更新
+            setTimeout(() => {
+              streamDM({
+                roomId,
+                sessionId,
+                gameState,
+                dialogHistory,
+                characters: members.map(m => m.characters).filter(Boolean),
+                playerAction: `[${character?.name || '玩家'}]: 掷骰检定结果 - ${rollMessage.content}\n成功数: ${successes}\n请根据检定结果继续剧情。`,
+                scenarioName: currentScenarioName,
+              });
+            }, 100);
           }
           break;
         case 'user:joined':
@@ -302,6 +317,8 @@ export default function RoomPage() {
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // 同步更新 messagesRef
+    messagesRef.current = messages;
   }, [messages]);
 
   const fetchRoomData = async () => {
