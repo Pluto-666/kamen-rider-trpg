@@ -117,35 +117,75 @@ export async function DELETE(
       .eq('id', id)
       .single();
 
-    // 如果是房主离开，解散房间
-    if (room && room.host_id === user.id) {
-      await supabase.from('room_members').delete().eq('room_id', id);
-      await supabase.from('rooms').delete().eq('id', id);
-      return NextResponse.json({ success: true, message: '房间已解散' });
+    if (!room) {
+      // 房间已经不存在，直接返回成功
+      return NextResponse.json({ success: true, message: '房间已不存在' });
     }
 
-    // 普通成员离开
-    const { error } = await supabase
+    // 删除当前用户的成员记录
+    const { error: deleteError } = await supabase
       .from('room_members')
       .delete()
       .eq('room_id', id)
       .eq('user_id', user.id);
 
-    if (error) {
-      console.error('离开房间错误:', error);
+    if (deleteError) {
+      console.error('删除成员记录错误:', deleteError);
       return NextResponse.json({ error: '离开房间失败' }, { status: 500 });
     }
 
-    // 检查房间是否还有成员，如果没有则删除房间
-    const { count } = await supabase
+    console.log(`用户 ${user.id} 离开房间 ${id}`);
+
+    // 检查房间是否还有成员
+    const { data: remainingMembers } = await supabase
       .from('room_members')
-      .select('*', { count: 'exact', head: true })
+      .select('id')
       .eq('room_id', id);
 
-    if (count === 0) {
-      // 房间没有成员了，删除房间
-      await supabase.from('rooms').delete().eq('id', id);
+    console.log(`房间 ${id} 剩余成员数: ${remainingMembers?.length || 0}`);
+
+    // 如果没有成员了，删除房间
+    if (!remainingMembers || remainingMembers.length === 0) {
+      // 先获取游戏会话，确保存档已保存
+      const { data: sessions } = await supabase
+        .from('game_sessions')
+        .select('id')
+        .eq('room_id', id);
+      
+      console.log(`房间 ${id} 有 ${sessions?.length || 0} 个游戏存档，保留存档`);
+
+      // 删除房间（游戏会话通过 room_id 字段保留，房间删除不影响存档）
+      const { error: roomDeleteError } = await supabase
+        .from('rooms')
+        .delete()
+        .eq('id', id);
+
+      if (roomDeleteError) {
+        console.error('删除房间错误:', roomDeleteError);
+      } else {
+        console.log(`房间 ${id} 已自动解散（无成员）`);
+      }
+      
       return NextResponse.json({ success: true, message: '房间已自动解散' });
+    }
+
+    // 如果房主离开但还有其他成员，转移房主
+    if (room.host_id === user.id && remainingMembers.length > 0) {
+      const newHost = remainingMembers[0];
+      // 这里需要通过 member 的 user_id 来更新房间
+      const { data: newHostMember } = await supabase
+        .from('room_members')
+        .select('user_id')
+        .eq('id', newHost.id)
+        .single();
+      
+      if (newHostMember) {
+        await supabase
+          .from('rooms')
+          .update({ host_id: newHostMember.user_id })
+          .eq('id', id);
+        console.log(`房间 ${id} 房主转移给 ${newHostMember.user_id}`);
+      }
     }
 
     return NextResponse.json({ success: true });

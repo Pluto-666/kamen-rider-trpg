@@ -31,6 +31,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface Room {
   id: string;
@@ -49,12 +50,27 @@ interface Room {
   _memberCount?: number;
 }
 
+interface SavedGame {
+  id: string;
+  scenarioName: string;
+  chapter: number;
+  status: string;
+  lastSavedAt: string;
+  startedAt: string;
+  myCharacterName: string;
+  gameState: Record<string, unknown>;
+  roomId: string;
+}
+
 export default function LobbyPage() {
   const router = useRouter();
   const { user, profile, logout, isAuthenticated, isLoading: authLoading, token } = useAuth();
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [savedGames, setSavedGames] = useState<SavedGame[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingSaves, setIsLoadingSaves] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('rooms');
   
   // 创建房间表单
   const [roomName, setRoomName] = useState('');
@@ -72,6 +88,7 @@ export default function LobbyPage() {
   useEffect(() => {
     if (isAuthenticated && token) {
       fetchRooms();
+      fetchSavedGames();
     }
   }, [isAuthenticated, token]);
 
@@ -91,6 +108,48 @@ export default function LobbyPage() {
       toast.error('获取房间列表失败');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchSavedGames = async () => {
+    setIsLoadingSaves(true);
+    try {
+      const response = await fetch('/api/sessions', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setSavedGames(data.data || []);
+      }
+    } catch (error) {
+      console.error('获取存档列表失败:', error);
+    } finally {
+      setIsLoadingSaves(false);
+    }
+  };
+
+  const handleRestoreGame = async (sessionId: string) => {
+    try {
+      const response = await fetch(`/api/sessions/${sessionId}/restore`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        toast.success('存档恢复成功');
+        router.push(`/room/${data.data.roomId}`);
+      } else {
+        const error = await response.json();
+        toast.error(error.error || '恢复存档失败');
+      }
+    } catch (error) {
+      console.error('恢复存档失败:', error);
+      toast.error('恢复存档失败');
     }
   };
 
@@ -293,66 +352,126 @@ export default function LobbyPage() {
           </Dialog>
         </div>
 
-        {/* Room List */}
-        {isLoading ? (
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-            <p className="mt-4 text-muted-foreground">加载房间列表...</p>
-          </div>
-        ) : rooms.length === 0 ? (
-          <Card className="text-center py-12">
-            <CardContent>
-              <p className="text-muted-foreground mb-4">暂无可加入的房间</p>
-              <Button onClick={() => setCreateDialogOpen(true)}>
-                创建第一个房间
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {rooms.map((room) => (
-              <Card key={room.id} className="hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="text-lg">{room.name}</CardTitle>
-                      <CardDescription className="mt-1">
-                        房主: {room.profiles?.display_name || room.profiles?.username || '未知'}
-                      </CardDescription>
-                    </div>
-                    <div className="flex gap-1">
-                      {room.is_private && (
-                        <Badge variant="secondary">私人</Badge>
-                      )}
-                      <Badge variant={room.status === 'waiting' ? 'default' : 'secondary'}>
-                        {room.status === 'waiting' ? '等待中' : '游戏中'}
-                      </Badge>
-                    </div>
-                  </div>
-                </CardHeader>
+        {/* Tabs: Room List & Saved Games */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
+          <TabsList>
+            <TabsTrigger value="rooms">房间列表</TabsTrigger>
+            <TabsTrigger value="saves">我的存档 ({savedGames.length})</TabsTrigger>
+          </TabsList>
+
+          {/* Room List Tab */}
+          <TabsContent value="rooms">
+            {isLoading ? (
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                <p className="mt-4 text-muted-foreground">加载房间列表...</p>
+              </div>
+            ) : rooms.length === 0 ? (
+              <Card className="text-center py-12">
                 <CardContent>
-                  {room.description && (
-                    <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
-                      {room.description}
-                    </p>
-                  )}
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">
-                      人数: {room._memberCount || 0}/{room.max_players}
-                    </span>
-                    <Button
-                      size="sm"
-                      onClick={() => handleJoinRoom(room.id, room.is_private)}
-                      disabled={room.status !== 'waiting'}
-                    >
-                      加入房间
-                    </Button>
-                  </div>
+                  <p className="text-muted-foreground mb-4">暂无可加入的房间</p>
+                  <Button onClick={() => setCreateDialogOpen(true)}>
+                    创建第一个房间
+                  </Button>
                 </CardContent>
               </Card>
-            ))}
-          </div>
-        )}
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {rooms.map((room) => (
+                  <Card key={room.id} className="hover:shadow-lg transition-shadow">
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <CardTitle className="text-lg">{room.name}</CardTitle>
+                          <CardDescription className="mt-1">
+                            房主: {room.profiles?.display_name || room.profiles?.username || '未知'}
+                          </CardDescription>
+                        </div>
+                        <div className="flex gap-1">
+                          {room.is_private && (
+                            <Badge variant="secondary">私人</Badge>
+                          )}
+                          <Badge variant={room.status === 'waiting' ? 'default' : 'secondary'}>
+                            {room.status === 'waiting' ? '等待中' : '游戏中'}
+                          </Badge>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      {room.description && (
+                        <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+                          {room.description}
+                        </p>
+                      )}
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">
+                          人数: {room._memberCount || 0}/{room.max_players}
+                        </span>
+                        <Button
+                          size="sm"
+                          onClick={() => handleJoinRoom(room.id, room.is_private)}
+                          disabled={room.status !== 'waiting'}
+                        >
+                          加入房间
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Saved Games Tab */}
+          <TabsContent value="saves">
+            {isLoadingSaves ? (
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                <p className="mt-4 text-muted-foreground">加载存档列表...</p>
+              </div>
+            ) : savedGames.length === 0 ? (
+              <Card className="text-center py-12">
+                <CardContent>
+                  <p className="text-muted-foreground mb-4">暂无存档记录</p>
+                  <p className="text-sm text-muted-foreground">开始新游戏后，游戏进度会自动保存</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {savedGames.map((save) => (
+                  <Card key={save.id} className="hover:shadow-lg transition-shadow">
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <CardTitle className="text-lg">{save.scenarioName}</CardTitle>
+                          <CardDescription className="mt-1">
+                            角色: {save.myCharacterName}
+                          </CardDescription>
+                        </div>
+                        <Badge variant={save.status === 'active' ? 'default' : 'secondary'}>
+                          {save.status === 'active' ? '进行中' : '已结束'}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-sm text-muted-foreground mb-4">
+                        <div>章节: {save.chapter}</div>
+                        <div>最后保存: {new Date(save.lastSavedAt).toLocaleString()}</div>
+                      </div>
+                      <Button
+                        size="sm"
+                        className="w-full"
+                        onClick={() => handleRestoreGame(save.id)}
+                      >
+                        继续游戏
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );

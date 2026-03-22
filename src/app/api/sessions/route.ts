@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 
-// 获取游戏会话列表
+// 获取游戏会话列表（用户存档列表）
 export async function GET(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization');
@@ -20,10 +20,7 @@ export async function GET(request: NextRequest) {
     // 获取用户参与的游戏会话
     const { data: sessions, error } = await supabase
       .from('game_sessions')
-      .select(`
-        *,
-        rooms(id, name)
-      `)
+      .select('*')
       .contains('participants', [{ userId: user.id }])
       .order('last_saved_at', { ascending: false });
 
@@ -32,7 +29,28 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: '获取游戏会话失败' }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true, data: sessions });
+    // 处理存档数据，添加可读信息
+    const savedGames = sessions?.map(session => {
+      // participants 是 JSON 数组，提取用户角色信息
+      const myParticipant = session.participants?.find(
+        (p: { userId: string }) => p.userId === user.id
+      );
+      
+      return {
+        id: session.id,
+        scenarioName: session.scenario_name,
+        chapter: session.chapter,
+        status: session.status,
+        lastSavedAt: session.last_saved_at,
+        startedAt: session.started_at,
+        myCharacterName: myParticipant?.characterName || '未知角色',
+        gameState: session.game_state,
+        // 原房间可能已删除，保留 room_id 用于恢复
+        roomId: session.room_id,
+      };
+    }) || [];
+
+    return NextResponse.json({ success: true, data: savedGames });
   } catch (error) {
     console.error('获取游戏会话错误:', error);
     return NextResponse.json({ error: '服务器错误' }, { status: 500 });
