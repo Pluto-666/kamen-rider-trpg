@@ -9,15 +9,80 @@ import path from 'path';
 
 // 规则书中的剧本模组列表（与规则书完全一致的名称）
 export const SCENARIO_MODULES = [
-  { name: '被扭曲的世界', keywords: ['被扭曲的世界', '扭曲', '世界', 'phantom', '沼川市'], isStarter: true },
-  { name: '假面骑士部 连接未来的希望之所', keywords: ['假面骑士部', '连接未来', '希望之所', '灯志郎', '再兴'] },
-  { name: '另一个 全球冻结之夜', keywords: ['全球冻结', '另一个', '冻结之夜', 'Roidmude', '重加速'] },
-  { name: '镜世界疾驰之人', keywords: ['镜世界', '疾驰', 'Undead', 'BOARD', '卡牌'] },
-  { name: '成为那片晴空', keywords: ['晴空', '成为', '新手模组', '入门'], isStarter: true },
-  { name: 'Knights·of·the·round', keywords: ['圆桌', '骑士', '卡利巴', '圆之丘市', 'Knights', 'round'] },
-  { name: '镜中映照的鬼', keywords: ['镜中', '映照', '鬼', '镜怪兽', '镜魔境'] },
-  { name: '真夏夜之噩梦', keywords: ['真夏夜', '噩梦', '真夏', '学园'] },
-  { name: '轮回的宿命', keywords: ['轮回', '宿命', 'Smart Brain', 'Kaixa', '流星塾'] },
+  { 
+    name: '被扭曲的世界', 
+    keywords: ['被扭曲的世界', '扭曲', '世界', 'phantom', '沼川市'], 
+    isStarter: true,
+    description: '沼川市出现了神秘的phantom事件，市民接连失踪。作为新手假面骑士，你需要调查真相并阻止phantom的阴谋。适合第一次接触游戏的玩家，学习基本规则和战斗流程。',
+    difficulty: '简单',
+    mainEnemy: 'Phantom',
+    chapters: 3
+  },
+  { 
+    name: '假面骑士部 连接未来的希望之所', 
+    keywords: ['假面骑士部', '连接未来', '希望之所', '灯志郎', '再兴'],
+    description: '灯志郎致力于再兴"假面骑士部"，召集年轻骑士加入。你将参与骑士部的建立，面对各种考验，成为连接未来的希望。',
+    difficulty: '普通',
+    mainEnemy: '未知',
+    chapters: 3
+  },
+  { 
+    name: '另一个 全球冻结之夜', 
+    keywords: ['全球冻结', '另一个', '冻结之夜', 'Roidmude', '重加速'],
+    description: '重加速现象再次出现，Roidmude的阴谋正在蔓延。在"另一个"全球冻结之夜，你需要揭示真相，阻止这一灾难的重演。',
+    difficulty: '普通',
+    mainEnemy: 'Roidmude',
+    chapters: 4
+  },
+  { 
+    name: '镜世界疾驰之人', 
+    keywords: ['镜世界', '疾驰', 'Undead', 'BOARD', '卡牌'],
+    description: '镜世界与现实世界的界限变得模糊，Undead的威胁正在逼近。你将作为BOARD成员，使用卡牌系统对抗敌人。',
+    difficulty: '普通',
+    mainEnemy: 'Undead',
+    chapters: 3
+  },
+  { 
+    name: '成为那片晴空', 
+    keywords: ['晴空', '成为', '新手模组', '入门'], 
+    isStarter: true,
+    description: '一个关于成长与守护的故事。在追寻成为那片晴空的梦想中，你将学会何为真正的英雄。适合新手玩家入门。',
+    difficulty: '简单',
+    mainEnemy: '未知',
+    chapters: 2
+  },
+  { 
+    name: 'Knights·of·the·round', 
+    keywords: ['圆桌', '骑士', '卡利巴', '圆之丘市', 'Knights', 'round'],
+    description: '圆之丘市流传着圆桌骑士的传说。当卡利巴出现时，你将揭开古老骑士的秘密，成为新的圆桌骑士。',
+    difficulty: '困难',
+    mainEnemy: '卡利巴',
+    chapters: 4
+  },
+  { 
+    name: '镜中映照的鬼', 
+    keywords: ['镜中', '映照', '鬼', '镜怪兽', '镜魔境'],
+    description: '镜魔境中出现了一只被诅咒的鬼，它的力量正在侵蚀现实世界。你需要进入镜世界深处，解救被囚禁的灵魂。',
+    difficulty: '困难',
+    mainEnemy: '镜怪兽',
+    chapters: 4
+  },
+  { 
+    name: '真夏夜之噩梦', 
+    keywords: ['真夏夜', '噩梦', '真夏', '学园'],
+    description: '盛夏的学园发生了一连串诡异事件，学生们陷入噩梦无法醒来。你需要调查学园的秘密，从噩梦中拯救所有人。',
+    difficulty: '普通',
+    mainEnemy: '未知',
+    chapters: 3
+  },
+  { 
+    name: '轮回的宿命', 
+    keywords: ['轮回', '宿命', 'Smart Brain', 'Kaixa', '流星塾'],
+    description: 'Smart Brain的阴谋再次浮现，流星塾的学员们卷入了命运的漩涡。在轮回的宿命中，你将面临艰难的选择。',
+    difficulty: '困难',
+    mainEnemy: 'Smart Brain',
+    chapters: 5
+  },
 ];
 
 // 检索结果接口

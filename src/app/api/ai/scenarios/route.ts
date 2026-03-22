@@ -20,6 +20,20 @@ async function getScenarioDetails(scenarioName: string): Promise<{
   keyLocations: string[];
   storyOutline: string;
 }> {
+  // 首先检查预定义的模组信息
+  const predefinedModule = SCENARIO_MODULES.find(m => m.name === scenarioName);
+  
+  if (predefinedModule && predefinedModule.description) {
+    return {
+      description: predefinedModule.description,
+      difficulty: predefinedModule.difficulty || '普通',
+      mainEnemy: predefinedModule.mainEnemy || '未知',
+      keyLocations: ['城市'],
+      storyOutline: predefinedModule.description
+    };
+  }
+  
+  // 如果没有预定义信息，从规则书搜索
   const result = await searchScenarioModule(scenarioName);
   
   const defaultInfo = {

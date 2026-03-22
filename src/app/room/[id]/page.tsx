@@ -114,6 +114,7 @@ interface Scenario {
   duration: string;
   reason?: string;
   isOriginal?: boolean;
+  isStarter?: boolean;
   source?: string;
   mainEnemy?: string;
   keyLocations?: string[];
@@ -1315,29 +1316,47 @@ export default function RoomPage() {
               <Card
                 key={index}
                 className={`cursor-pointer transition-colors ${
-                  selectedScenario === scenario.name ? 'ring-2 ring-primary' : ''
+                  selectedScenario === scenario.name ? 'ring-2 ring-primary bg-primary/5' : 'hover:bg-muted/50'
                 }`}
                 onClick={() => setSelectedScenario(scenario.name)}
               >
                 <CardContent className="py-4">
-                  <div className="font-medium flex items-center gap-2">
+                  <div className="font-medium flex items-center gap-2 text-lg">
                     {scenario.name}
+                    {scenario.isStarter && (
+                      <Badge variant="default" className="text-xs">新手推荐</Badge>
+                    )}
                     {scenario.isOriginal && (
-                      <Badge variant="default" className="text-xs">原创</Badge>
+                      <Badge variant="secondary" className="text-xs">原创</Badge>
                     )}
                   </div>
-                  <div className="text-sm text-muted-foreground mt-1">
-                    {scenario.description}
+                  
+                  {/* 剧本简介 - 突出显示 */}
+                  <div className="mt-3 p-3 bg-muted/30 rounded-md border-l-4 border-primary/50">
+                    <p className="text-sm leading-relaxed">
+                      {scenario.description}
+                    </p>
                   </div>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    <Badge variant="secondary">{scenario.difficulty}</Badge>
-                    <Badge variant="outline">{scenario.duration}</Badge>
+                  
+                  {/* 标签信息 */}
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    <Badge variant="outline" className="text-xs">
+                      {scenario.difficulty}
+                    </Badge>
+                    <Badge variant="outline" className="text-xs">
+                      {scenario.duration}
+                    </Badge>
                     {scenario.mainEnemy && (
-                      <Badge variant="destructive">{scenario.mainEnemy}</Badge>
+                      <Badge variant="destructive" className="text-xs">
+                        敌人: {scenario.mainEnemy}
+                      </Badge>
                     )}
                   </div>
+                  
+                  {/* 推荐理由 */}
                   {scenario.reason && (
-                    <div className="text-xs text-muted-foreground mt-2 italic">
+                    <div className="text-xs text-muted-foreground mt-2 italic flex items-center gap-1">
+                      <span>💡</span>
                       {scenario.reason}
                     </div>
                   )}
