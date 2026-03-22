@@ -59,13 +59,24 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    // 3. 检测是否需要检定规则
-    const checkKeywords = ['检定', '判定', '骰子', '难度', '成功', '失败', '投掷'];
-    const needsCheckRules = checkKeywords.some(k => playerAction?.includes(k));
-    if (needsCheckRules) {
-      console.log('检索检定规则...');
-      const checkResult = await searchCheckRules();
-      if (checkResult.found) {
+    // 3. 检测是否需要检定规则 - 始终检索检定规则作为基础参考
+    console.log('检索检定规则...');
+    const checkResult = await searchCheckRules();
+    if (checkResult.found) {
+      ruleContext += '【检定规则】\n' + checkResult.content + '\n\n';
+    }
+    
+    // 3.5 检测是否是玩家投骰结果
+    const isDiceRoll = playerAction?.includes('掷骰') || 
+                        playerAction?.includes('投骰') ||
+                        playerAction?.includes('骰子') ||
+                        /\[\d+,\s*\d+.*\]/.test(playerAction || '') || // 匹配骰子结果数组
+                        /成功数/.test(playerAction || '');
+    
+    if (isDiceRoll) {
+      console.log('检测到玩家投骰结果，需要给出判定');
+      // 确保检定规则存在
+      if (!ruleContext.includes('检定规则')) {
         ruleContext += '【检定规则】\n' + checkResult.content + '\n\n';
       }
     }
@@ -160,6 +171,12 @@ export async function POST(request: NextRequest) {
 2. **根据角色信息分配PC角色**，将玩家角色合理代入剧本中的预设角色
 3. **开场叙事**，用生动的语言描述故事开端，引出玩家角色的登场
 
+## ⚠️ 检定规则提醒（游戏进行中必须遵守）
+- 一次检定只能投一次骰子
+- 玩家投骰后必须立即给出成功/失败判定
+- 骰子结果：5和6为成功数
+- 成功数 ≥ 难易度 = 成功，否则失败
+
 ## 剧本模组内容（必须仔细阅读！）
 ${scenarioContext || '请根据剧本名称检索相关内容'}
 
@@ -199,6 +216,26 @@ ${charactersDetailedInfo}
 4. **鼓励互动**：给予玩家选择和行动的空间
 5. **保持连贯**：记住之前的对话内容，保持剧情连贯性
 
+## ⚠️ 检定规则（必须严格遵守！）
+
+### 检定流程
+1. **GM宣告检定**：明确告知检定类型（如【肉体】【运动】【机知】【意志】等）和难易度
+2. **玩家投骰**：玩家投掷骰子，5和6为成功数
+3. **GM判定结果**：根据成功数与难易度比较，立即给出结果
+   - 成功数 ≥ 难易度 = 成功
+   - 成功数 < 难易度 = 失败
+
+### 重要规则
+- **一次检定只能投一次骰子**！除非规则明确允许重投，否则玩家投骰后立即判定结果
+- **禁止默许多次投骰**：如果玩家未经允许多次投骰，只取第一次结果
+- **必须给出明确结果**：检定后必须立即说明成功或失败，以及后果
+- **大成功/大失败**：根据规则书处理特殊情况
+
+### 检定格式示例
+【检定】需要进行【感知】检定，难易度2
+（等待玩家投骰）
+【判定】成功数为X，难易度为2，结果：成功/失败。具体后果是...
+
 ## 当前游戏状态
 剧本：${scenarioName || '未设定'}
 场景：${currentScene?.location || '未设定'}
@@ -220,9 +257,10 @@ ${availableScenarios}
 
 ## 行为准则
 1. **判定规则**：需要检定时，必须：
-   - 明确告知检定类型和难度
-   - 格式：【检定】需要进行【XX】检定，难度X，请投掷X面骰
-   - 根据结果给出合理的剧情发展
+   - 明确告知检定类型和难易度
+   - 格式：【检定】需要进行【XX】检定，难度X
+   - 等待玩家投骰
+   - 根据结果给出明确的成功/失败判定和剧情发展
 
 2. **战斗规则**：战斗场景必须：
    - 按规则书计算伤害和HP
@@ -237,7 +275,8 @@ ${availableScenarios}
 ## 输出格式标记
 - 【场景】场景描述
 - 【NPC名】NPC对话
-- 【检定】需要检定的内容
+- 【检定】需要检定的内容（必须等待玩家投骰）
+- 【判定】检定结果和后果
 - 【规则书原文】引用规则
 - 【战斗】战斗相关
 - 【可选行动】玩家可采取的行动`;

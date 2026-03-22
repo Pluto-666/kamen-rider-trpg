@@ -235,14 +235,29 @@ export default function RoomPage() {
             difficulty?: number;
             total: number;
           };
-          setMessages(prev => [...prev, {
+          const rollMessage = {
             id: Date.now().toString(),
-            type: 'roll',
+            type: 'roll' as const,
             content: `掷骰 ${rollPayload.dice}: [${rollPayload.rolls.join(', ')}] = ${rollPayload.total}${rollPayload.difficulty ? ` (难度 ${rollPayload.difficulty})` : ''}`,
             senderId: rollPayload.userId,
             timestamp: new Date().toISOString(),
             metadata: { ...rollPayload },
-          }]);
+          };
+          setMessages(prev => [...prev, rollMessage]);
+          
+          // 如果是当前用户的掷骰且游戏进行中，自动触发AI判定
+          if (rollPayload.userId === user?.id && selectedCharacterId && room?.status === 'playing') {
+            const character = characters.find(c => c.id === selectedCharacterId);
+            // 发送掷骰结果给AI进行判定
+            wsSend({
+              type: 'game:player_action',
+              payload: {
+                action: `[掷骰检定] ${rollMessage.content}`,
+                characterId: selectedCharacterId,
+                characterName: character?.name || profile?.username || '玩家',
+              },
+            });
+          }
           break;
         case 'user:joined':
         case 'user:left':

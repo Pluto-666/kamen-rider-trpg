@@ -253,14 +253,18 @@ export async function searchCheckRules(
   situation?: string
 ): Promise<SearchResult> {
   const queries = [
-    '检定 判定 骰子',
+    '难易度判定 成功数 失败',
+    '判定骰 成功 5 6',
+    '大成功 大失败',
+    '能力检定 判定流程',
+    '对抗判定 成功数比较',
+    '判定协力 协力者',
+    '剧情检定 成功条件',
     attribute ? `${attribute} 检定` : '',
     situation ? `${situation} 判定` : '',
-    '难度 成功 失败',
-    '大成功 大失败',
   ].filter(Boolean);
   
-  return searchMultipleQueries(queries, { maxChunksPerQuery: 2 });
+  return searchMultipleQueries(queries, { maxChunksPerQuery: 3 });
 }
 
 /**
