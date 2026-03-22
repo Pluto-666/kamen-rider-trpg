@@ -261,7 +261,7 @@ export default function LobbyPage() {
       </div>
       
       {/* Header */}
-      <header className="border-b border-[#c41e3a]/20 bg-[#12121a]/90 backdrop-blur-sm sticky top-0 z-40">
+      <header className="border-b border-[#c41e3a]/20 bg-[#1e1e28]/95 backdrop-blur-sm sticky top-0 z-40">
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#c41e3a]/50 to-transparent" />
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -327,7 +327,7 @@ export default function LobbyPage() {
                 创建房间
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-md kamen-dialog bg-[#12121a]/95 backdrop-blur-sm border-[#c41e3a]/30">
+            <DialogContent className="sm:max-w-md kamen-dialog bg-[#1e1e28]/95 backdrop-blur-sm border-[#c41e3a]/35">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2 text-[#e8e8f0]">
                   <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#c41e3a] to-[#8b0000] flex items-center justify-center">
@@ -410,41 +410,41 @@ export default function LobbyPage() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-3 gap-4 mb-8">
-          <Card className="kamen-card bg-[#12121a]/80 backdrop-blur-sm border-[#c41e3a]/10">
+          <Card className="kamen-card bg-[#1e1e28]/95 backdrop-blur-sm border-[#c41e3a]/20">
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-lg bg-[#c41e3a]/20 flex items-center justify-center">
+                <div className="w-12 h-12 rounded-lg bg-[#c41e3a]/25 flex items-center justify-center">
                   <Users className="w-6 h-6 text-[#c41e3a]" />
                 </div>
                 <div>
                   <div className="text-2xl font-bold text-[#e8e8f0]">{rooms.length}</div>
-                  <div className="text-sm text-[#8a8a9a]">可用房间</div>
+                  <div className="text-sm text-[#9a9aaa]">可用房间</div>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card className="kamen-card bg-[#12121a]/80 backdrop-blur-sm border-[#00d4ff]/10">
+          <Card className="kamen-card bg-[#1e1e28]/95 backdrop-blur-sm border-[#00d4ff]/20">
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-lg bg-[#00d4ff]/20 flex items-center justify-center">
+                <div className="w-12 h-12 rounded-lg bg-[#00d4ff]/25 flex items-center justify-center">
                   <Bot className="w-6 h-6 text-[#00d4ff]" />
                 </div>
                 <div>
                   <div className="text-2xl font-bold text-[#e8e8f0]">AI主持</div>
-                  <div className="text-sm text-[#8a8a9a]">智能DM</div>
+                  <div className="text-sm text-[#9a9aaa]">智能DM</div>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card className="kamen-card bg-[#12121a]/80 backdrop-blur-sm border-[#ffd700]/10">
+          <Card className="kamen-card bg-[#1e1e28]/95 backdrop-blur-sm border-[#ffd700]/20">
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-lg bg-[#ffd700]/20 flex items-center justify-center">
+                <div className="w-12 h-12 rounded-lg bg-[#ffd700]/25 flex items-center justify-center">
                   <Save className="w-6 h-6 text-[#ffd700]" />
                 </div>
                 <div>
                   <div className="text-2xl font-bold text-[#e8e8f0]">{savedGames.length}</div>
-                  <div className="text-sm text-[#8a8a9a]">游戏存档</div>
+                  <div className="text-sm text-[#9a9aaa]">游戏存档</div>
                 </div>
               </div>
             </CardContent>
@@ -453,17 +453,17 @@ export default function LobbyPage() {
 
         {/* Tabs: Room List & Saved Games */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
-          <TabsList className="bg-[#12121a]/80 border border-[#c41e3a]/10">
+          <TabsList className="bg-[#1e1e28]/95 border border-[#c41e3a]/20">
             <TabsTrigger 
               value="rooms"
-              className="data-[state=active]:bg-[#c41e3a]/20 data-[state=active]:text-[#e8e8f0] text-[#8a8a9a]"
+              className="data-[state=active]:bg-[#c41e3a]/25 data-[state=active]:text-[#e8e8f0] text-[#9a9aaa]"
             >
               <DoorOpen className="w-4 h-4 mr-2" />
               房间列表
             </TabsTrigger>
             <TabsTrigger 
               value="saves"
-              className="data-[state=active]:bg-[#c41e3a]/20 data-[state=active]:text-[#e8e8f0] text-[#8a8a9a]"
+              className="data-[state=active]:bg-[#c41e3a]/25 data-[state=active]:text-[#e8e8f0] text-[#9a9aaa]"
             >
               <Save className="w-4 h-4 mr-2" />
               我的存档 ({savedGames.length})
@@ -478,9 +478,9 @@ export default function LobbyPage() {
                 <p className="mt-4 text-[#8a8a9a]">加载房间列表...</p>
               </div>
             ) : rooms.length === 0 ? (
-              <Card className="text-center py-12 kamen-card bg-[#12121a]/80 backdrop-blur-sm">
+              <Card className="text-center py-12 kamen-card bg-[#1e1e28]/95 backdrop-blur-sm">
                 <CardContent className="flex flex-col items-center">
-                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#c41e3a]/20 to-[#00d4ff]/10 flex items-center justify-center mb-4">
+                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#c41e3a]/25 to-[#00d4ff]/15 flex items-center justify-center mb-4">
                     <DoorOpen className="w-10 h-10 text-[#c41e3a]" />
                   </div>
                   <p className="text-[#c0c0c8] mb-2 text-lg">暂无可加入的房间</p>
@@ -496,7 +496,7 @@ export default function LobbyPage() {
                 {rooms.map((room) => (
                   <Card 
                     key={room.id} 
-                    className="kamen-card bg-[#12121a]/80 backdrop-blur-sm hover:shadow-[0_0_30px_rgba(196,30,58,0.15)] transition-all border-[#c41e3a]/10 hover:border-[#c41e3a]/30 group"
+                    className="kamen-card bg-[#1e1e28]/95 backdrop-blur-sm hover:shadow-[0_0_30px_rgba(196,30,58,0.2)] transition-all border-[#c41e3a]/15 hover:border-[#c41e3a]/35 group"
                   >
                     <CardHeader>
                       <div className="flex items-start justify-between">
@@ -558,9 +558,9 @@ export default function LobbyPage() {
                 <p className="mt-4 text-[#8a8a9a]">加载存档列表...</p>
               </div>
             ) : savedGames.length === 0 ? (
-              <Card className="text-center py-12 kamen-card bg-[#12121a]/80 backdrop-blur-sm">
+              <Card className="text-center py-12 kamen-card bg-[#1e1e28]/95 backdrop-blur-sm">
                 <CardContent className="flex flex-col items-center">
-                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#ffd700]/20 to-[#c41e3a]/10 flex items-center justify-center mb-4">
+                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#ffd700]/25 to-[#c41e3a]/15 flex items-center justify-center mb-4">
                     <Save className="w-10 h-10 text-[#ffd700]" />
                   </div>
                   <p className="text-[#c0c0c8] mb-2 text-lg">暂无存档记录</p>
@@ -572,7 +572,7 @@ export default function LobbyPage() {
                 {savedGames.map((save) => (
                   <Card 
                     key={save.id} 
-                    className="kamen-card bg-[#12121a]/80 backdrop-blur-sm hover:shadow-[0_0_30px_rgba(255,215,0,0.15)] transition-all border-[#ffd700]/10 hover:border-[#ffd700]/30 group"
+                    className="kamen-card bg-[#1e1e28]/95 backdrop-blur-sm hover:shadow-[0_0_30px_rgba(255,215,0,0.2)] transition-all border-[#ffd700]/15 hover:border-[#ffd700]/35 group"
                   >
                     <CardHeader>
                       <div className="flex items-start justify-between">

@@ -54,25 +54,25 @@
   --background: #0a0a0f;
   --foreground: #e8e8f0;
   
-  /* 卡片 - 金属质感 */
-  --card: linear-gradient(145deg, #12121a 0%, #1a1a25 100%);
+  /* 卡片 - 深灰色带微红调，增加层次感 */
+  --card: #1e1e28;
   --card-foreground: #e8e8f0;
   
   /* 弹出层 */
-  --popover: #12121a;
+  --popover: #1e1e28;
   --popover-foreground: #e8e8f0;
   
   /* 主色调 - 骑士红 */
   --primary: #c41e3a;
   --primary-foreground: #ffffff;
   
-  /* 次要色 - 金属银 */
-  --secondary: #2a2a3a;
+  /* 次要色 - 深灰色 */
+  --secondary: #2a2a35;
   --secondary-foreground: #c0c0c8;
   
   /* 柔和色 */
-  --muted: #1a1a25;
-  --muted-foreground: #8a8a9a;
+  --muted: #252530;
+  --muted-foreground: #9a9aaa;
   
   /* 强调色 - 能量蓝 */
   --accent: #00d4ff;
@@ -81,9 +81,9 @@
   /* 危险色 */
   --destructive: #dc2626;
   
-  /* 边框 - 金属边框 */
-  --border: rgba(192, 192, 200, 0.15);
-  --input: rgba(192, 192, 200, 0.1);
+  /* 边框 - 更亮的边框 */
+  --border: rgba(192, 192, 200, 0.25);
+  --input: rgba(192, 192, 200, 0.15);
   --ring: #c41e3a;
   
   /* 图表颜色 */
@@ -96,7 +96,7 @@
   --radius: 0.5rem;
   
   /* 侧边栏 */
-  --sidebar: #0f0f15;
+  --sidebar: #15151f;
   --sidebar-foreground: #e8e8f0;
   --sidebar-primary: #c41e3a;
   --sidebar-primary-foreground: #ffffff;
@@ -128,13 +128,14 @@
 
 /* 强制修复Card组件背景和文字 */
 [class*="bg-card"] {
-  background: linear-gradient(145deg, #12121a 0%, #1a1a25 100%) !important;
+  background: linear-gradient(145deg, #1e1e28 0%, #252532 100%) !important;
 }
 
 [data-slot="card"] {
-  background: linear-gradient(145deg, #12121a 0%, #1a1a25 100%) !important;
-  border-color: rgba(192, 192, 200, 0.15) !important;
+  background: linear-gradient(145deg, #1e1e28 0%, #252532 100%) !important;
+  border-color: rgba(192, 192, 200, 0.25) !important;
   color: #e8e8f0 !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.03) !important;
 }
 
 [data-slot="card"] * {
@@ -150,7 +151,7 @@
 }
 
 [data-slot="card-description"] {
-  color: #8a8a9a !important;
+  color: #9a9aaa !important;
 }
 
 [data-slot="card-content"] {
@@ -159,22 +160,24 @@
 
 /* 修复Tabs组件 */
 [role="tablist"] {
-  background: rgba(26, 26, 37, 0.8) !important;
+  background: linear-gradient(145deg, #1e1e28 0%, #252532 100%) !important;
+  border: 1px solid rgba(192, 192, 200, 0.2) !important;
 }
 
 [role="tab"] {
-  color: #8a8a9a !important;
+  color: #9a9aaa !important;
 }
 
 [role="tab"][data-state="active"] {
   color: #e8e8f0 !important;
-  background: rgba(196, 30, 58, 0.2) !important;
+  background: linear-gradient(145deg, rgba(196, 30, 58, 0.25) 0%, rgba(196, 30, 58, 0.15) 100%) !important;
+  border-color: rgba(196, 30, 58, 0.4) !important;
 }
 
 /* 修复Input组件 */
 input, textarea {
-  background: rgba(10, 10, 15, 0.8) !important;
-  border-color: rgba(192, 192, 200, 0.2) !important;
+  background: #151520 !important;
+  border-color: rgba(192, 192, 200, 0.25) !important;
   color: #e8e8f0 !important;
 }
 
@@ -184,7 +187,8 @@ input::placeholder, textarea::placeholder {
 
 input:focus, textarea:focus {
   border-color: #c41e3a !important;
-  box-shadow: 0 0 15px rgba(196, 30, 58, 0.3) !important;
+  box-shadow: 0 0 20px rgba(196, 30, 58, 0.3) !important;
+  background: #1a1a25 !important;
 }
 
 /* 修复Label */
@@ -194,28 +198,28 @@ label {
 
 /* 修复Alert */
 [data-slot="alert"] {
-  background: rgba(26, 26, 37, 0.8) !important;
-  border-color: rgba(192, 192, 200, 0.15) !important;
+  background: linear-gradient(145deg, #1e1e28 0%, #252532 100%) !important;
+  border-color: rgba(192, 192, 200, 0.25) !important;
 }
 
 /* 修复Button variant outline */
 button[class*="outline"] {
   background: transparent !important;
-  border-color: rgba(192, 192, 200, 0.3) !important;
+  border-color: rgba(192, 192, 200, 0.35) !important;
   color: #c0c0c8 !important;
 }
 
 button[class*="outline"]:hover {
   border-color: #c41e3a !important;
   color: #e8e8f0 !important;
-  background: rgba(196, 30, 58, 0.1) !important;
+  background: rgba(196, 30, 58, 0.15) !important;
 }
 
 /* 修复Button variant secondary */
 button[class*="secondary"] {
-  background: linear-gradient(145deg, #1a1a25 0%, #252535 100%) !important;
+  background: linear-gradient(145deg, #252532 0%, #2a2a38 100%) !important;
   color: #c0c0c8 !important;
-  border-color: rgba(192, 192, 200, 0.2) !important;
+  border-color: rgba(192, 192, 200, 0.25) !important;
 }
 
 /* 修复Button variant ghost */
@@ -224,22 +228,23 @@ button[class*="ghost"] {
 }
 
 button[class*="ghost"]:hover {
-  background: rgba(196, 30, 58, 0.1) !important;
+  background: rgba(196, 30, 58, 0.15) !important;
   color: #e8e8f0 !important;
 }
 
 /* 修复Badge */
 [data-slot="badge"] {
-  background: rgba(196, 30, 58, 0.2) !important;
+  background: rgba(196, 30, 58, 0.25) !important;
   color: #e8e8f0 !important;
-  border-color: rgba(196, 30, 58, 0.3) !important;
+  border-color: rgba(196, 30, 58, 0.4) !important;
 }
 
 /* 修复Dialog */
 [data-slot="dialog-content"] {
-  background: linear-gradient(145deg, #12121a 0%, #1a1a25 100%) !important;
-  border-color: rgba(196, 30, 58, 0.3) !important;
+  background: linear-gradient(145deg, #1e1e28 0%, #252532 100%) !important;
+  border-color: rgba(196, 30, 58, 0.4) !important;
   color: #e8e8f0 !important;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5), 0 0 100px rgba(196, 30, 58, 0.1) !important;
 }
 
 [data-slot="dialog-title"] {
@@ -247,13 +252,14 @@ button[class*="ghost"]:hover {
 }
 
 [data-slot="dialog-description"] {
-  color: #8a8a9a !important;
+  color: #9a9aaa !important;
 }
 
 /* 修复Dropdown */
 [data-slot="dropdown-menu-content"] {
-  background: linear-gradient(145deg, #12121a 0%, #1a1a25 100%) !important;
-  border-color: rgba(192, 192, 200, 0.15) !important;
+  background: linear-gradient(145deg, #1e1e28 0%, #252532 100%) !important;
+  border-color: rgba(196, 30, 58, 0.3) !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4) !important;
 }
 
 [data-slot="dropdown-menu-item"] {
@@ -267,7 +273,7 @@ button[class*="ghost"]:hover {
 
 /* 修复Separator */
 [data-slot="separator"] {
-  background: rgba(192, 192, 200, 0.15) !important;
+  background: rgba(192, 192, 200, 0.25) !important;
 }
 
 @layer base {
@@ -308,10 +314,10 @@ button[class*="ghost"]:hover {
 /* 金属质感卡片 */
 @layer components {
   .kamen-card {
-    background: linear-gradient(145deg, #12121a 0%, #1a1a25 100%);
-    border: 1px solid rgba(192, 192, 200, 0.15);
+    background: linear-gradient(145deg, #1e1e28 0%, #28283a 100%);
+    border: 1px solid rgba(192, 192, 200, 0.3);
     box-shadow: 
-      0 4px 20px rgba(0, 0, 0, 0.5),
+      0 4px 25px rgba(0, 0, 0, 0.4),
       inset 0 1px 0 rgba(255, 255, 255, 0.05);
     position: relative;
     overflow: hidden;
@@ -323,15 +329,15 @@ button[class*="ghost"]:hover {
     top: 0;
     left: 0;
     right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(196, 30, 58, 0.5), transparent);
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(196, 30, 58, 0.6), transparent);
   }
   
   /* 发光边框效果 */
   .kamen-glow {
     box-shadow: 
-      0 0 20px rgba(196, 30, 58, 0.3),
-      0 0 40px rgba(196, 30, 58, 0.1);
+      0 0 25px rgba(196, 30, 58, 0.35),
+      0 0 50px rgba(196, 30, 58, 0.15);
   }
   
   /* 能量线条 */
@@ -354,7 +360,7 @@ button[class*="ghost"]:hover {
   /* 变身按钮 */
   .kamen-btn-primary {
     background: linear-gradient(135deg, #c41e3a 0%, #8b0000 100%);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.15);
     color: white;
     font-family: var(--font-display);
     text-transform: uppercase;
@@ -362,6 +368,7 @@ button[class*="ghost"]:hover {
     position: relative;
     overflow: hidden;
     transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(196, 30, 58, 0.3);
   }
   
   .kamen-btn-primary::before {
@@ -371,7 +378,7 @@ button[class*="ghost"]:hover {
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
     transition: left 0.5s ease;
   }
   
@@ -381,15 +388,15 @@ button[class*="ghost"]:hover {
   
   .kamen-btn-primary:hover {
     box-shadow: 
-      0 0 20px rgba(196, 30, 58, 0.5),
-      0 0 40px rgba(196, 30, 58, 0.3);
+      0 0 25px rgba(196, 30, 58, 0.5),
+      0 0 50px rgba(196, 30, 58, 0.3);
     transform: translateY(-2px);
   }
   
   /* 次要按钮 */
   .kamen-btn-secondary {
     background: transparent;
-    border: 1px solid rgba(192, 192, 200, 0.3);
+    border: 1px solid rgba(192, 192, 200, 0.4);
     color: #c0c0c8;
     font-family: var(--font-display);
     letter-spacing: 0.05em;
@@ -399,27 +406,28 @@ button[class*="ghost"]:hover {
   .kamen-btn-secondary:hover {
     border-color: #00d4ff;
     color: #00d4ff;
-    box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.35);
   }
   
   /* 输入框 */
   .kamen-input {
-    background: rgba(10, 10, 15, 0.8);
-    border: 1px solid rgba(192, 192, 200, 0.2);
+    background: #151520;
+    border: 1px solid rgba(192, 192, 200, 0.3);
     color: #e8e8f0;
     transition: all 0.3s ease;
   }
   
   .kamen-input:focus {
     border-color: #c41e3a;
-    box-shadow: 0 0 15px rgba(196, 30, 58, 0.3);
+    box-shadow: 0 0 20px rgba(196, 30, 58, 0.35);
     outline: none;
+    background: #1a1a28;
   }
   
   /* 骰子按钮 */
   .dice-btn {
-    background: linear-gradient(145deg, #1a1a25 0%, #252535 100%);
-    border: 1px solid rgba(0, 212, 255, 0.3);
+    background: linear-gradient(145deg, #252535 0%, #2a2a40 100%);
+    border: 1px solid rgba(0, 212, 255, 0.4);
     color: #00d4ff;
     font-family: var(--font-display);
     font-weight: 600;
@@ -430,38 +438,38 @@ button[class*="ghost"]:hover {
   .dice-btn:hover {
     border-color: #00d4ff;
     box-shadow: 
-      0 0 20px rgba(0, 212, 255, 0.4),
-      inset 0 0 20px rgba(0, 212, 255, 0.1);
+      0 0 25px rgba(0, 212, 255, 0.45),
+      inset 0 0 20px rgba(0, 212, 255, 0.15);
     transform: scale(1.05);
   }
   
   /* 消息气泡 */
   .message-player {
-    background: linear-gradient(135deg, rgba(196, 30, 58, 0.2) 0%, rgba(139, 0, 0, 0.1) 100%);
+    background: linear-gradient(135deg, rgba(196, 30, 58, 0.25) 0%, rgba(139, 0, 0, 0.15) 100%);
     border-left: 3px solid #c41e3a;
   }
   
   .message-dm {
-    background: linear-gradient(135deg, rgba(0, 212, 255, 0.1) 0%, rgba(0, 150, 200, 0.05) 100%);
+    background: linear-gradient(135deg, rgba(0, 212, 255, 0.15) 0%, rgba(0, 150, 200, 0.08) 100%);
     border-left: 3px solid #00d4ff;
   }
   
   .message-roll {
-    background: linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, rgba(200, 170, 0, 0.05) 100%);
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, rgba(200, 170, 0, 0.08) 100%);
     border-left: 3px solid #ffd700;
   }
   
   /* 头像框 */
   .avatar-frame {
     border: 2px solid transparent;
-    background: linear-gradient(#12121a, #12121a) padding-box,
+    background: linear-gradient(#1e1e28, #1e1e28) padding-box,
                 linear-gradient(135deg, #c41e3a, #00d4ff) border-box;
   }
   
   /* 状态指示器 */
   .status-online {
     background: #00ff88;
-    box-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+    box-shadow: 0 0 12px rgba(0, 255, 136, 0.6);
   }
   
   .status-offline {
@@ -470,7 +478,7 @@ button[class*="ghost"]:hover {
   
   .status-playing {
     background: #c41e3a;
-    box-shadow: 0 0 10px rgba(196, 30, 58, 0.5);
+    box-shadow: 0 0 12px rgba(196, 30, 58, 0.6);
     animation: pulse-glow 2s ease-in-out infinite;
   }
 }
@@ -512,8 +520,8 @@ button[class*="ghost"]:hover {
 /* 背景纹理 */
 .bg-texture {
   background-image: 
-    radial-gradient(circle at 20% 80%, rgba(196, 30, 58, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(0, 212, 255, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 20% 80%, rgba(196, 30, 58, 0.12) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(0, 212, 255, 0.1) 0%, transparent 50%),
     radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0.5) 0%, transparent 100%);
 }
 
@@ -538,8 +546,8 @@ button[class*="ghost"]:hover {
 
 /* 对话框样式 */
 .kamen-dialog {
-  background: linear-gradient(145deg, #12121a 0%, #1a1a25 100%);
-  border: 1px solid rgba(196, 30, 58, 0.3);
+  background: linear-gradient(145deg, #1e1e28 0%, #28283a 100%);
+  border: 1px solid rgba(196, 30, 58, 0.4);
   box-shadow: 
     0 25px 50px rgba(0, 0, 0, 0.5),
     0 0 100px rgba(196, 30, 58, 0.1);

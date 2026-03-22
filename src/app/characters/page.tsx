@@ -661,7 +661,7 @@ export default function CharactersPage() {
       <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0f] via-transparent to-[#0a0a0f]" />
       
       {/* Header */}
-      <header className="border-b border-[#c41e3a]/20 bg-[#12121a]/90 backdrop-blur-sm sticky top-0 z-40">
+      <header className="border-b border-[#c41e3a]/20 bg-[#1e1e28]/95 backdrop-blur-sm sticky top-0 z-40">
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#c41e3a]/50 to-transparent" />
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/lobby" className="flex items-center gap-3 group">
@@ -732,9 +732,9 @@ export default function CharactersPage() {
             <p className="mt-4 text-[#8a8a9a]">加载角色卡...</p>
           </div>
         ) : characters.length === 0 ? (
-          <Card className="text-center py-12 kamen-card backdrop-blur-sm bg-[#12121a]/80">
+          <Card className="text-center py-12 kamen-card backdrop-blur-sm bg-[#1e1e28]/95">
             <CardContent className="flex flex-col items-center">
-              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#c41e3a]/20 to-[#00d4ff]/10 flex items-center justify-center mb-4">
+              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#c41e3a]/25 to-[#00d4ff]/15 flex items-center justify-center mb-4">
                 <User className="h-10 w-10 text-[#c41e3a]" />
               </div>
               <p className="text-[#c0c0c8] mb-2 text-lg">你还没有创建任何角色卡</p>
@@ -750,7 +750,7 @@ export default function CharactersPage() {
             {characters.map((character) => (
               <Card 
                 key={character.id} 
-                className="kamen-card backdrop-blur-sm bg-[#12121a]/80 hover:shadow-[0_0_30px_rgba(196,30,58,0.2)] transition-all cursor-pointer group border-[#c41e3a]/10 hover:border-[#c41e3a]/30"
+                className="kamen-card backdrop-blur-sm bg-[#1e1e28]/95 hover:shadow-[0_0_30px_rgba(196,30,58,0.25)] transition-all cursor-pointer group border-[#c41e3a]/15 hover:border-[#c41e3a]/35"
                 onClick={() => handleViewCharacter(character)}
               >
                 <CardHeader>
@@ -862,7 +862,7 @@ export default function CharactersPage() {
 
       {/* AI Character Creation Dialog */}
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-        <DialogContent className="sm:max-w-3xl h-[85vh] flex flex-col kamen-dialog bg-[#12121a]/95 backdrop-blur-sm border-[#c41e3a]/30">
+        <DialogContent className="sm:max-w-3xl h-[85vh] flex flex-col kamen-dialog bg-[#1e1e28]/95 backdrop-blur-sm border-[#c41e3a]/35">
           <DialogHeader className="flex-shrink-0">
             <DialogTitle className="flex items-center gap-2 text-[#e8e8f0]">
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#c41e3a] to-[#8b0000] flex items-center justify-center">
@@ -1007,7 +1007,7 @@ export default function CharactersPage() {
 
       {/* Character Detail Dialog */}
       <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
-        <DialogContent className="sm:max-w-2xl h-[85vh] flex flex-col kamen-dialog bg-[#12121a]/95 backdrop-blur-sm border-[#c41e3a]/30">
+        <DialogContent className="sm:max-w-2xl h-[85vh] flex flex-col kamen-dialog bg-[#1e1e28]/95 backdrop-blur-sm border-[#c41e3a]/35">
           {selectedCharacter && (
             <>
               <DialogHeader className="flex-shrink-0">
