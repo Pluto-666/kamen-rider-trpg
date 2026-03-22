@@ -76,39 +76,51 @@ function extractCharacterData(characterData: CharacterData, messages: Message[])
   const phraseMatch = text.match(/(?:变身口号|口号)[：:]\s*([^\n，。！？]+)/);
   if (phraseMatch) data.transformPhrase = phraseMatch[1].trim();
   
-  // 提取属性值（支持中文名和英文名）
+  // 提取属性值（支持中文名和英文名，支持 Markdown 格式）
   const attributes: Record<string, number> = data.attributes ? { ...data.attributes } : {};
   
-  // 体力/Body
-  const bodyMatch = text.match(/(?:体力|Body|肉体)[：:\s]*(\d+)/i);
+  // 体力/Body - 支持 Markdown 格式如 **体力**: 8
+  const bodyMatch = text.match(/(?:\*\*)?(?:体力|肉体|Body)(?:\*\*)?[：:\s]*(\d+)/i);
   if (bodyMatch) attributes.body = parseInt(bodyMatch[1]);
   
-  // 运动/Athletics
-  const athleticsMatch = text.match(/(?:运动|Athletics|敏捷度)[：:\s]*(\d+)/i);
+  // 运动/Athletics - 注意区分"敏捷"（运动）和"敏捷度"
+  const athleticsMatch = text.match(/(?:\*\*)?(?:运动|敏捷度|Athletics)(?:\*\*)?[：:\s]*(\d+)/i);
   if (athleticsMatch) attributes.athletics = parseInt(athleticsMatch[1]);
   
-  // 器用/Dexterity
-  const dexterityMatch = text.match(/(?:器用|技巧|Dexterity)[：:\s]*(\d+)/i);
+  // 器用/Dexterity/技巧
+  const dexterityMatch = text.match(/(?:\*\*)?(?:器用|技巧|Dexterity)(?:\*\*)?[：:\s]*(\d+)/i);
   if (dexterityMatch) attributes.dexterity = parseInt(dexterityMatch[1]);
   
   // 意志/Will
-  const willMatch = text.match(/(?:意志|Will)[：:\s]*(\d+)/i);
+  const willMatch = text.match(/(?:\*\*)?(?:意志|Will)(?:\*\*)?[：:\s]*(\d+)/i);
   if (willMatch) attributes.will = parseInt(willMatch[1]);
   
   // 机知/Wit/智力
-  const witMatch = text.match(/(?:机知|智力|Wit|智力)[：:\s]*(\d+)/i);
+  const witMatch = text.match(/(?:\*\*)?(?:机知|智力|Wit)(?:\*\*)?[：:\s]*(\d+)/i);
   if (witMatch) attributes.wit = parseInt(witMatch[1]);
   
-  // HP
-  const hpMatch = text.match(/(?:HP|生命值)[：:\s]*(\d+)/i);
+  // 魅力（如果有的话）
+  const charmMatch = text.match(/(?:\*\*)?(?:魅力|Charm)(?:\*\*)?[：:\s]*(\d+)/i);
+  if (charmMatch) attributes.charm = parseInt(charmMatch[1]);
+  
+  // HP/生命值
+  const hpMatch = text.match(/(?:\*\*)?(?:HP|生命值)(?:\*\*)?[：:\s]*(\d+)/i);
   if (hpMatch) attributes.hp = parseInt(hpMatch[1]);
   
-  // 敏捷/行动速度/移动
-  const movementMatch = text.match(/(?:行动速度|移动|敏捷|Movement)[：:\s]*(\d+)/i);
+  // 行动速度/移动/敏捷
+  const movementMatch = text.match(/(?:\*\*)?(?:行动速度|移动力|Movement)(?:\*\*)?[：:\s]*(\d+)/i);
   if (movementMatch) attributes.movement = parseInt(movementMatch[1]);
   
+  // 基础攻击力
+  const attackMatch = text.match(/(?:\*\*)?(?:基础攻击力|攻击力)(?:\*\*)?[：:\s]*(\d+)/i);
+  if (attackMatch) attributes.attack = parseInt(attackMatch[1]);
+  
+  // 基础防御力
+  const defenseMatch = text.match(/(?:\*\*)?(?:基础防御力|防御力)(?:\*\*)?[：:\s]*(\d+)/i);
+  if (defenseMatch) attributes.defense = parseInt(defenseMatch[1]);
+  
   // 命运点
-  const fateMatch = text.match(/(?:命运点)[：:\s]*(\d+)/);
+  const fateMatch = text.match(/(?:\*\*)?(?:命运点|命运点数)(?:\*\*)?[：:\s]*(\d+)/);
   if (fateMatch) attributes.fatePoints = parseInt(fateMatch[1]);
   
   // 如果有任何属性被提取到，保存

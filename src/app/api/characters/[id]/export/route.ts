@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { readFileSync, existsSync } from 'fs';
+import { join } from 'path';
 
 // 导出角色卡为xlsx格式
 export async function GET(
@@ -26,8 +28,19 @@ export async function GET(
     // 动态导入xlsx库
     const XLSX = await import('xlsx');
     
-    // 读取模板
-    const templatePath = '/tmp/template.xlsx';
+    // 读取模板 - 尝试多个路径
+    let templatePath = '/tmp/template.xlsx';
+    
+    // 尝试从项目 public 目录读取
+    const publicTemplatePath = join(process.cwd(), 'public', 'template.xlsx');
+    if (existsSync(publicTemplatePath)) {
+      templatePath = publicTemplatePath;
+    }
+    // 尝试从工作目录读取
+    else if (existsSync('/workspace/projects/public/template.xlsx')) {
+      templatePath = '/workspace/projects/public/template.xlsx';
+    }
+    
     const workbook = XLSX.readFile(templatePath);
     
     // 获取人物卡工作表
