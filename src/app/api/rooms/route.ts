@@ -11,11 +11,25 @@ export async function GET(request: NextRequest) {
     const token = authHeader?.substring(7);
     const supabase = getSupabaseClient(token);
 
-    // 获取房间列表
+    // 获取有成员的房间ID列表
+    const { data: roomsWithMembers } = await supabase
+      .from('room_members')
+      .select('room_id');
+
+    // 提取唯一的room_id
+    const roomIdsWithMembers = [...new Set(roomsWithMembers?.map(m => m.room_id) || [])];
+
+    // 如果没有有成员的房间，返回空列表
+    if (roomIdsWithMembers.length === 0) {
+      return NextResponse.json({ success: true, data: [] });
+    }
+
+    // 获取房间列表（只获取有成员的房间）
     const { data: rooms, error } = await supabase
       .from('rooms')
       .select('*')
       .eq('status', status)
+      .in('id', roomIdsWithMembers)
       .order('created_at', { ascending: false })
       .limit(50);
 
