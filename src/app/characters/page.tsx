@@ -265,7 +265,7 @@ function extractCharacterFromChat(chatHistory: ChatMessage[]): Partial<Character
 
 export default function CharactersPage() {
   const router = useRouter();
-  const { user, profile, logout, isAuthenticated, isLoading: authLoading, token } = useAuth();
+  const { user, profile, logout, isAuthenticated, isLoading: authLoading, token, refreshToken } = useAuth();
   const [characters, setCharacters] = useState<Character[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -280,6 +280,8 @@ export default function CharactersPage() {
   const [pendingCharacterData, setPendingCharacterData] = useState<Partial<Character>>({});
   const [editingName, setEditingName] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const saveRetryCountRef = useRef(0);
+  const fetchRetryCountRef = useRef(0);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // 获取角色卡列表
@@ -311,17 +313,39 @@ export default function CharactersPage() {
         console.log('获取到的角色卡数量:', data.characters?.length);
         console.log('角色卡数据:', data.characters);
         setCharacters(data.characters || []);
+        fetchRetryCountRef.current = 0; // 重置重试计数
       } else {
         const errorText = await response.text();
         console.error('获取失败:', response.status, errorText);
+        
+        // 检查是否是 JWT 过期错误
+        if ((errorText.includes('JWT') || errorText.includes('expired') || response.status === 401) 
+            && fetchRetryCountRef.current < 1 && refreshToken) {
+          console.log('Token过期，尝试刷新...');
+          fetchRetryCountRef.current++;
+          const refreshed = await refreshToken();
+          if (refreshed) {
+            // 刷新成功，重试获取
+            setTimeout(() => fetchCharacters(), 100);
+            return;
+          } else {
+            toast.error('登录已过期，请重新登录');
+            router.push('/');
+            return;
+          }
+        }
+        
+        toast.error('获取角色卡失败');
+        fetchRetryCountRef.current = 0; // 重置重试计数
       }
     } catch (error) {
       console.error('获取角色卡异常:', error);
       toast.error('获取角色卡失败');
+      fetchRetryCountRef.current = 0; // 重置重试计数
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id, token]);
+  }, [user?.id, token, refreshToken, router]);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -479,11 +503,12 @@ export default function CharactersPage() {
     setIsSaving(true);
 
     try {
+      const currentToken = token; // 使用当前 token
       const response = await fetch('/api/characters', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${currentToken}`,
         },
         body: JSON.stringify(characterToSave),
       });
@@ -498,6 +523,7 @@ export default function CharactersPage() {
         setCreateDialogOpen(false);
         setChatHistory([]);
         setCurrentCharacterData({});
+        saveRetryCountRef.current = 0; // 重置重试计数
         // 延迟刷新确保状态更新完成
         setTimeout(() => {
           console.log('开始刷新角色卡列表...');
@@ -505,11 +531,35 @@ export default function CharactersPage() {
         }, 100);
       } else {
         const error = await response.json();
+        
+        // 检查是否是 JWT 过期错误
+        if ((error.error?.includes('JWT') || error.error?.includes('expired') || response.status === 401) 
+            && saveRetryCountRef.current < 1 && refreshToken) {
+          console.log('Token过期，尝试刷新...');
+          toast.info('登录已过期，正在刷新...');
+          
+          saveRetryCountRef.current++;
+          const refreshed = await refreshToken();
+          if (refreshed) {
+            // 刷新成功，重试保存（需要等待状态更新）
+            setIsSaving(false);
+            setTimeout(() => confirmSaveCharacter(), 100);
+            return;
+          } else {
+            toast.error('登录已过期，请重新登录');
+            setConfirmSaveOpen(false);
+            router.push('/');
+            return;
+          }
+        }
+        
         toast.error(error.error || '保存失败');
+        saveRetryCountRef.current = 0; // 重置重试计数
       }
     } catch (error) {
       console.error('保存角色卡失败:', error);
       toast.error('保存角色卡失败');
+      saveRetryCountRef.current = 0; // 重置重试计数
     } finally {
       setIsSaving(false);
     }
