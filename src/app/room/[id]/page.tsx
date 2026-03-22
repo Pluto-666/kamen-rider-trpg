@@ -161,6 +161,18 @@ export default function RoomPage() {
   const [gameState, setGameState] = useState<Record<string, unknown>>({});
   const [currentScenarioName, setCurrentScenarioName] = useState<string>('');
   
+  // 存档相关状态
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [showLoadDialog, setShowLoadDialog] = useState(false);
+  const [saveList, setSaveList] = useState<Array<{
+    id: string;
+    save_name: string;
+    created_at: string;
+    current_scene?: { scenarioName?: string };
+  }>>([]);
+  const [isLoadingSaves, setIsLoadingSaves] = useState(false);
+  const [saveName, setSaveName] = useState('');
+  
   
   const { text: dmNarrative, appendText: appendNarrative, resetText: resetNarrative } = useTypewriter();
   const { stream: streamDM, isStreaming: isDMStreaming } = useAIStream({
@@ -468,6 +480,146 @@ export default function RoomPage() {
       type: 'game:roll',
       payload: { dice },
     });
+  };
+
+  // 保存游戏进度
+  const handleSaveGame = async () => {
+    if (!isInGame) {
+      toast.error('游戏未开始，无法保存');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const saveNameValue = saveName || `存档 ${new Date().toLocaleString('zh-CN')}`;
+      
+      const response = await fetch('/api/saves', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          roomId,
+          saveName: saveNameValue,
+          messages,
+          currentScene: { scenarioName: currentScenarioName, gameState },
+          characterStates: members.reduce((acc, m) => {
+            if (m.character_id && m.characters) {
+              acc[m.character_id] = m.characters;
+            }
+            return acc;
+          }, {} as Record<string, unknown>),
+          metadata: {
+            sessionId,
+            savedAt: new Date().toISOString(),
+          },
+        }),
+      });
+
+      if (response.ok) {
+        toast.success('游戏进度已保存');
+        setSaveName('');
+        setShowSaveDialog(false);
+      } else {
+        const data = await response.json();
+        toast.error(data.error || '保存失败');
+      }
+    } catch (error) {
+      console.error('保存进度错误:', error);
+      toast.error('保存失败');
+    }
+  };
+
+  // 加载存档列表
+  const loadSaveList = async () => {
+    setIsLoadingSaves(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/saves?roomId=${roomId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setSaveList(data.data || []);
+      } else {
+        toast.error('获取存档列表失败');
+      }
+    } catch (error) {
+      console.error('获取存档列表错误:', error);
+      toast.error('获取存档列表失败');
+    } finally {
+      setIsLoadingSaves(false);
+    }
+  };
+
+  // 读取存档
+  const handleLoadSave = async (saveId: string) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/saves/${saveId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const save = data.data;
+        
+        // 恢复消息
+        if (save.messages && Array.isArray(save.messages)) {
+          setMessages(save.messages);
+        }
+        
+        // 恢复游戏状态
+        if (save.current_scene) {
+          setGameState(save.current_scene.gameState || {});
+          setCurrentScenarioName(save.current_scene.scenarioName || '');
+        }
+        
+        // 恢复会话ID
+        if (save.metadata?.sessionId) {
+          setSessionId(save.metadata.sessionId);
+        }
+        
+        toast.success('存档已加载');
+        setShowLoadDialog(false);
+      } else {
+        toast.error('读取存档失败');
+      }
+    } catch (error) {
+      console.error('读取存档错误:', error);
+      toast.error('读取存档失败');
+    }
+  };
+
+  // 删除存档
+  const handleDeleteSave = async (saveId: string) => {
+    if (!confirm('确定要删除这个存档吗？')) return;
+    
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/saves/${saveId}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        setSaveList(prev => prev.filter(s => s.id !== saveId));
+        toast.success('存档已删除');
+      } else {
+        toast.error('删除存档失败');
+      }
+    } catch (error) {
+      console.error('删除存档错误:', error);
+      toast.error('删除存档失败');
+    }
   };
 
   // 退出房间
@@ -1107,9 +1259,21 @@ export default function RoomPage() {
                         variant="outline" 
                         className="w-full justify-start" 
                         size="sm"
-                        onClick={() => toast.success('进度已自动保存')}
+                        onClick={() => setShowSaveDialog(true)}
+                        disabled={!isInGame}
                       >
                         💾 保存进度
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        className="w-full justify-start" 
+                        size="sm"
+                        onClick={() => {
+                          loadSaveList();
+                          setShowLoadDialog(true);
+                        }}
+                      >
+                        📂 读取进度
                       </Button>
                     </div>
                   </div>
@@ -1441,6 +1605,104 @@ export default function RoomPage() {
               setRuleQueryResult('');
               setRuleQueryInput('');
             }}>
+              关闭
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Save Game Dialog */}
+      <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>💾 保存游戏进度</DialogTitle>
+            <DialogDescription>
+              保存当前游戏状态，包括所有消息记录和角色状态
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">存档名称</label>
+              <input
+                type="text"
+                className="w-full px-3 py-2 border rounded-md"
+                placeholder={`存档 ${new Date().toLocaleString('zh-CN')}`}
+                value={saveName}
+                onChange={(e) => setSaveName(e.target.value)}
+              />
+            </div>
+            <div className="text-sm text-muted-foreground">
+              <p>当前场景: {currentScenarioName || '未知'}</p>
+              <p>消息数量: {messages.length}</p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowSaveDialog(false)}>
+              取消
+            </Button>
+            <Button onClick={handleSaveGame}>
+              保存
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Load Game Dialog */}
+      <Dialog open={showLoadDialog} onOpenChange={setShowLoadDialog}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>📂 读取游戏进度</DialogTitle>
+            <DialogDescription>
+              选择一个存档继续游戏
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4 max-h-[400px] overflow-y-auto">
+            {isLoadingSaves ? (
+              <div className="text-center text-muted-foreground py-8">
+                加载中...
+              </div>
+            ) : saveList.length === 0 ? (
+              <div className="text-center text-muted-foreground py-8">
+                暂无存档
+              </div>
+            ) : (
+              saveList.map((save) => (
+                <div
+                  key={save.id}
+                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                >
+                  <div className="flex-1">
+                    <h4 className="font-medium">{save.save_name}</h4>
+                    <p className="text-sm text-muted-foreground">
+                      {new Date(save.created_at).toLocaleString('zh-CN')}
+                    </p>
+                    {save.current_scene?.scenarioName && (
+                      <p className="text-sm text-muted-foreground">
+                        场景: {save.current_scene.scenarioName}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => handleLoadSave(save.id)}
+                    >
+                      读取
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => handleDeleteSave(save.id)}
+                    >
+                      删除
+                    </Button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowLoadDialog(false)}>
               关闭
             </Button>
           </DialogFooter>
