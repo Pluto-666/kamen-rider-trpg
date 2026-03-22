@@ -103,6 +103,69 @@ export async function POST(request: NextRequest) {
       transformHP: 45,
     };
 
+    // 映射 AI 返回的简化属性到完整属性结构
+    function mapAttributes(simpleAttrs: Record<string, number> | undefined): typeof defaultAttributes {
+      if (!simpleAttrs) return defaultAttributes;
+      
+      // 如果已经是完整格式（有 bodyNormal 字段），直接返回
+      if (simpleAttrs.bodyNormal !== undefined) {
+        return { ...defaultAttributes, ...simpleAttrs };
+      }
+      
+      // 简化格式映射到完整格式
+      const body = simpleAttrs.body || 4;
+      const athletics = simpleAttrs.athletics || 3;
+      const dexterity = simpleAttrs.dexterity || simpleAttrs.技巧 || 1;
+      const will = simpleAttrs.will || simpleAttrs.意志 || 1;
+      const wit = simpleAttrs.wit || simpleAttrs.智力 || 1;
+      const movement = simpleAttrs.movement || simpleAttrs.行动速度 || 6;
+      const hp = simpleAttrs.hp || simpleAttrs.HP || simpleAttrs.totalHP || 20;
+      
+      return {
+        body,
+        bodyRace: 0,
+        bodyJob: 0,
+        bodyNormal: body,
+        bodyTransform: body + 5,
+        athletics,
+        athleticsRace: 0,
+        athleticsJob: 0,
+        athleticsNormal: athletics,
+        athleticsTransform: athletics + 5,
+        dexterity,
+        dexterityRace: 0,
+        dexterityJob: 0,
+        dexterityNormal: dexterity,
+        dexterityTransform: dexterity + 5,
+        will,
+        willRace: 0,
+        willJob: 0,
+        willNormal: will,
+        willTransform: will + 5,
+        wit,
+        witRace: 0,
+        witJob: 0,
+        witNormal: wit,
+        witTransform: wit + 5,
+        movement,
+        movementRace: 0,
+        movementJob: 0,
+        movementNormal: movement,
+        movementTransform: movement + 5,
+        movementBonus: 0,
+        initiative: dexterity,
+        initiativeRace: 0,
+        initiativeJob: 0,
+        initiativeNormal: dexterity,
+        initiativeTransform: dexterity + 5,
+        initiativeBonus: 0,
+        additionalHP: 0,
+        bodyHP: body * 2,
+        totalHP: hp,
+        transformHP: hp + 25,
+      };
+    }
+
     const token = request.headers.get('Authorization')?.replace('Bearer ', '');
     const supabase = getSupabaseClient(token || undefined);
 
@@ -117,7 +180,7 @@ export async function POST(request: NextRequest) {
       age: age ? parseInt(String(age)) : null,
       gender: cleanText(gender, 20),
       active_power: active_power || activePower || 5,
-      attributes: attributes || defaultAttributes,
+      attributes: mapAttributes(attributes),
       fate_points: fate_points || fatePoints || { points: 0, history: [] },
       weapons: weapons || [],
       armors: armors || [],
