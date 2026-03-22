@@ -40,12 +40,38 @@ function getDefaultAttributes(): Record<string, number> {
   };
 }
 
+// 从 AI 回复中提取 JSON 格式的角色数据
+function extractJsonFromResponse(response: string): CharacterData | null {
+  // 查找 JSON 代码块
+  const jsonMatch = response.match(/```json\s*([\s\S]*?)\s*```/);
+  if (jsonMatch) {
+    try {
+      return JSON.parse(jsonMatch[1].trim());
+    } catch (e) {
+      console.error('JSON 解析失败:', e);
+    }
+  }
+  return null;
+}
+
 // 从对话中提取角色数据
 function extractCharacterData(characterData: CharacterData, messages: Message[]): CharacterData {
   const data = { ...characterData };
   const recentMessages = messages.slice(-6);
   const text = recentMessages.map(m => m.content).join('\n');
   
+  // 首先尝试从最新的 AI 回复中提取 JSON 数据
+  const lastAssistantMsg = [...recentMessages].reverse().find(m => m.role === 'assistant');
+  if (lastAssistantMsg) {
+    const jsonData = extractJsonFromResponse(lastAssistantMsg.content);
+    if (jsonData) {
+      // JSON 数据优先级最高，直接合并
+      console.log('从 JSON 提取到角色数据:', jsonData);
+      return { ...data, ...jsonData };
+    }
+  }
+  
+  // 如果没有 JSON，使用正则提取
   const nameMatch = text.match(/(?:角色名|名字|名称|假面骑士称号)[：:]\s*([^\n，。！？]+)/);
   if (nameMatch) data.name = nameMatch[1].trim();
   
@@ -186,6 +212,39 @@ export async function POST(request: NextRequest) {
 7. 【骑士系统】变身道具名称
 8. 【骑士系统】必杀技名称
 9. 【骑士系统】变身口号
+
+## 重要：当玩家一次性提供大量信息时
+如果玩家一次提供了多个信息，你要：
+1. 确认收到的所有信息
+2. 根据提供的信息计算属性值（参考规则书）
+3. 补充缺失的信息（可以假设合理的默认值）
+4. 在回复的最后，输出完整的角色卡数据
+
+## 输出角色卡数据格式
+当信息收集完成后，在回复最后必须输出以下格式的JSON数据：
+\`\`\`json
+{
+  "name": "角色名称",
+  "playerName": "玩家名",
+  "age": 年龄数字,
+  "gender": "性别",
+  "race": "种族",
+  "occupation": "职业",
+  "background": "完整的背景故事，2-3句话",
+  "attributes": {
+    "body": 体力值,
+    "athletics": 运动值,
+    "dexterity": 器用值,
+    "will": 意志值,
+    "wit": 机知值,
+    "hp": 生命值
+  },
+  "riderSystem": "假面骑士系统名称",
+  "transformItem": "变身道具/驱动器名称",
+  "transformPhrase": "变身口号",
+  "finisherMove": "必杀技名称"
+}
+\`\`\`
 
 ## 当前已确认的角色信息
 ${Object.keys(characterData).length > 0 

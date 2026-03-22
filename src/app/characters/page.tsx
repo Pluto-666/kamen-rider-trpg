@@ -463,12 +463,16 @@ export default function CharactersPage() {
       return;
     }
     
-    const extractedData = extractCharacterFromChat(chatHistory);
+    // 优先使用 AI 返回的 currentCharacterData（包含 JSON 数据）
+    // 只对缺失的字段用正则提取补充
+    const regexExtracted = extractCharacterFromChat(chatHistory);
     
     const characterToSave = {
-      ...currentCharacterData,
-      ...extractedData,
       user_id: user.id,
+      // AI 返回的数据优先
+      ...regexExtracted,
+      // currentCharacterData 覆盖（包含解析的 JSON 数据）
+      ...currentCharacterData,
     };
     
     console.log('准备保存的角色数据:', characterToSave);
