@@ -508,8 +508,12 @@ export default function RoomPage() {
       return;
     }
 
+    if (!token) {
+      toast.error('未登录，无法保存');
+      return;
+    }
+
     try {
-      const token = localStorage.getItem('token');
       const saveNameValue = saveName || `存档 ${new Date().toLocaleString('zh-CN')}`;
       
       const response = await fetch('/api/saves', {
@@ -552,9 +556,13 @@ export default function RoomPage() {
 
   // 加载存档列表
   const loadSaveList = async () => {
+    if (!token) {
+      toast.error('未登录，无法获取存档');
+      return;
+    }
+    
     setIsLoadingSaves(true);
     try {
-      const token = localStorage.getItem('token');
       const response = await fetch(`/api/saves?roomId=${roomId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -577,8 +585,12 @@ export default function RoomPage() {
 
   // 读取存档
   const handleLoadSave = async (saveId: string) => {
+    if (!token) {
+      toast.error('未登录，无法读取存档');
+      return;
+    }
+    
     try {
-      const token = localStorage.getItem('token');
       const response = await fetch(`/api/saves/${saveId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -620,8 +632,12 @@ export default function RoomPage() {
   const handleDeleteSave = async (saveId: string) => {
     if (!confirm('确定要删除这个存档吗？')) return;
     
+    if (!token) {
+      toast.error('未登录，无法删除存档');
+      return;
+    }
+    
     try {
-      const token = localStorage.getItem('token');
       const response = await fetch(`/api/saves/${saveId}`, {
         method: 'DELETE',
         headers: {
