@@ -312,8 +312,23 @@ export default function RoomPage() {
   };
 
   const handleViewCharacter = async (member: RoomMember) => {
-    if (!member.character_id) {
+    // 检查是否有角色数据
+    if (!member.character_id && !member.characters) {
       toast.error('该成员未选择角色');
+      return;
+    }
+
+    // 如果已经有角色数据，直接显示
+    if (member.characters) {
+      setCharacterDetail(member.characters as Character);
+      setSelectedMember(member);
+      setShowCharacterDetail(true);
+      return;
+    }
+
+    // 否则从API获取角色数据
+    if (!member.character_id) {
+      toast.error('角色ID不存在');
       return;
     }
 
@@ -482,19 +497,33 @@ export default function RoomPage() {
   };
 
   // 查看自己的角色卡
-  const handleViewMyCharacter = () => {
-    // 先检查是否已选择角色
-    if (!selectedCharacterId) {
-      toast.error('请先选择一个角色');
+  const handleViewMyCharacter = async () => {
+    // 先检查用户是否有角色卡
+    if (characters.length === 0) {
+      toast.error('您还没有创建角色卡，请先到"我的角色"页面创建');
       return;
     }
     
-    // 通过当前用户ID找到自己的成员记录
+    // 检查是否已在房间选择角色
     const myMember = members.find(m => m.user_id === user?.id);
+    
     if (myMember && myMember.character_id) {
+      // 已选择角色，直接查看
       handleViewCharacter(myMember);
+    } else if (selectedCharacterId) {
+      // 已在下拉框选择但还没确认，使用下拉框选择的角色
+      const character = characters.find(c => c.id === selectedCharacterId);
+      if (character) {
+        // 创建一个临时成员对象来查看角色卡
+        handleViewCharacter({
+          ...myMember,
+          character_id: selectedCharacterId,
+          characters: character,
+        } as RoomMember);
+      }
     } else {
-      toast.error('未找到您的角色信息，请确认已选择角色');
+      // 提示用户选择角色
+      toast.error('请先在左侧"选择角色"下拉框中选择一个角色');
     }
   };
 
