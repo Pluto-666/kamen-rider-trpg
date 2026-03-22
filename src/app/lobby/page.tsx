@@ -115,14 +115,27 @@ export default function LobbyPage() {
   const fetchSavedGames = async () => {
     setIsLoadingSaves(true);
     try {
-      const response = await fetch('/api/sessions', {
+      // 从 game_saves 表获取存档列表
+      const response = await fetch('/api/saves', {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
       if (response.ok) {
         const data = await response.json();
-        setSavedGames(data.data || []);
+        // 处理存档数据格式
+        const savedGames = (data.data || []).map((save: any) => ({
+          id: save.id,
+          scenarioName: save.current_scene?.scenarioName || save.room_snapshot?.name || '未知剧本',
+          chapter: save.current_scene?.chapter || 1,
+          status: 'active',
+          lastSavedAt: save.created_at,
+          startedAt: save.created_at,
+          myCharacterName: save.metadata?.characterName || '未知角色',
+          gameState: save.current_scene?.gameState || {},
+          roomId: save.room_id,
+        }));
+        setSavedGames(savedGames);
       }
     } catch (error) {
       console.error('获取存档列表失败:', error);

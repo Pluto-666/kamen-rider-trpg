@@ -1395,10 +1395,10 @@ export default function RoomPage() {
 
       {/* Scenario Selection Dialog */}
       <Dialog open={showScenarioDialog} onOpenChange={setShowScenarioDialog}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg kamen-dialog bg-[#1e1e28]/95 backdrop-blur-sm border-[#c41e3a]/35">
           <DialogHeader>
-            <DialogTitle>选择剧本</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-[#e8e8f0]">选择剧本</DialogTitle>
+            <DialogDescription className="text-[#9a9aaa]">
               {isFirstScenario 
                 ? '推荐您从入门剧本开始游戏' 
                 : completedScenarios.length > 0 
@@ -1410,39 +1410,39 @@ export default function RoomPage() {
             {scenarios.map((scenario, index) => (
               <Card
                 key={index}
-                className={`cursor-pointer transition-colors ${
-                  selectedScenario === scenario.name ? 'ring-2 ring-primary bg-primary/5' : 'hover:bg-muted/50'
+                className={`cursor-pointer transition-colors bg-[#151520] border-[#c41e3a]/20 ${
+                  selectedScenario === scenario.name ? 'ring-2 ring-[#c41e3a]/50 bg-[#c41e3a]/10' : 'hover:bg-[#c41e3a]/5'
                 }`}
                 onClick={() => setSelectedScenario(scenario.name)}
               >
                 <CardContent className="py-4">
-                  <div className="font-medium flex items-center gap-2 text-lg">
+                  <div className="font-medium flex items-center gap-2 text-lg text-[#e8e8f0]">
                     {scenario.name}
                     {scenario.isStarter && (
-                      <Badge variant="default" className="text-xs">新手推荐</Badge>
+                      <Badge className="text-xs bg-[#c41e3a]/25 text-[#e8e8f0] border-[#c41e3a]/40">新手推荐</Badge>
                     )}
                     {scenario.isOriginal && (
-                      <Badge variant="secondary" className="text-xs">原创</Badge>
+                      <Badge variant="secondary" className="text-xs bg-[#00d4ff]/20 text-[#00d4ff] border-[#00d4ff]/40">原创</Badge>
                     )}
                   </div>
                   
                   {/* 剧本简介 - 突出显示 */}
-                  <div className="mt-3 p-3 bg-muted/30 rounded-md border-l-4 border-primary/50">
-                    <p className="text-sm leading-relaxed">
+                  <div className="mt-3 p-3 bg-[#1e1e28] rounded-md border-l-4 border-[#c41e3a]/50">
+                    <p className="text-sm leading-relaxed text-[#c0c0c8]">
                       {scenario.description}
                     </p>
                   </div>
                   
                   {/* 标签信息 */}
                   <div className="flex flex-wrap gap-2 mt-3">
-                    <Badge variant="outline" className="text-xs">
+                    <Badge variant="outline" className="text-xs border-[#c41e3a]/30 text-[#c0c0c8]">
                       {scenario.difficulty}
                     </Badge>
-                    <Badge variant="outline" className="text-xs">
+                    <Badge variant="outline" className="text-xs border-[#c41e3a]/30 text-[#c0c0c8]">
                       {scenario.duration}
                     </Badge>
                     {scenario.mainEnemy && (
-                      <Badge variant="destructive" className="text-xs">
+                      <Badge variant="destructive" className="text-xs bg-[#dc2626]/80">
                         敌人: {scenario.mainEnemy}
                       </Badge>
                     )}
@@ -1450,7 +1450,7 @@ export default function RoomPage() {
                   
                   {/* 推荐理由 */}
                   {scenario.reason && (
-                    <div className="text-xs text-muted-foreground mt-2 italic flex items-center gap-1">
+                    <div className="text-xs text-[#9a9aaa] mt-2 italic flex items-center gap-1">
                       <span>💡</span>
                       {scenario.reason}
                     </div>
@@ -1465,7 +1465,7 @@ export default function RoomPage() {
                 variant="outline" 
                 onClick={handleRefreshScenarios}
                 disabled={isRefreshingScenarios}
-                className="flex-1"
+                className="flex-1 border-[#c41e3a]/30 text-[#c0c0c8] hover:border-[#c41e3a] hover:text-[#e8e8f0]"
               >
                 {isRefreshingScenarios ? (
                   <>
@@ -1480,7 +1480,7 @@ export default function RoomPage() {
             <Button 
               onClick={handleSelectScenario} 
               disabled={!selectedScenario || isRefreshingScenarios} 
-              className="flex-1"
+              className="flex-1 kamen-btn-primary"
             >
               开始游戏
             </Button>
@@ -1490,21 +1490,21 @@ export default function RoomPage() {
 
       {/* Character Detail Dialog */}
       <Dialog open={showCharacterDetail} onOpenChange={setShowCharacterDetail}>
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto kamen-dialog bg-[#1e1e28]/95 backdrop-blur-sm border-[#c41e3a]/35">
           {isLoadingCharacter ? (
             <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#c41e3a]"></div>
             </div>
           ) : characterDetail ? (
             <>
               <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <Avatar className="h-10 w-10">
-                    <AvatarFallback>{characterDetail.name?.charAt(0)}</AvatarFallback>
+                <DialogTitle className="flex items-center gap-2 text-[#e8e8f0]">
+                  <Avatar className="h-10 w-10 bg-[#c41e3a]/20 border border-[#c41e3a]/40">
+                    <AvatarFallback className="text-[#c41e3a]">{characterDetail.name?.charAt(0)}</AvatarFallback>
                   </Avatar>
                   {characterDetail.name}
                 </DialogTitle>
-                <DialogDescription>
+                <DialogDescription className="text-[#9a9aaa]">
                   {characterDetail.player_name && `玩家: ${characterDetail.player_name}`}
                 </DialogDescription>
               </DialogHeader>
@@ -1512,25 +1512,25 @@ export default function RoomPage() {
               <div className="space-y-6">
                 {/* Basic Info */}
                 <div>
-                  <h4 className="font-semibold mb-2 flex items-center gap-2">
-                    <User className="h-4 w-4" />
+                  <h4 className="font-semibold mb-2 flex items-center gap-2 text-[#e8e8f0]">
+                    <User className="h-4 w-4 text-[#c41e3a]" />
                     基本信息
                   </h4>
                   <div className="flex flex-wrap gap-2">
                     {characterDetail.race && (
-                      <Badge variant="secondary">种族: {characterDetail.race}</Badge>
+                      <Badge className="bg-[#00d4ff]/20 text-[#00d4ff] border-[#00d4ff]/40">种族: {characterDetail.race}</Badge>
                     )}
                     {characterDetail.occupation && (
-                      <Badge variant="outline">职业: {characterDetail.occupation}</Badge>
+                      <Badge variant="outline" className="border-[#c41e3a]/30 text-[#c0c0c8]">职业: {characterDetail.occupation}</Badge>
                     )}
                     {characterDetail.age && (
-                      <Badge variant="outline">{characterDetail.age}岁</Badge>
+                      <Badge variant="outline" className="border-[#c41e3a]/30 text-[#c0c0c8]">{characterDetail.age}岁</Badge>
                     )}
                     {characterDetail.gender && (
-                      <Badge variant="outline">{characterDetail.gender}</Badge>
+                      <Badge variant="outline" className="border-[#c41e3a]/30 text-[#c0c0c8]">{characterDetail.gender}</Badge>
                     )}
                     {characterDetail.active_power && (
-                      <Badge>活跃力: {characterDetail.active_power}</Badge>
+                      <Badge className="bg-[#c41e3a]/25 text-[#e8e8f0] border-[#c41e3a]/40">活跃力: {characterDetail.active_power}</Badge>
                     )}
                   </div>
                 </div>
@@ -1538,7 +1538,7 @@ export default function RoomPage() {
                 {/* Attributes */}
                 {characterDetail.attributes && (
                   <div>
-                    <h4 className="font-semibold mb-2">能力值（通常 / 变身后）</h4>
+                    <h4 className="font-semibold mb-2 text-[#e8e8f0]">能力值（通常 / 变身后）</h4>
                     <div className="grid grid-cols-5 gap-2 text-center text-sm">
                       {[
                         { name: '肉体', normal: characterDetail.attributes.bodyNormal, transform: characterDetail.attributes.bodyTransform },
@@ -1547,10 +1547,10 @@ export default function RoomPage() {
                         { name: '意志', normal: characterDetail.attributes.willNormal, transform: characterDetail.attributes.willTransform },
                         { name: '机知', normal: characterDetail.attributes.witNormal, transform: characterDetail.attributes.witTransform },
                       ].map((attr) => (
-                        <div key={attr.name} className="p-2 bg-muted rounded">
-                          <div className="text-muted-foreground">{attr.name}</div>
-                          <div className="font-bold">{attr.normal || 0}</div>
-                          <div className="text-xs text-primary">变身: {attr.transform || 0}</div>
+                        <div key={attr.name} className="p-2 bg-[#151520] rounded border border-[#c41e3a]/20">
+                          <div className="text-[#9a9aaa]">{attr.name}</div>
+                          <div className="font-bold text-[#e8e8f0]">{attr.normal || 0}</div>
+                          <div className="text-xs text-[#c41e3a]">变身: {attr.transform || 0}</div>
                         </div>
                       ))}
                     </div>
@@ -1561,15 +1561,15 @@ export default function RoomPage() {
                 {characterDetail.attributes && (
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <h4 className="font-semibold mb-2">移动力</h4>
-                      <div className="text-sm">
+                      <h4 className="font-semibold mb-2 text-[#e8e8f0]">移动力</h4>
+                      <div className="text-sm text-[#c0c0c8]">
                         通常: {characterDetail.attributes.movementNormal || 0} / 
                         变身: {characterDetail.attributes.movementTransform || 0}
                       </div>
                     </div>
                     <div>
-                      <h4 className="font-semibold mb-2">先制力</h4>
-                      <div className="text-sm">
+                      <h4 className="font-semibold mb-2 text-[#e8e8f0]">先制力</h4>
+                      <div className="text-sm text-[#c0c0c8]">
                         通常: {characterDetail.attributes.initiativeNormal || 0} / 
                         变身: {characterDetail.attributes.initiativeTransform || 0}
                       </div>
@@ -1580,11 +1580,11 @@ export default function RoomPage() {
                 {/* HP */}
                 {characterDetail.attributes && (
                   <div>
-                    <h4 className="font-semibold mb-2 flex items-center gap-2">
-                      <Heart className="h-4 w-4 text-red-500" />
+                    <h4 className="font-semibold mb-2 flex items-center gap-2 text-[#e8e8f0]">
+                      <Heart className="h-4 w-4 text-[#ef4444]" />
                       HP
                     </h4>
-                    <div className="text-sm">
+                    <div className="text-sm text-[#c0c0c8]">
                       通常: {characterDetail.attributes.totalHP || 0} / 
                       变身: {characterDetail.attributes.transformHP || 0}
                     </div>
@@ -1594,11 +1594,11 @@ export default function RoomPage() {
                 {/* Rider Data */}
                 {characterDetail.rider_data && (
                   <div>
-                    <h4 className="font-semibold mb-2 flex items-center gap-2">
-                      <Swords className="h-4 w-4" />
+                    <h4 className="font-semibold mb-2 flex items-center gap-2 text-[#e8e8f0]">
+                      <Swords className="h-4 w-4 text-[#c41e3a]" />
                       骑士系统
                     </h4>
-                    <div className="space-y-1 text-sm">
+                    <div className="space-y-1 text-sm text-[#c0c0c8]">
                       {characterDetail.rider_data.riderSystem && (
                         <div>系统: {characterDetail.rider_data.riderSystem}</div>
                       )}
@@ -1618,8 +1618,8 @@ export default function RoomPage() {
                 {/* Background */}
                 {characterDetail.background && (
                   <div>
-                    <h4 className="font-semibold mb-2">背景故事</h4>
-                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                    <h4 className="font-semibold mb-2 text-[#e8e8f0]">背景故事</h4>
+                    <p className="text-sm text-[#9a9aaa] whitespace-pre-wrap">
                       {characterDetail.background}
                     </p>
                   </div>
@@ -1628,15 +1628,15 @@ export default function RoomPage() {
                 {/* Weapons */}
                 {characterDetail.weapons && characterDetail.weapons.length > 0 && (
                   <div>
-                    <h4 className="font-semibold mb-2 flex items-center gap-2">
-                      <Swords className="h-4 w-4" />
+                    <h4 className="font-semibold mb-2 flex items-center gap-2 text-[#e8e8f0]">
+                      <Swords className="h-4 w-4 text-[#c41e3a]" />
                       武器
                     </h4>
                     <div className="space-y-2">
                       {characterDetail.weapons.map((weapon, idx) => (
-                        <div key={idx} className="p-2 bg-muted rounded text-sm">
-                          <div className="font-medium">{weapon.name}</div>
-                          <div className="text-muted-foreground">
+                        <div key={idx} className="p-2 bg-[#151520] rounded text-sm border border-[#c41e3a]/20">
+                          <div className="font-medium text-[#e8e8f0]">{weapon.name}</div>
+                          <div className="text-[#9a9aaa]">
                             射程: {weapon.range} | 命中: {weapon.hitTotal} | DP: {weapon.dpTotal}
                           </div>
                         </div>
@@ -1648,29 +1648,29 @@ export default function RoomPage() {
                 {/* Equipment */}
                 {characterDetail.other_equipment && (
                   <div>
-                    <h4 className="font-semibold mb-2 flex items-center gap-2">
-                      <Shield className="h-4 w-4" />
+                    <h4 className="font-semibold mb-2 flex items-center gap-2 text-[#e8e8f0]">
+                      <Shield className="h-4 w-4 text-[#c41e3a]" />
                       其他装备
                     </h4>
-                    <p className="text-sm text-muted-foreground">{characterDetail.other_equipment}</p>
+                    <p className="text-sm text-[#9a9aaa]">{characterDetail.other_equipment}</p>
                   </div>
                 )}
               </div>
 
               <DialogFooter>
-                <Button variant="outline" onClick={() => setShowCharacterDetail(false)}>
+                <Button variant="outline" onClick={() => setShowCharacterDetail(false)} className="border-[#c41e3a]/30 text-[#c0c0c8] hover:border-[#c41e3a] hover:text-[#e8e8f0]">
                   关闭
                 </Button>
                 <Button onClick={() => {
                   handleExportCharacter(characterDetail.id);
-                }}>
+                }} className="kamen-btn-primary">
                   <Download className="mr-2 h-4 w-4" />
                   导出xlsx
                 </Button>
               </DialogFooter>
             </>
           ) : (
-            <div className="text-center py-12 text-muted-foreground">
+            <div className="text-center py-12 text-[#9a9aaa]">
               未找到角色信息
             </div>
           )}
@@ -1679,10 +1679,10 @@ export default function RoomPage() {
 
       {/* Rule Query Dialog */}
       <Dialog open={showRuleQuery} onOpenChange={setShowRuleQuery}>
-        <DialogContent className="sm:max-w-2xl max-h-[80vh]">
+        <DialogContent className="sm:max-w-2xl max-h-[80vh] kamen-dialog bg-[#1e1e28]/95 backdrop-blur-sm border-[#c41e3a]/35">
           <DialogHeader>
-            <DialogTitle>📖 规则查询</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-[#e8e8f0]">📖 规则查询</DialogTitle>
+            <DialogDescription className="text-[#9a9aaa]">
               查询假面骑士TRPG规则书中的内容
             </DialogDescription>
           </DialogHeader>
@@ -1698,15 +1698,16 @@ export default function RoomPage() {
                     handleRuleQuery();
                   }
                 }}
+                className="bg-[#151520] border-[#c41e3a]/30 text-[#e8e8f0] placeholder:text-[#6a6a7a] focus:border-[#c41e3a]/60"
               />
-              <Button onClick={handleRuleQuery} disabled={isQueryingRule || !ruleQueryInput.trim()}>
+              <Button onClick={handleRuleQuery} disabled={isQueryingRule || !ruleQueryInput.trim()} className="kamen-btn-primary">
                 {isQueryingRule ? '查询中...' : '查询'}
               </Button>
             </div>
             
             {ruleQueryResult && (
-              <ScrollArea className="h-[400px] w-full rounded border p-4">
-                <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap">
+              <ScrollArea className="h-[400px] w-full rounded border border-[#c41e3a]/20 p-4 bg-[#151520]">
+                <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap text-[#c0c0c8]">
                   {ruleQueryResult}
                 </div>
               </ScrollArea>
@@ -1718,7 +1719,7 @@ export default function RoomPage() {
               setShowRuleQuery(false);
               setRuleQueryResult('');
               setRuleQueryInput('');
-            }}>
+            }} className="border-[#c41e3a]/30 text-[#c0c0c8] hover:border-[#c41e3a] hover:text-[#e8e8f0]">
               关闭
             </Button>
           </DialogFooter>
@@ -1727,34 +1728,34 @@ export default function RoomPage() {
 
       {/* Save Game Dialog */}
       <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md kamen-dialog bg-[#1e1e28]/95 backdrop-blur-sm border-[#c41e3a]/35">
           <DialogHeader>
-            <DialogTitle>💾 保存游戏进度</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-[#e8e8f0]">💾 保存游戏进度</DialogTitle>
+            <DialogDescription className="text-[#9a9aaa]">
               保存当前游戏状态，包括所有消息记录和角色状态
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">存档名称</label>
+              <label className="text-sm font-medium text-[#c0c0c8]">存档名称</label>
               <input
                 type="text"
-                className="w-full px-3 py-2 border rounded-md"
+                className="w-full px-3 py-2 border border-[#c41e3a]/30 rounded-md bg-[#151520] text-[#e8e8f0] placeholder:text-[#6a6a7a] focus:outline-none focus:border-[#c41e3a]/60"
                 placeholder={`存档 ${new Date().toLocaleString('zh-CN')}`}
                 value={saveName}
                 onChange={(e) => setSaveName(e.target.value)}
               />
             </div>
-            <div className="text-sm text-muted-foreground">
+            <div className="text-sm text-[#9a9aaa]">
               <p>当前场景: {currentScenarioName || '未知'}</p>
               <p>消息数量: {messages.length}</p>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowSaveDialog(false)}>
+            <Button variant="outline" onClick={() => setShowSaveDialog(false)} className="border-[#c41e3a]/30 text-[#c0c0c8] hover:border-[#c41e3a] hover:text-[#e8e8f0]">
               取消
             </Button>
-            <Button onClick={handleSaveGame}>
+            <Button onClick={handleSaveGame} className="kamen-btn-primary">
               保存
             </Button>
           </DialogFooter>
@@ -1763,47 +1764,47 @@ export default function RoomPage() {
 
       {/* Load Game Dialog */}
       <Dialog open={showLoadDialog} onOpenChange={setShowLoadDialog}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg kamen-dialog bg-[#1e1e28]/95 backdrop-blur-sm border-[#c41e3a]/35">
           <DialogHeader>
-            <DialogTitle>📂 读取游戏进度</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-[#e8e8f0] flex items-center gap-2">📂 读取游戏进度</DialogTitle>
+            <DialogDescription className="text-[#9a9aaa]">
               选择一个存档继续游戏
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4 max-h-[400px] overflow-y-auto">
             {isLoadingSaves ? (
-              <div className="text-center text-muted-foreground py-8">
+              <div className="text-center text-[#9a9aaa] py-8">
                 加载中...
               </div>
             ) : saveList.length === 0 ? (
-              <div className="text-center text-muted-foreground py-8">
+              <div className="text-center text-[#9a9aaa] py-8">
                 暂无存档
               </div>
             ) : (
               saveList.map((save) => (
                 <div
                   key={save.id}
-                  className={`flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors ${
-                    save.room_id === roomId ? 'ring-2 ring-primary/50 bg-primary/5' : ''
+                  className={`flex items-center justify-between p-4 border border-[#c41e3a]/20 rounded-lg hover:bg-[#c41e3a]/10 transition-colors bg-[#151520] ${
+                    save.room_id === roomId ? 'ring-2 ring-[#c41e3a]/50 bg-[#c41e3a]/10' : ''
                   }`}
                 >
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <h4 className="font-medium">{save.save_name}</h4>
+                      <h4 className="font-medium text-[#e8e8f0]">{save.save_name}</h4>
                       {save.room_id === roomId && (
-                        <Badge variant="default" className="text-xs">当前房间</Badge>
+                        <Badge className="text-xs bg-[#c41e3a]/25 text-[#e8e8f0] border-[#c41e3a]/40">当前房间</Badge>
                       )}
                     </div>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-[#9a9aaa]">
                       {new Date(save.created_at).toLocaleString('zh-CN')}
                     </p>
                     {save.current_scene?.scenarioName && (
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm text-[#00d4ff]">
                         剧本: {save.current_scene.scenarioName}
                       </p>
                     )}
                     {save.room_snapshot?.name && (
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-[#c0c0c8]">
                         房间: {save.room_snapshot.name}
                       </p>
                     )}
@@ -1812,6 +1813,7 @@ export default function RoomPage() {
                     <Button
                       size="sm"
                       onClick={() => handleLoadSave(save.id)}
+                      className="kamen-btn-primary"
                     >
                       读取
                     </Button>
@@ -1819,6 +1821,7 @@ export default function RoomPage() {
                       size="sm"
                       variant="destructive"
                       onClick={() => handleDeleteSave(save.id)}
+                      className="bg-[#dc2626]/80 hover:bg-[#dc2626]"
                     >
                       删除
                     </Button>
@@ -1828,7 +1831,7 @@ export default function RoomPage() {
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowLoadDialog(false)}>
+            <Button variant="outline" onClick={() => setShowLoadDialog(false)} className="border-[#c41e3a]/30 text-[#c0c0c8] hover:border-[#c41e3a] hover:text-[#e8e8f0]">
               关闭
             </Button>
           </DialogFooter>
