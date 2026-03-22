@@ -133,6 +133,7 @@ export function setupGameRoomHandler(wss: WebSocketServer) {
                 characterId?: string;
               };
               
+              // 广播给房间内其他玩家（排除发送者）
               broadcastToRoom(currentRoomId, {
                 type: 'room:chat',
                 payload: {
@@ -142,7 +143,7 @@ export function setupGameRoomHandler(wss: WebSocketServer) {
                   content,
                   timestamp: new Date().toISOString()
                 }
-              });
+              }, ws); // 排除当前发送者的连接
             }
             break;
           }
