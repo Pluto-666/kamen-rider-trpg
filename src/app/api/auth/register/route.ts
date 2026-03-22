@@ -59,10 +59,30 @@ export async function POST(request: NextRequest) {
       password,
       options: {
         data: { username },
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || process.env.COZE_PROJECT_DOMAIN_DEFAULT || 'http://localhost:5000'}/auth/callback`,
       },
     });
 
     if (authError) {
+      // 处理常见错误
+      if (authError.message.includes('already registered')) {
+        return NextResponse.json(
+          { error: '该邮箱已被注册，请直接登录或使用其他邮箱' },
+          { status: 400 }
+        );
+      }
+      if (authError.message.includes('Password')) {
+        return NextResponse.json(
+          { error: '密码不符合要求，请使用至少6个字符的密码' },
+          { status: 400 }
+        );
+      }
+      if (authError.message.includes('Invalid email')) {
+        return NextResponse.json(
+          { error: '邮箱格式不正确，请检查后重试' },
+          { status: 400 }
+        );
+      }
       return NextResponse.json(
         { error: authError.message },
         { status: 400 }
@@ -74,6 +94,33 @@ export async function POST(request: NextRequest) {
         { error: '注册失败，请重试' },
         { status: 500 }
       );
+    }
+
+    // 检查是否需要邮箱验证
+    const needsEmailConfirmation = !authData.session && authData.user.identities?.length === 0;
+    
+    if (needsEmailConfirmation) {
+      // 邮箱已注册但未验证，提示用户检查邮箱
+      return NextResponse.json({
+        success: true,
+        needsEmailConfirmation: true,
+        message: '该邮箱已注册但未验证，请检查邮箱完成验证后登录',
+        data: {
+          user: { id: authData.user.id, email: authData.user.email },
+        },
+      });
+    }
+
+    // 如果注册成功但没有 session，说明需要邮箱验证
+    if (!authData.session) {
+      return NextResponse.json({
+        success: true,
+        needsEmailConfirmation: true,
+        message: '注册成功！请检查邮箱完成验证后登录',
+        data: {
+          user: { id: authData.user.id, email: authData.user.email },
+        },
+      });
     }
 
     // 创建用户资料

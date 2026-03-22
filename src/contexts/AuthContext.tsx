@@ -22,7 +22,7 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, username: string) => Promise<void>;
+  register: (email: string, password: string, username: string) => Promise<{ needsEmailConfirmation?: boolean; message?: string }>;
   logout: () => Promise<void>;
   refreshToken: () => Promise<boolean>;
 }
@@ -189,7 +189,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('refresh_token', data.data.session.refresh_token);
   };
 
-  const register = async (email: string, password: string, username: string) => {
+  const register = async (email: string, password: string, username: string): Promise<{ needsEmailConfirmation?: boolean; message?: string }> => {
     let response;
     try {
       response = await fetch('/api/auth/register', {
@@ -204,19 +204,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error('网络连接失败，请检查网络后重试');
     }
 
+    const data = await response.json();
+
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || '注册失败');
+      throw new Error(data.error || '注册失败');
     }
 
-    const data = await response.json();
-    if (data.data.session) {
+    // 如果需要邮箱验证，返回提示信息
+    if (data.needsEmailConfirmation) {
+      return { 
+        needsEmailConfirmation: true, 
+        message: data.message || '注册成功！请检查邮箱完成验证后登录' 
+      };
+    }
+
+    // 如果有 session，直接登录
+    if (data.data?.session) {
       setUser(data.data.user);
       setToken(data.data.session.access_token);
       setRefreshTokenValue(data.data.session.refresh_token);
       localStorage.setItem('auth_token', data.data.session.access_token);
       localStorage.setItem('refresh_token', data.data.session.refresh_token);
     }
+
+    return { needsEmailConfirmation: false };
   };
 
   const logout = async () => {

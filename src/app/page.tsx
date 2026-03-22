@@ -22,7 +22,9 @@ export default function LoginPage() {
   const [registerUsername, setRegisterUsername] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeTab, setActiveTab] = useState('login');
 
   // 如果已登录，跳转到大厅
   if (isAuthenticated) {
@@ -33,6 +35,7 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccessMessage('');
     setIsSubmitting(true);
 
     try {
@@ -48,6 +51,7 @@ export default function LoginPage() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccessMessage('');
 
     if (registerPassword !== confirmPassword) {
       setError('两次输入的密码不一致');
@@ -57,8 +61,22 @@ export default function LoginPage() {
     setIsSubmitting(true);
 
     try {
-      await register(registerEmail, registerPassword, registerUsername);
-      router.push('/lobby');
+      const result = await register(registerEmail, registerPassword, registerUsername);
+      
+      if (result.needsEmailConfirmation) {
+        // 需要邮箱验证
+        setSuccessMessage(result.message || '注册成功！请检查邮箱完成验证后登录');
+        // 清空表单
+        setRegisterEmail('');
+        setRegisterPassword('');
+        setRegisterUsername('');
+        setConfirmPassword('');
+        // 切换到登录标签
+        setActiveTab('login');
+      } else {
+        // 直接登录成功，跳转到大厅
+        router.push('/lobby');
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : '注册失败');
     } finally {
@@ -117,7 +135,7 @@ export default function LoginPage() {
         </div>
 
         <Card className="kamen-card backdrop-blur-sm bg-[#12121a]/90 border-[#c41e3a]/20">
-          <Tabs defaultValue="login" className="w-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <CardHeader className="pb-2">
               <TabsList className="grid w-full grid-cols-2 bg-[#1a1a25]/80">
                 <TabsTrigger 
@@ -136,6 +154,11 @@ export default function LoginPage() {
             </CardHeader>
 
             <CardContent className="pt-4">
+              {successMessage && (
+                <Alert className="mb-4 bg-[#22c55e]/10 border-[#22c55e]/30">
+                  <AlertDescription className="text-[#4ade80]">{successMessage}</AlertDescription>
+                </Alert>
+              )}
               {error && (
                 <Alert variant="destructive" className="mb-4 bg-[#dc2626]/10 border-[#dc2626]/30">
                   <AlertDescription className="text-[#ff6b6b]">{error}</AlertDescription>
