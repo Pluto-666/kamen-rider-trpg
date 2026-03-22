@@ -1127,8 +1127,8 @@ export default function CharactersPage() {
                   {/* Background */}
                   {selectedCharacter.background && (
                     <div>
-                      <h4 className="font-semibold mb-1 text-sm">背景故事</h4>
-                      <p className="text-xs text-muted-foreground whitespace-pre-wrap">
+                      <h4 className="font-semibold mb-1 text-sm text-[#e8e8f0]">背景故事</h4>
+                      <p className="text-xs text-[#c0c0c8] whitespace-pre-wrap">
                         {selectedCharacter.background}
                       </p>
                     </div>
@@ -1137,15 +1137,15 @@ export default function CharactersPage() {
                   {/* Weapons */}
                   {selectedCharacter.weapons && selectedCharacter.weapons.length > 0 && (
                     <div>
-                      <h4 className="font-semibold mb-1 flex items-center gap-2 text-sm">
-                        <Swords className="h-4 w-4" />
+                      <h4 className="font-semibold mb-1 flex items-center gap-2 text-sm text-[#e8e8f0]">
+                        <Swords className="h-4 w-4 text-[#c41e3a]" />
                         武器
                       </h4>
                       <div className="space-y-1">
                         {selectedCharacter.weapons.map((weapon, idx) => (
-                          <div key={idx} className="p-2 bg-muted rounded text-xs">
-                            <div className="font-medium">{weapon.name}</div>
-                            <div className="text-muted-foreground">
+                          <div key={idx} className="p-2 bg-[#1a1a25] rounded text-xs border border-[#c41e3a]/10">
+                            <div className="font-medium text-[#e8e8f0]">{weapon.name}</div>
+                            <div className="text-[#9a9aaa]">
                               射程: {weapon.range} | 命中: {weapon.hitTotal} | DP: {weapon.dpTotal}
                             </div>
                           </div>
@@ -1157,11 +1157,11 @@ export default function CharactersPage() {
                   {/* Equipment */}
                   {selectedCharacter.other_equipment && (
                     <div>
-                      <h4 className="font-semibold mb-1 flex items-center gap-2 text-sm">
-                        <Shield className="h-4 w-4" />
+                      <h4 className="font-semibold mb-1 flex items-center gap-2 text-sm text-[#e8e8f0]">
+                        <Shield className="h-4 w-4 text-[#c41e3a]" />
                         其他装备
                       </h4>
-                      <p className="text-xs text-muted-foreground">{selectedCharacter.other_equipment}</p>
+                      <p className="text-xs text-[#c0c0c8]">{selectedCharacter.other_equipment}</p>
                     </div>
                   )}
                 </div>
