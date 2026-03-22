@@ -112,6 +112,11 @@ interface Scenario {
   description: string;
   difficulty: string;
   duration: string;
+  reason?: string;
+  isOriginal?: boolean;
+  source?: string;
+  mainEnemy?: string;
+  keyLocations?: string[];
 }
 
 export default function RoomPage() {
@@ -138,6 +143,9 @@ export default function RoomPage() {
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
   const [selectedScenario, setSelectedScenario] = useState<string>('');
   const [isStartingGame, setIsStartingGame] = useState(false);
+  const [isFirstScenario, setIsFirstScenario] = useState(false);
+  const [completedScenarios, setCompletedScenarios] = useState<string[]>([]);
+  const [isRefreshingScenarios, setIsRefreshingScenarios] = useState(false);
   const [showCharacterDetail, setShowCharacterDetail] = useState(false);
   const [selectedMember, setSelectedMember] = useState<RoomMember | null>(null);
   const [characterDetail, setCharacterDetail] = useState<Character | null>(null);
@@ -536,7 +544,7 @@ export default function RoomPage() {
     setIsStartingGame(true);
     
     try {
-      // 获取剧本推荐
+      // 获取剧本推荐 - 首次固定生成《被扭曲的世界》
       const response = await fetch('/api/ai/scenarios', {
         method: 'POST',
         headers: {
@@ -545,12 +553,16 @@ export default function RoomPage() {
         },
         body: JSON.stringify({
           characters: members.map(m => m.characters).filter(Boolean),
+          isFirstScenario: true, // 首次生成
         }),
       });
 
       if (response.ok) {
         const data = await response.json();
         setScenarios(data.data.scenarios || []);
+        setIsFirstScenario(data.data.isFirstScenario);
+        setCompletedScenarios(data.data.completedScenarios || []);
+        setSelectedScenario(''); // 重置选择
         setShowScenarioDialog(true);
       }
     } catch (error) {
@@ -558,6 +570,44 @@ export default function RoomPage() {
       toast.error('获取剧本失败');
     } finally {
       setIsStartingGame(false);
+    }
+  };
+
+  // 刷新剧本选项
+  const handleRefreshScenarios = async () => {
+    setIsRefreshingScenarios(true);
+    setSelectedScenario(''); // 重置选择
+    
+    try {
+      const response = await fetch('/api/ai/scenarios', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          characters: members.map(m => m.characters).filter(Boolean),
+          isFirstScenario: false,
+          refresh: true, // 刷新请求
+          previousScenarios: completedScenarios,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setScenarios(data.data.scenarios || []);
+        setIsFirstScenario(data.data.isFirstScenario);
+        setCompletedScenarios(data.data.completedScenarios || []);
+        
+        if (data.data.allModulesCompleted) {
+          toast.success('恭喜！所有预设剧本已通关，AI为您创作了全新剧本！');
+        }
+      }
+    } catch (error) {
+      console.error('刷新剧本失败:', error);
+      toast.error('刷新剧本失败');
+    } finally {
+      setIsRefreshingScenarios(false);
     }
   };
 
@@ -970,14 +1020,18 @@ export default function RoomPage() {
 
       {/* Scenario Selection Dialog */}
       <Dialog open={showScenarioDialog} onOpenChange={setShowScenarioDialog}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>选择剧本</DialogTitle>
             <DialogDescription>
-              AI为您推荐了以下剧本
+              {isFirstScenario 
+                ? '推荐您从入门剧本开始游戏' 
+                : completedScenarios.length > 0 
+                  ? `已通关: ${completedScenarios.join('、')}` 
+                  : 'AI为您推荐了以下剧本'}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 max-h-[400px] overflow-y-auto">
             {scenarios.map((scenario, index) => (
               <Card
                 key={index}
@@ -987,21 +1041,57 @@ export default function RoomPage() {
                 onClick={() => setSelectedScenario(scenario.name)}
               >
                 <CardContent className="py-4">
-                  <div className="font-medium">{scenario.name}</div>
+                  <div className="font-medium flex items-center gap-2">
+                    {scenario.name}
+                    {scenario.isOriginal && (
+                      <Badge variant="default" className="text-xs">原创</Badge>
+                    )}
+                  </div>
                   <div className="text-sm text-muted-foreground mt-1">
                     {scenario.description}
                   </div>
-                  <div className="flex gap-2 mt-2">
+                  <div className="flex flex-wrap gap-2 mt-2">
                     <Badge variant="secondary">{scenario.difficulty}</Badge>
                     <Badge variant="outline">{scenario.duration}</Badge>
+                    {scenario.mainEnemy && (
+                      <Badge variant="destructive">{scenario.mainEnemy}</Badge>
+                    )}
                   </div>
+                  {scenario.reason && (
+                    <div className="text-xs text-muted-foreground mt-2 italic">
+                      {scenario.reason}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))}
           </div>
-          <Button onClick={handleSelectScenario} disabled={!selectedScenario} className="w-full">
-            开始游戏
-          </Button>
+          <div className="flex gap-2">
+            {!isFirstScenario && (
+              <Button 
+                variant="outline" 
+                onClick={handleRefreshScenarios}
+                disabled={isRefreshingScenarios}
+                className="flex-1"
+              >
+                {isRefreshingScenarios ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
+                    刷新中...
+                  </>
+                ) : (
+                  <>刷新选项</>
+                )}
+              </Button>
+            )}
+            <Button 
+              onClick={handleSelectScenario} 
+              disabled={!selectedScenario || isRefreshingScenarios} 
+              className="flex-1"
+            >
+              开始游戏
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 
