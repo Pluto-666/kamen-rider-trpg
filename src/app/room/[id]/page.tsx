@@ -626,11 +626,6 @@ export default function RoomPage() {
 
   // 保存游戏进度
   const handleSaveGame = async () => {
-    if (!isInGame) {
-      toast.error('游戏未开始，无法保存');
-      return;
-    }
-
     if (!token) {
       toast.error('未登录，无法保存');
       return;
