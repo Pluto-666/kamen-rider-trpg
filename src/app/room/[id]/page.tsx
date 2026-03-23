@@ -205,6 +205,15 @@ export default function RoomPage() {
           console.log('[DM] 消息列表长度:', updated.length);
           return updated;
         });
+        
+        // 广播AI叙事给房间内其他玩家
+        wsSend({
+          type: 'game:narrative',
+          payload: {
+            content: fullMessage,
+            senderName: 'AI主持人',
+          },
+        });
       } else {
         console.log('[DM] 没有收到任何消息内容');
       }
@@ -1009,13 +1018,13 @@ export default function RoomPage() {
       return updated;
     });
     
-    // 发送玩家行动到WebSocket
+    // 发送玩家行动到WebSocket广播给其他玩家
     wsSend({
-      type: 'game:action',
+      type: 'room:chat',
       payload: {
-        action: playerMessage,
+        content: playerMessage,
         characterId: selectedCharacterId,
-        characterName: character?.name,
+        characterName: character?.name || profile?.username,
       },
     });
 

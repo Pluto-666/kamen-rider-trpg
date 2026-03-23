@@ -185,14 +185,14 @@ export function setupGameRoomHandler(wss: WebSocketServer) {
 
           case 'game:narrative': {
             if (currentRoomId) {
-              // AI叙事结果广播
+              // AI叙事结果广播给其他玩家（排除发送请求的玩家）
               broadcastToRoom(currentRoomId, {
                 type: 'game:narrative',
                 payload: {
                   ...(msg.payload as Record<string, unknown>),
                   timestamp: new Date().toISOString()
                 }
-              });
+              }, ws); // 排除发送者，避免重复显示
             }
             break;
           }
