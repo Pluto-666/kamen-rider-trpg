@@ -147,7 +147,91 @@ function searchInRulebookFile(query: string, maxChunks: number = 5): string[] {
 }
 
 /**
- * 搜索规则书内容
+ * 按行号范围检索规则书内容
+ * @param startLine 起始行号（从1开始）
+ * @param endLine 结束行号（可选，默认为起始行+50）
+ * @param contextLines 上下文行数（前后各显示多少行）
+ */
+export function searchByLineNumber(
+  startLine: number,
+  endLine?: number,
+  contextLines: number = 10
+): SearchResult {
+  try {
+    const rulebookPath = path.join(process.cwd(), 'assets', '规则书.txt');
+    if (!fs.existsSync(rulebookPath)) {
+      console.log('规则书文件不存在:', rulebookPath);
+      return { found: false, content: '规则书文件不存在', source: 'none' };
+    }
+    
+    const content = fs.readFileSync(rulebookPath, 'utf-8');
+    const lines = content.split('\n');
+    const totalLines = lines.length;
+    
+    // 行号从1开始，转换为数组索引（从0开始）
+    const startIdx = Math.max(0, (startLine - 1) - contextLines);
+    const endIdx = Math.min(totalLines, (endLine || startLine) + contextLines);
+    
+    // 获取指定行范围的内容
+    const resultLines = lines.slice(startIdx, endIdx);
+    
+    // 添加行号标记
+    const numberedLines = resultLines.map((line, idx) => {
+      const actualLineNum = startIdx + idx + 1;
+      const isTargetRange = actualLineNum >= startLine && actualLineNum <= (endLine || startLine);
+      return isTargetRange ? `>>> ${actualLineNum}: ${line}` : `    ${actualLineNum}: ${line}`;
+    });
+    
+    const resultContent = `规则书总行数: ${totalLines}
+请求行号范围: ${startLine}${endLine ? ` - ${endLine}` : ''}
+
+${numberedLines.join('\n')}
+
+【说明】标记 >>> 的行为目标行`;
+
+    return {
+      found: true,
+      content: resultContent,
+      source: 'file',
+    };
+  } catch (error) {
+    console.error('行号检索错误:', error);
+    return { found: false, content: `检索失败: ${error}`, source: 'none' };
+  }
+}
+
+/**
+ * 解析行号请求字符串
+ * 支持格式: "第6450行", "6450行", "第6450-6516行", "6450到6516行"
+ */
+export function parseLineRequest(query: string): { startLine: number; endLine?: number } | null {
+  // 匹配 "第X行" 或 "X行"
+  const singleLineMatch = query.match(/第?(\d+)\s*行/);
+  if (singleLineMatch) {
+    return { startLine: parseInt(singleLineMatch[1]) };
+  }
+  
+  // 匹配 "第X到Y行" 或 "第X-Y行" 或 "X到Y行"
+  const rangeMatch = query.match(/第?(\d+)\s*(?:到|-|~)\s*(\d+)\s*行/);
+  if (rangeMatch) {
+    return { 
+      startLine: parseInt(rangeMatch[1]), 
+      endLine: parseInt(rangeMatch[2]) 
+    };
+  }
+  
+  // 匹配纯数字（假设为行号）
+  const numberMatch = query.match(/^(\d+)$/);
+  if (numberMatch) {
+    return { startLine: parseInt(numberMatch[1]) };
+  }
+  
+  return null;
+}
+
+/**
+ * 智能搜索规则书内容
+ * 自动识别是行号搜索还是关键词搜索
  */
 export async function searchRulebook(
   query: string,
@@ -158,6 +242,14 @@ export async function searchRulebook(
 ): Promise<SearchResult> {
   const { maxChunks = 5 } = options;
   
+  // 首先检查是否是行号请求
+  const lineRequest = parseLineRequest(query);
+  if (lineRequest) {
+    console.log('检测到行号请求:', lineRequest);
+    return searchByLineNumber(lineRequest.startLine, lineRequest.endLine);
+  }
+  
+  // 否则使用关键词搜索
   const fileResults = searchInRulebookFile(query, maxChunks);
   
   if (fileResults.length > 0) {

@@ -4,6 +4,8 @@ import {
   searchCharacterCreationRules,
   searchRulebook,
   searchRaceAbilityRules,
+  parseLineRequest,
+  searchByLineNumber,
   RACE_ABILITY_POINTS,
   ABILITY_TYPES
 } from '@/lib/rulebook-search';
@@ -201,6 +203,19 @@ export async function POST(request: NextRequest) {
       userMessage,
     } = await request.json();
 
+    // 首先检查是否是行号检索请求
+    let lineSearchResult = '';
+    if (userMessage) {
+      const lineRequest = parseLineRequest(userMessage);
+      if (lineRequest) {
+        console.log('检测到行号检索请求:', lineRequest);
+        const result = searchByLineNumber(lineRequest.startLine, lineRequest.endLine);
+        if (result.found) {
+          lineSearchResult = result.content;
+        }
+      }
+    }
+
     // 检索角色创建相关的规则书内容
     console.log('检索角色创建规则...');
     const raceParam = (characterData as CharacterData).race;
@@ -226,9 +241,16 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 合并规则内容，种族能力值规则优先
-    const ruleContext = (raceAbilityResult.found ? raceAbilityResult.content : '') + '\n\n' + 
-                        (ruleResult.found ? ruleResult.content : '') + '\n\n' + additionalRules;
+    // 合并规则内容，行号检索结果优先，然后是种族能力值规则
+    let ruleContext = '';
+    
+    // 如果有行号检索结果，优先展示
+    if (lineSearchResult) {
+      ruleContext += '【行号检索结果】\n' + lineSearchResult + '\n\n';
+    }
+    
+    ruleContext += (raceAbilityResult.found ? raceAbilityResult.content : '') + '\n\n' + 
+                   (ruleResult.found ? ruleResult.content : '') + '\n\n' + additionalRules;
 
     // 构建消息历史
     const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [];
@@ -317,7 +339,12 @@ ${Object.keys(characterData).length > 0
   : '暂无，等待玩家提供'}
 
 ## 规则书参考内容
-${ruleContext || '暂无相关规则，请根据假面骑士TRPG通用规则引导'}`;
+${ruleContext || '暂无相关规则，请根据假面骑士TRPG通用规则引导'}
+
+## 行号检索说明
+如果玩家请求查看特定行号的内容（如"第6450行"），系统会自动检索并展示对应行的规则书原文。
+你只需要将检索结果展示给玩家，并解释相关规则即可。
+【重要】行号检索结果中标记 >>> 的行为目标行，前后各10行为上下文。`;
 
     messages.push({ role: 'system', content: systemPrompt });
 
