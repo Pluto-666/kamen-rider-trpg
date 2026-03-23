@@ -1020,7 +1020,7 @@ export default function RoomPage() {
     setIsStartingGame(true);
     
     try {
-      // 获取剧本推荐 - 首次固定生成《被扭曲的世界》
+      // 获取剧本推荐
       const response = await fetch('/api/ai/scenarios', {
         method: 'POST',
         headers: {
@@ -1029,7 +1029,6 @@ export default function RoomPage() {
         },
         body: JSON.stringify({
           characters: members.map(m => m.characters).filter(Boolean),
-          isFirstScenario: true, // 首次生成
         }),
       });
 
@@ -1049,7 +1048,7 @@ export default function RoomPage() {
     }
   };
 
-  // 刷新剧本选项
+  // 刷新剧本选项（重新生成4个剧本）
   const handleRefreshScenarios = async () => {
     setIsRefreshingScenarios(true);
     setSelectedScenario(''); // 重置选择
@@ -1063,8 +1062,7 @@ export default function RoomPage() {
         },
         body: JSON.stringify({
           characters: members.map(m => m.characters).filter(Boolean),
-          isFirstScenario: false,
-          refresh: true, // 刷新请求
+          refresh: true,
           previousScenarios: completedScenarios,
         }),
       });
@@ -1076,7 +1074,7 @@ export default function RoomPage() {
         setCompletedScenarios(data.data.completedScenarios || []);
         
         if (data.data.allModulesCompleted) {
-          toast.success('恭喜！所有预设剧本已通关，AI为您创作了全新剧本！');
+          toast.success('所有规则书模组已通关，AI为您创作了全新剧本！');
         }
       }
     } catch (error) {
@@ -1651,13 +1649,14 @@ export default function RoomPage() {
       <Dialog open={showScenarioDialog} onOpenChange={setShowScenarioDialog}>
         <DialogContent className="sm:max-w-lg kamen-dialog bg-[#1e1e28]/95 backdrop-blur-sm border-[#c41e3a]/35">
           <DialogHeader>
-            <DialogTitle className="text-[#e8e8f0]">选择剧本</DialogTitle>
+            <DialogTitle className="text-[#e8e8f0] flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-[#00d4ff]" />
+              选择剧本
+            </DialogTitle>
             <DialogDescription className="text-[#9a9aaa]">
-              {isFirstScenario 
-                ? '推荐您从入门剧本开始游戏' 
-                : completedScenarios.length > 0 
-                  ? `已通关: ${completedScenarios.join('、')}` 
-                  : 'AI为您推荐了以下剧本'}
+              {completedScenarios.length > 0 
+                ? `已通关: ${completedScenarios.join('、')}` 
+                : 'AI为您推荐了以下剧本'}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 max-h-[400px] overflow-y-auto">
@@ -1671,12 +1670,16 @@ export default function RoomPage() {
               >
                 <CardContent className="py-4">
                   <div className="font-medium flex items-center gap-2 text-lg text-[#e8e8f0]">
+                    <span className="text-[#c41e3a] font-bold">#{index + 1}</span>
                     {scenario.name}
                     {scenario.isStarter && (
                       <Badge className="text-xs bg-[#c41e3a]/25 text-[#e8e8f0] border-[#c41e3a]/40">新手推荐</Badge>
                     )}
                     {scenario.isOriginal && (
-                      <Badge variant="secondary" className="text-xs bg-[#00d4ff]/20 text-[#00d4ff] border-[#00d4ff]/40">原创</Badge>
+                      <Badge variant="secondary" className="text-xs bg-[#00d4ff]/20 text-[#00d4ff] border-[#00d4ff]/40">AI创作</Badge>
+                    )}
+                    {!scenario.isOriginal && !scenario.isStarter && (
+                      <Badge variant="outline" className="text-xs border-[#ffd700]/40 text-[#ffd700]">规则书模组</Badge>
                     )}
                   </div>
                   
@@ -1690,10 +1693,10 @@ export default function RoomPage() {
                   {/* 标签信息 */}
                   <div className="flex flex-wrap gap-2 mt-3">
                     <Badge variant="outline" className="text-xs border-[#c41e3a]/30 text-[#c0c0c8]">
-                      {scenario.difficulty}
+                      难度: {scenario.difficulty}
                     </Badge>
                     <Badge variant="outline" className="text-xs border-[#c41e3a]/30 text-[#c0c0c8]">
-                      {scenario.duration}
+                      时长: {scenario.duration}
                     </Badge>
                     {scenario.mainEnemy && (
                       <Badge variant="destructive" className="text-xs bg-[#dc2626]/80">
@@ -1714,23 +1717,24 @@ export default function RoomPage() {
             ))}
           </div>
           <div className="flex gap-2">
-            {!isFirstScenario && (
-              <Button 
-                variant="outline" 
-                onClick={handleRefreshScenarios}
-                disabled={isRefreshingScenarios}
-                className="flex-1 border-[#c41e3a]/30 text-[#c0c0c8] hover:border-[#c41e3a] hover:text-[#e8e8f0]"
-              >
-                {isRefreshingScenarios ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
-                    刷新中...
-                  </>
-                ) : (
-                  <>刷新选项</>
-                )}
-              </Button>
-            )}
+            <Button 
+              variant="outline" 
+              onClick={handleRefreshScenarios}
+              disabled={isRefreshingScenarios}
+              className="flex-1 border-[#00d4ff]/30 text-[#c0c0c8] hover:border-[#00d4ff] hover:text-[#00d4ff]"
+            >
+              {isRefreshingScenarios ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
+                  刷新中...
+                </>
+              ) : (
+                <>
+                  <span className="mr-1">🔄</span>
+                  随机刷新
+                </>
+              )}
+            </Button>
             <Button 
               onClick={handleSelectScenario} 
               disabled={!selectedScenario || isRefreshingScenarios} 
