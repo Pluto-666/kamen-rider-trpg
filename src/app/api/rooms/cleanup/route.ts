@@ -2,6 +2,99 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 /**
+ * 处理WebSocket断开连接时的用户离开
+ * 使用内部密钥验证
+ */
+export async function DELETE(request: NextRequest) {
+  try {
+    const roomId = request.nextUrl.searchParams.get('roomId');
+    const userId = request.nextUrl.searchParams.get('userId');
+    
+    if (!roomId || !userId) {
+      return NextResponse.json({ error: '缺少roomId或userId参数' }, { status: 400 });
+    }
+
+    // 验证内部密钥
+    const internalKey = request.headers.get('x-internal-key');
+    const expectedKey = process.env.INTERNAL_API_KEY || 'kamen-rider-internal';
+    
+    if (internalKey !== expectedKey) {
+      return NextResponse.json({ error: '未授权' }, { status: 401 });
+    }
+
+    const supabase = getSupabaseClient();
+
+    // 获取房间信息
+    const { data: room } = await supabase
+      .from('rooms')
+      .select('host_id')
+      .eq('id', roomId)
+      .single();
+
+    if (!room) {
+      // 房间已经不存在，直接返回成功
+      return NextResponse.json({ success: true, message: '房间已不存在' });
+    }
+
+    // 删除用户的成员记录
+    const { error: deleteError } = await supabase
+      .from('room_members')
+      .delete()
+      .eq('room_id', roomId)
+      .eq('user_id', userId);
+
+    if (deleteError) {
+      console.error('删除成员记录错误:', deleteError);
+      return NextResponse.json({ error: '离开房间失败' }, { status: 500 });
+    }
+
+    console.log(`[WebSocket] 用户 ${userId} 离开房间 ${roomId}`);
+
+    // 检查房间是否还有成员
+    const { data: remainingMembers } = await supabase
+      .from('room_members')
+      .select('id, user_id')
+      .eq('room_id', roomId);
+
+    console.log(`[WebSocket] 房间 ${roomId} 剩余成员数: ${remainingMembers?.length || 0}`);
+
+    // 如果没有成员了，删除房间
+    if (!remainingMembers || remainingMembers.length === 0) {
+      // 删除房间（游戏存档保留）
+      const { error: roomDeleteError } = await supabase
+        .from('rooms')
+        .delete()
+        .eq('id', roomId);
+
+      if (roomDeleteError) {
+        console.error('删除房间错误:', roomDeleteError);
+      } else {
+        console.log(`[WebSocket] 房间 ${roomId} 已自动解散（无成员）`);
+      }
+      
+      return NextResponse.json({ success: true, message: '房间已自动解散', roomDeleted: true });
+    }
+
+    // 如果房主离开但还有其他成员，转移房主
+    if (room.host_id === userId && remainingMembers.length > 0) {
+      const newHostMember = remainingMembers[0];
+      
+      await supabase
+        .from('rooms')
+        .update({ host_id: newHostMember.user_id })
+        .eq('id', roomId);
+      
+      console.log(`[WebSocket] 房间 ${roomId} 房主转移给 ${newHostMember.user_id}`);
+    }
+
+    return NextResponse.json({ success: true, roomDeleted: false });
+  } catch (error) {
+    console.error('WebSocket断开清理错误:', error);
+    return NextResponse.json({ error: '服务器错误' }, { status: 500 });
+  }
+}
+
+/**
  * 清理没有真人玩家的空房间
  * 只允许管理员或系统调用此接口
  */

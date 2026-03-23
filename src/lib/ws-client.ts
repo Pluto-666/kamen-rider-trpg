@@ -1,11 +1,5 @@
 import { WebSocket, type WebSocketServer } from 'ws';
 import type { IncomingMessage } from 'http';
-import { createClient } from '@supabase/supabase-js';
-
-// 创建 Supabase 客户端
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
 
 // WebSocket 消息类型
 export interface WsMessage<T = unknown> {
@@ -221,10 +215,10 @@ export function setupGameRoomHandler(wss: WebSocketServer) {
       }
     });
 
-    ws.on('close', () => {
+    ws.on('close', async () => {
       clearInterval(heartbeatInterval);
       
-      if (currentRoomId) {
+      if (currentRoomId && userId) {
         const connections = roomConnections.get(currentRoomId);
         if (connections) {
           connections.delete(ws);
@@ -238,6 +232,23 @@ export function setupGameRoomHandler(wss: WebSocketServer) {
               timestamp: new Date().toISOString() 
             }
           });
+        }
+        
+        // 调用内部API清理用户离开房间
+        try {
+          const internalKey = process.env.INTERNAL_API_KEY || 'kamen-rider-internal';
+          const port = process.env.DEPLOY_RUN_PORT || '5000';
+          
+          await fetch(`http://localhost:${port}/api/rooms/cleanup?roomId=${currentRoomId}&userId=${userId}`, {
+            method: 'DELETE',
+            headers: {
+              'x-internal-key': internalKey,
+            },
+          });
+          
+          console.log(`[WebSocket] 已清理用户 ${userId} 离开房间 ${currentRoomId} 的数据`);
+        } catch (error) {
+          console.error('[WebSocket] 清理用户离开数据失败:', error);
         }
       }
     });
