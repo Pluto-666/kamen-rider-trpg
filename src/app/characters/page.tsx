@@ -192,6 +192,28 @@ function cleanExtractedText(text: string | undefined, maxLength: number = 50): s
   return cleaned || undefined;
 }
 
+// 判断是否是提示性文本（不应该被保存）
+function isPromptText(text: string): boolean {
+  const promptPatterns = [
+    /您希望/,
+    /请(?:描述|填写|输入|提供)/,
+    /基于您的/,
+    /请用\d/,
+    /简单描述/,
+    /\?$/,
+    /？$/,
+    /叫什么名字/,
+    /是什么样的/,
+    /是什么/,
+    /待填写/,
+    /待定/,
+    /暂无/,
+  ];
+  
+  const lowerText = text.toLowerCase().trim();
+  return promptPatterns.some(pattern => pattern.test(text)) || lowerText.length < 2;
+}
+
 // 从对话中提取角色数据
 function extractCharacterFromChat(chatHistory: ChatMessage[]): Partial<Character> {
   const allText = chatHistory.map(m => m.content).join('\n');
@@ -233,15 +255,20 @@ function extractCharacterFromChat(chatHistory: ChatMessage[]): Partial<Character
   const jobMatch = allText.match(/(?:职业[：:]?\s*|工作[：:]?\s*)([^\n，。！？|]+)/);
   if (jobMatch) character.occupation = cleanExtractedText(jobMatch[1], 50);
   
-  // 提取背景故事
+  // 提取背景故事 - 过滤提示性文本
   const bgMatch = allText.match(/(?:背景[：:]?\s*|故事[：:]?\s*|背景故事[：:]?\s*)([^\n]+(?:\n[^\n]+)*)/);
-  if (bgMatch) character.background = cleanExtractedText(bgMatch[1], 500);
+  if (bgMatch) {
+    const bgText = cleanExtractedText(bgMatch[1], 500);
+    if (bgText && !isPromptText(bgText)) {
+      character.background = bgText;
+    }
+  }
   
-  // 提取骑士系统
+  // 提取骑士系统 - 过滤提示性文本
   const riderMatch = allText.match(/(?:骑士系统[：:]?\s*|变身道具[：:]?\s*|骑士称号[：:]?\s*)([^\n，。！？|]+)/);
   if (riderMatch) {
     const riderSystem = cleanExtractedText(riderMatch[1], 50);
-    if (riderSystem) {
+    if (riderSystem && !isPromptText(riderSystem)) {
       character.rider_data = {
         riderSystem,
         transformationItem: '',
@@ -251,11 +278,11 @@ function extractCharacterFromChat(chatHistory: ChatMessage[]): Partial<Character
     }
   }
   
-  // 提取必杀技
+  // 提取必杀技 - 过滤提示性文本
   const finisherMatch = allText.match(/(?:必杀技[：:]?\s*)([^\n，。！？|]+)/);
   if (finisherMatch && character.rider_data) {
     const finisher = cleanExtractedText(finisherMatch[1], 100);
-    if (finisher) {
+    if (finisher && !isPromptText(finisher)) {
       character.rider_data.finisherMoves = [finisher];
     }
   }

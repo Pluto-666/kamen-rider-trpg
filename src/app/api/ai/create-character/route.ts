@@ -63,6 +63,26 @@ function extractCharacterData(characterData: CharacterData, messages: Message[])
   const recentMessages = messages.slice(-6);
   const text = recentMessages.map(m => m.content).join('\n');
   
+  // 判断是否是提示性文本（不应该被保存）
+  const isPromptText = (str: string): boolean => {
+    const promptPatterns = [
+      /您希望/,
+      /请(?:描述|填写|输入|提供)/,
+      /基于您的/,
+      /请用\d/,
+      /简单描述/,
+      /\?$/,
+      /？$/,
+      /叫什么名字/,
+      /是什么样的/,
+      /是什么/,
+      /待填写/,
+      /待定/,
+      /暂无/,
+    ];
+    return promptPatterns.some(pattern => pattern.test(str)) || str.trim().length < 2;
+  };
+  
   // 首先尝试从最新的 AI 回复中提取 JSON 数据
   const lastAssistantMsg = [...recentMessages].reverse().find(m => m.role === 'assistant');
   if (lastAssistantMsg) {
@@ -93,17 +113,29 @@ function extractCharacterData(characterData: CharacterData, messages: Message[])
   const jobMatch = text.match(/(?:职业|工作)[：:]\s*([^\n，。！？]+)/);
   if (jobMatch) data.occupation = jobMatch[1].trim();
   
+  // 背景故事 - 过滤提示性文本
   const bgMatch = text.match(/(?:背景|故事)[：:]\s*([^\n]+(?:\n[^\n]+)*)/);
-  if (bgMatch) data.background = bgMatch[1].trim();
+  if (bgMatch && !isPromptText(bgMatch[1])) {
+    data.background = bgMatch[1].trim();
+  }
   
-  const transformMatch = text.match(/(?:变身道具|驱动器)[：:]\s*([^\n，。！？]+)/);
-  if (transformMatch) data.transformItem = transformMatch[1].trim();
+  // 变身道具 - 过滤提示性文本
+  const transformMatch = text.match(/(?:变身道具|驱动器|骑士系统)[：:]\s*([^\n，。！？]+)/);
+  if (transformMatch && !isPromptText(transformMatch[1])) {
+    data.transformItem = transformMatch[1].trim();
+  }
   
+  // 必杀技 - 过滤提示性文本
   const finisherMatch = text.match(/(?:必杀技|终结技)[：:]\s*([^\n，。！？]+)/);
-  if (finisherMatch) data.finisherMove = finisherMatch[1].trim();
+  if (finisherMatch && !isPromptText(finisherMatch[1])) {
+    data.finisherMove = finisherMatch[1].trim();
+  }
   
+  // 变身口号 - 过滤提示性文本
   const phraseMatch = text.match(/(?:变身口号|口号)[：:]\s*([^\n，。！？]+)/);
-  if (phraseMatch) data.transformPhrase = phraseMatch[1].trim();
+  if (phraseMatch && !isPromptText(phraseMatch[1])) {
+    data.transformPhrase = phraseMatch[1].trim();
+  }
   
   // 提取属性值（支持中文名和英文名，支持 Markdown 格式）
   const attributes: Record<string, number> = data.attributes ? { ...data.attributes } : {};
@@ -242,10 +274,42 @@ ${racePointsRef}
 8. 【骑士系统】必杀技名称
 9. 【骑士系统】变身口号
 
-## 回复规范
-1. 当玩家选择种族后，必须明确说明该种族的能力值分配点数（引用规则书）
-2. 帮助玩家分配点数时，要说明初始值和分配规则
-3. 当玩家质疑规则时，优先查阅规则书内容，承认错误并更正
+## ⚠️ 输出格式规范（非常重要！）
+
+### 提问时使用问句格式，不要使用"字段名：提示文本"格式
+❌ 错误示例：
+"骑士系统：您希望角色变身后的骑士叫什么名字？"
+"必杀技：名称：基于您的硬币组合"
+"背景：请用2-3句话简单描述角色的背景。"
+
+✅ 正确示例：
+"请告诉我您希望角色变身后的骑士叫什么名字？"
+"您的必杀技叫什么名字？可以基于您的硬币组合来命名。"
+"请用2-3句话简单描述您角色的背景故事。"
+
+### 确认信息时使用明确格式
+✅ 正确示例：
+"【已确认】骑士系统：Kamen Rider Agito"
+"【已确认】必杀技：Rider Kick"
+"【已确认】背景：他是一名普通的中学体育教师，某天被神秘力量选中..."
+
+### 角色卡完成时输出JSON格式
+当所有信息收集完毕，最后输出完整的JSON：
+\`\`\`json
+{
+  "name": "角色名",
+  "playerName": "玩家名",
+  "race": "种族",
+  "occupation": "职业",
+  "age": 年龄,
+  "gender": "性别",
+  "background": "背景故事",
+  "attributes": {"body": 4, "athletics": 3, "dexterity": 2, "will": 2, "wit": 2},
+  "transformItem": "变身道具名",
+  "finisherMove": "必杀技名",
+  "transformPhrase": "变身口号"
+}
+\`\`\`
 
 ## 当前已确认的角色信息
 ${Object.keys(characterData).length > 0 
