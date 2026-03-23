@@ -167,6 +167,32 @@ export default function LobbyPage() {
     }
   };
 
+  const handleDeleteSave = async (saveId: string, saveName: string) => {
+    if (!confirm(`确定要删除存档「${saveName}」吗？此操作不可撤销。`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/saves/${saveId}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        setSavedGames(prev => prev.filter(s => s.id !== saveId));
+        toast.success('存档已删除');
+      } else {
+        const error = await response.json();
+        toast.error(error.error || '删除存档失败');
+      }
+    } catch (error) {
+      console.error('删除存档失败:', error);
+      toast.error('删除存档失败');
+    }
+  };
+
   const handleCreateRoom = async () => {
     if (!roomName.trim()) {
       toast.error('请输入房间名称');
@@ -614,14 +640,24 @@ export default function LobbyPage() {
                           <span>最后保存: {new Date(save.lastSavedAt).toLocaleString()}</span>
                         </div>
                       </div>
-                      <Button
-                        size="sm"
-                        className="w-full bg-gradient-to-r from-[#ffd700] to-[#cc9900] text-[#0a0a0f] hover:from-[#ffe066] hover:to-[#ffd700] font-bold"
-                        onClick={() => handleRestoreGame(save.id)}
-                      >
-                        <Play className="w-4 h-4 mr-2" />
-                        继续游戏
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          className="flex-1 bg-gradient-to-r from-[#ffd700] to-[#cc9900] text-[#0a0a0f] hover:from-[#ffe066] hover:to-[#ffd700] font-bold"
+                          onClick={() => handleRestoreGame(save.id)}
+                        >
+                          <Play className="w-4 h-4 mr-2" />
+                          继续游戏
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="px-3 border-[#c41e3a]/30 text-[#c41e3a] hover:bg-[#c41e3a]/10 hover:border-[#c41e3a]/50"
+                          onClick={() => handleDeleteSave(save.id, save.scenarioName)}
+                        >
+                          🗑️
+                        </Button>
+                      </div>
                     </CardContent>
                   </Card>
                 ))}
