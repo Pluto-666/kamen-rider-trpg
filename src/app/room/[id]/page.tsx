@@ -631,6 +631,8 @@ export default function RoomPage() {
       return;
     }
 
+    console.log('[保存] 开始保存游戏进度...');
+    
     try {
       const saveNameValue = saveName || `存档 ${new Date().toLocaleString('zh-CN')}`;
       
@@ -658,17 +660,19 @@ export default function RoomPage() {
         }),
       });
 
-      if (response.ok) {
+      const data = await response.json();
+      console.log('[保存] API 响应:', response.status, data);
+
+      if (response.ok && data.success) {
         toast.success('游戏进度已保存');
         setSaveName('');
         setShowSaveDialog(false);
       } else {
-        const data = await response.json();
-        toast.error(data.error || '保存失败');
+        toast.error(data.error || '保存失败，请检查数据库配置');
       }
     } catch (error) {
       console.error('保存进度错误:', error);
-      toast.error('保存失败');
+      toast.error('保存失败，网络错误');
     }
   };
 
