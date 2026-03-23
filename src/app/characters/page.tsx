@@ -152,6 +152,38 @@ interface Character {
     finisherMoves: string[];
     specialAbilities: string[];
     transformationPhrase?: string;
+    // 扩展字段 - AI可能生成的额外信息
+    skills?: Record<string, number>;
+    racialTraits?: string[];
+    equipment?: string[];
+    characterType?: string;
+    characterTypeFeatures?: {
+      type: string;
+      configurations?: Array<{
+        name: string;
+        uses: string;
+        effect: string;
+        remainingUses: number;
+      }>;
+    };
+    derivedStats?: {
+      hp?: number;
+      fatePoints?: number;
+      initiativeBonus?: string;
+    };
+    riderForm?: {
+      formName?: string;
+      attributeBonus?: Record<string, string>;
+      abilities?: string[];
+      finisherDamage?: string;
+    };
+    combatStyle?: {
+      primary?: string;
+      secondary?: string;
+      specialty?: string;
+      tactics?: string;
+    };
+    [key: string]: unknown;
   };
   action_cards?: Array<{
     type: string;
@@ -1150,6 +1182,122 @@ export default function CharactersPage() {
                         )}
                         {selectedCharacter.rider_data.finisherMoves && selectedCharacter.rider_data.finisherMoves.length > 0 && (
                           <div>必杀技: {selectedCharacter.rider_data.finisherMoves.join(', ')}</div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Character Type */}
+                  {selectedCharacter.rider_data?.characterType && (
+                    <div>
+                      <h4 className="font-semibold mb-1 flex items-center gap-2 text-sm text-[#e8e8f0]">
+                        <Sparkles className="h-4 w-4 text-[#c41e3a]" />
+                        角色类型
+                      </h4>
+                      <div className="text-xs text-[#c0c0c8]">
+                        <div className="font-medium text-[#e8e8f0]">{selectedCharacter.rider_data.characterType}</div>
+                        {selectedCharacter.rider_data.characterTypeFeatures?.configurations?.map((config, idx) => (
+                          <div key={idx} className="mt-1 p-2 bg-[#1a1a25] rounded border border-[#c41e3a]/10">
+                            <div className="font-medium text-[#e8e8f0]">{config.name} ({config.uses})</div>
+                            <div className="text-[#9a9aaa] text-[10px]">{config.effect}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Racial Traits */}
+                  {selectedCharacter.rider_data?.racialTraits && selectedCharacter.rider_data.racialTraits.length > 0 && (
+                    <div>
+                      <h4 className="font-semibold mb-1 flex items-center gap-2 text-sm text-[#e8e8f0]">
+                        <User className="h-4 w-4 text-[#c41e3a]" />
+                        种族特性
+                      </h4>
+                      <div className="space-y-1">
+                        {selectedCharacter.rider_data.racialTraits.map((trait, idx) => (
+                          <div key={idx} className="text-xs text-[#c0c0c8] p-1.5 bg-[#1a1a25] rounded border border-[#c41e3a]/10">
+                            {trait}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Skills */}
+                  {selectedCharacter.rider_data?.skills && Object.keys(selectedCharacter.rider_data.skills).length > 0 && (
+                    <div>
+                      <h4 className="font-semibold mb-1 text-sm text-[#e8e8f0]">技能</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {Object.entries(selectedCharacter.rider_data.skills).map(([skill, value]) => (
+                          <Badge key={skill} variant="outline" className="text-[10px] border-[#c41e3a]/30 text-[#c0c0c8]">
+                            {skill}: {value}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Equipment List */}
+                  {selectedCharacter.rider_data?.equipment && selectedCharacter.rider_data.equipment.length > 0 && (
+                    <div>
+                      <h4 className="font-semibold mb-1 flex items-center gap-2 text-sm text-[#e8e8f0]">
+                        <Shield className="h-4 w-4 text-[#c41e3a]" />
+                        装备
+                      </h4>
+                      <div className="flex flex-wrap gap-1">
+                        {selectedCharacter.rider_data.equipment.map((item, idx) => (
+                          <Badge key={idx} variant="outline" className="text-[10px] border-[#c41e3a]/20 text-[#9a9aaa]">
+                            {item}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Rider Form */}
+                  {selectedCharacter.rider_data?.riderForm && (
+                    <div>
+                      <h4 className="font-semibold mb-1 flex items-center gap-2 text-sm text-[#e8e8f0]">
+                        <Sparkles className="h-4 w-4 text-[#c41e3a]" />
+                        骑士形态
+                      </h4>
+                      <div className="space-y-1 text-xs text-[#c0c0c8]">
+                        {selectedCharacter.rider_data.riderForm.formName && (
+                          <div className="font-medium text-[#e8e8f0]">{selectedCharacter.rider_data.riderForm.formName}</div>
+                        )}
+                        {selectedCharacter.rider_data.riderForm.abilities && selectedCharacter.rider_data.riderForm.abilities.length > 0 && (
+                          <div className="space-y-0.5">
+                            {selectedCharacter.rider_data.riderForm.abilities.map((ability, idx) => (
+                              <div key={idx} className="text-[#9a9aaa]">• {ability}</div>
+                            ))}
+                          </div>
+                        )}
+                        {selectedCharacter.rider_data.riderForm.finisherDamage && (
+                          <div className="text-[#c41e3a]">必杀伤害: {selectedCharacter.rider_data.riderForm.finisherDamage}</div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Combat Style */}
+                  {selectedCharacter.rider_data?.combatStyle && (
+                    <div>
+                      <h4 className="font-semibold mb-1 flex items-center gap-2 text-sm text-[#e8e8f0]">
+                        <Swords className="h-4 w-4 text-[#c41e3a]" />
+                        战斗风格
+                      </h4>
+                      <div className="space-y-0.5 text-xs text-[#c0c0c8]">
+                        {selectedCharacter.rider_data.combatStyle.primary && (
+                          <div>主要: {selectedCharacter.rider_data.combatStyle.primary}</div>
+                        )}
+                        {selectedCharacter.rider_data.combatStyle.secondary && (
+                          <div>次要: {selectedCharacter.rider_data.combatStyle.secondary}</div>
+                        )}
+                        {selectedCharacter.rider_data.combatStyle.specialty && (
+                          <div>专长: {selectedCharacter.rider_data.combatStyle.specialty}</div>
+                        )}
+                        {selectedCharacter.rider_data.combatStyle.tactics && (
+                          <div className="text-[#9a9aaa] text-[10px]">{selectedCharacter.rider_data.combatStyle.tactics}</div>
                         )}
                       </div>
                     </div>

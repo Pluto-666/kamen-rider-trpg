@@ -27,6 +27,16 @@ interface CharacterData {
   transformItem?: string;
   finisherMove?: string;
   transformPhrase?: string;
+  // 扩展字段 - 用于存储AI生成的详细信息
+  skills?: Record<string, number>;
+  racialTraits?: string[];
+  equipment?: string[];
+  characterType?: string;
+  characterTypeFeatures?: Record<string, unknown>;
+  derivedStats?: Record<string, unknown>;
+  riderForm?: Record<string, unknown>;
+  combatStyle?: Record<string, unknown>;
+  rider_data?: Record<string, unknown>;
   [key: string]: unknown;
 }
 
@@ -90,9 +100,58 @@ function extractCharacterData(characterData: CharacterData, messages: Message[])
   if (lastAssistantMsg) {
     const jsonData = extractJsonFromResponse(lastAssistantMsg.content);
     if (jsonData) {
-      // JSON 数据优先级最高，直接合并
-      console.log('从 JSON 提取到角色数据:', jsonData);
-      return { ...data, ...jsonData };
+      console.log('从 JSON 提取到完整角色数据:', JSON.stringify(jsonData, null, 2));
+      
+      // 基础字段直接合并
+      const baseFields = {
+        name: jsonData.name,
+        playerName: jsonData.playerName,
+        age: jsonData.age,
+        gender: jsonData.gender,
+        race: jsonData.race,
+        occupation: jsonData.occupation,
+        background: jsonData.background,
+        attributes: jsonData.attributes,
+        transformItem: jsonData.transformItem,
+        finisherMove: jsonData.finisherMove,
+        transformPhrase: jsonData.transformPhrase,
+      };
+      
+      // 扩展字段 - 合并到 rider_data
+      const extendedFields: Record<string, unknown> = {};
+      const extendedFieldNames = [
+        'skills', 'racialTraits', 'equipment', 'characterType', 
+        'characterTypeFeatures', 'derivedStats', 'riderForm', 
+        'combatStyle', 'finisherDamage', 'riderForm'
+      ];
+      
+      for (const field of extendedFieldNames) {
+        if (jsonData[field] !== undefined) {
+          extendedFields[field] = jsonData[field];
+        }
+      }
+      
+      // 同时保留原有的 rider_data 内容
+      if (jsonData.rider_data) {
+        Object.assign(extendedFields, jsonData.rider_data);
+      }
+      
+      // 构建最终的 rider_data
+      const riderData: Record<string, unknown> = {
+        riderSystem: jsonData.transformItem || jsonData.rider_data?.riderSystem || '',
+        transformationItem: jsonData.transformItem || jsonData.rider_data?.transformationItem || '',
+        finisherMoves: jsonData.finisherMove ? [jsonData.finisherMove] : (jsonData.rider_data?.finisherMoves || []),
+        specialAbilities: jsonData.rider_data?.specialAbilities || [],
+        transformationPhrase: jsonData.transformPhrase || jsonData.rider_data?.transformationPhrase || '',
+        // 添加扩展字段
+        ...extendedFields,
+      };
+      
+      return { 
+        ...data,
+        ...baseFields,
+        rider_data: riderData,
+      };
     }
   }
   
