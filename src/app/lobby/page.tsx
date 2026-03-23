@@ -53,6 +53,7 @@ interface Room {
 
 interface SavedGame {
   id: string;
+  saveName: string;
   scenarioName: string;
   chapter: number;
   status: string;
@@ -126,6 +127,7 @@ export default function LobbyPage() {
         // 处理存档数据格式
         const savedGames = (data.data || []).map((save: any) => ({
           id: save.id,
+          saveName: save.save_name || '未命名存档',
           scenarioName: save.current_scene?.scenarioName || save.room_snapshot?.name || '未知剧本',
           chapter: save.current_scene?.chapter || 1,
           status: 'active',
@@ -616,8 +618,11 @@ export default function LobbyPage() {
                     <CardHeader>
                       <div className="flex items-start justify-between">
                         <div>
-                          <CardTitle className="text-lg text-[#e8e8f0] group-hover:text-[#ffd700] transition-colors">{save.scenarioName}</CardTitle>
+                          <CardTitle className="text-lg text-[#e8e8f0] group-hover:text-[#ffd700] transition-colors">{save.saveName}</CardTitle>
                           <CardDescription className="mt-1 text-[#8a8a9a]">
+                            剧本: <span className="text-[#00d4ff]">{save.scenarioName}</span>
+                          </CardDescription>
+                          <CardDescription className="text-[#8a8a9a]">
                             角色: <span className="text-[#c41e3a]">{save.myCharacterName}</span>
                           </CardDescription>
                         </div>
@@ -653,7 +658,7 @@ export default function LobbyPage() {
                           size="sm"
                           variant="outline"
                           className="px-3 border-[#c41e3a]/30 text-[#c41e3a] hover:bg-[#c41e3a]/10 hover:border-[#c41e3a]/50"
-                          onClick={() => handleDeleteSave(save.id, save.scenarioName)}
+                          onClick={() => handleDeleteSave(save.id, save.saveName)}
                         >
                           🗑️
                         </Button>
