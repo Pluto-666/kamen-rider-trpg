@@ -21,14 +21,20 @@ function getRoomConnections(roomId: string): Set<WebSocket> {
 // 广播消息到房间
 export function broadcastToRoom(roomId: string, message: WsMessage, exclude?: WebSocket) {
   const connections = roomConnections.get(roomId);
-  if (!connections) return;
+  if (!connections) {
+    console.log(`[广播] 房间 ${roomId} 没有连接`);
+    return;
+  }
 
   const messageStr = JSON.stringify(message);
+  let sentCount = 0;
   connections.forEach((ws) => {
     if (ws !== exclude && ws.readyState === WebSocket.OPEN) {
       ws.send(messageStr);
+      sentCount++;
     }
   });
+  console.log(`[广播] 房间 ${roomId.substring(0,8)}... 消息类型: ${message.type}, 发送给 ${sentCount} 个连接 (总连接: ${connections.size})`);
 }
 
 // 发送消息给特定连接

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { useGameWebSocket } from '@/hooks/useWebSocket';
 import { useAIStream, useTypewriter } from '@/hooks/useAIStream';
+import { useMessagePolling, sendMessage } from '@/hooks/useMessagePolling';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -187,11 +188,20 @@ export default function RoomPage() {
       appendNarrative(text);
       dmMessageRef.current += text; // 累积保存AI发言到ref
     },
-    onComplete: () => {
+    onComplete: async () => {
       // 使用ref.current获取完整消息
       const fullMessage = dmMessageRef.current;
       console.log('[DM] 流式传输完成，消息长度:', fullMessage?.length || 0);
       if (fullMessage) {
+        // 通过 API 存储 AI 消息
+        if (token) {
+          await sendMessage(roomId, token, {
+            type: 'narrative',
+            content: fullMessage,
+            characterName: 'AI主持人',
+          });
+        }
+        
         const narrativeMessage = {
           id: Date.now().toString(),
           type: 'narrative' as const,
@@ -206,7 +216,7 @@ export default function RoomPage() {
           return updated;
         });
         
-        // 广播AI叙事给房间内其他玩家
+        // 广播AI叙事给房间内其他玩家（WebSocket）
         wsSend({
           type: 'game:narrative',
           payload: {
@@ -334,6 +344,37 @@ export default function RoomPage() {
     },
   });
 
+  // 消息轮询（作为 WebSocket 的备选方案，适用于 Vercel 等不支持 WebSocket 的环境）
+  const { poll: pollMessages } = useMessagePolling({
+    roomId,
+    token: token || undefined,
+    enabled: true, // 始终启用轮询作为备选
+    interval: 1500, // 1.5秒轮询一次
+    onMessage: (newMessages) => {
+      // 处理新消息
+      newMessages.forEach((msg) => {
+        // 检查消息是否已存在（避免重复）
+        setMessages(prev => {
+          const exists = prev.some(m => m.id === msg.id);
+          if (exists) return prev;
+          
+          // 添加新消息
+          const formattedMsg: Message = {
+            id: msg.id,
+            type: msg.type,
+            content: msg.content,
+            senderId: msg.user_id,
+            senderName: msg.character_name || '玩家',
+            characterName: msg.character_name,
+            timestamp: msg.created_at,
+            metadata: msg.metadata,
+          };
+          return [...prev, formattedMsg];
+        });
+      });
+    },
+  });
+
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
       router.push('/');
@@ -344,6 +385,34 @@ export default function RoomPage() {
     if (isAuthenticated && token && roomId) {
       fetchRoomData();
       fetchCharacters();
+      
+      // 定期刷新房间数据（检测新玩家加入）
+      const interval = setInterval(() => {
+        fetchRoomData();
+      }, 3000); // 每3秒刷新一次
+      
+      // 页面卸载时离开房间
+      const handleBeforeUnload = async () => {
+        // 使用 fetch 的 keepalive 选项确保请求被发送
+        try {
+          await fetch(`/api/rooms/${roomId}/join`, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+            keepalive: true,
+          });
+        } catch (e) {
+          // 忽略错误
+        }
+      };
+      
+      window.addEventListener('beforeunload', handleBeforeUnload);
+      
+      return () => {
+        clearInterval(interval);
+        window.removeEventListener('beforeunload', handleBeforeUnload);
+      };
     }
   }, [isAuthenticated, token, roomId]);
 
@@ -509,7 +578,7 @@ export default function RoomPage() {
     }
   };
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!chatInput.trim()) return;
 
     const character = characters.find(c => c.id === selectedCharacterId);
@@ -518,7 +587,17 @@ export default function RoomPage() {
     // 检测是否艾特了AI主持人
     const isMentioningDM = messageContent.includes('@AI主持人') || messageContent.includes('@DM') || messageContent.includes('@主持人');
     
-    // 立即添加消息到本地消息列表（不等待WebSocket回显）
+    // 通过 API 发送消息（存储到数据库，其他玩家可以通过轮询获取）
+    if (token) {
+      await sendMessage(roomId, token, {
+        type: 'chat',
+        content: messageContent,
+        characterName: character?.name || profile?.username,
+        characterId: selectedCharacterId,
+      });
+    }
+    
+    // 立即添加消息到本地消息列表
     const newMessage: Message = {
       id: Date.now().toString(),
       type: 'chat',
@@ -531,7 +610,7 @@ export default function RoomPage() {
     
     setMessages(prev => [...prev, newMessage]);
     
-    // 发送到WebSocket广播给其他玩家
+    // 同时发送到 WebSocket（如果支持的话）
     wsSend({
       type: 'room:chat',
       payload: {
@@ -979,7 +1058,7 @@ export default function RoomPage() {
     }
   };
 
-  const handlePlayerAction = () => {
+  const handlePlayerAction = async () => {
     if (!chatInput.trim()) {
       console.log('[handlePlayerAction] 输入为空，跳过');
       return;
@@ -999,6 +1078,16 @@ export default function RoomPage() {
       sessionId,
       isInGame,
     });
+    
+    // 通过 API 发送消息（存储到数据库）
+    if (token) {
+      await sendMessage(roomId, token, {
+        type: 'chat',
+        content: playerMessage,
+        characterName: character?.name || profile?.username,
+        characterId: selectedCharacterId,
+      });
+    }
     
     // 先添加玩家消息到消息列表
     const newMessage: Message = {
