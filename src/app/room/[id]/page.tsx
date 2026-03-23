@@ -134,6 +134,10 @@ export default function RoomPage() {
     host_id: string;
     status: string;
     members: RoomMember[];
+    current_scenario?: {
+      name?: string;
+      gameState?: Record<string, unknown>;
+    };
   } | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [members, setMembers] = useState<RoomMember[]>([]);
@@ -397,6 +401,30 @@ export default function RoomPage() {
         setRoom(data.data);
         setMembers(data.data.members || []);
         
+        // 同步房间状态：从房间数据获取剧本名称
+        if (data.data.current_scenario?.name) {
+          setCurrentScenarioName(data.data.current_scenario.name);
+        }
+        
+        // 如果房间状态是 playing，确保本地状态同步
+        if (data.data.status === 'playing' && !sessionId) {
+          // 尝试获取当前进行中的会话
+          try {
+            const sessionResponse = await fetch(`/api/sessions/active?roomId=${roomId}`, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            if (sessionResponse.ok) {
+              const sessionData = await sessionResponse.json();
+              if (sessionData.data) {
+                setSessionId(sessionData.data.id);
+                setGameState(sessionData.data.game_state || {});
+              }
+            }
+          } catch (e) {
+            console.error('获取会话失败:', e);
+          }
+        }
+        
         // 检查用户是否已选择角色
         const myMember = data.data.members?.find(
           (m: RoomMember) => m.user_id === user?.id
@@ -601,11 +629,74 @@ export default function RoomPage() {
     }
   };
 
-  const handleRollDice = (dice: string = '1d20') => {
-    wsSend({
-      type: 'game:roll',
-      payload: { dice },
-    });
+  const handleRollDice = async (dice: string = '1d20') => {
+    if (!selectedCharacterId) {
+      toast.error('请先选择角色');
+      return;
+    }
+
+    const character = characters.find(c => c.id === selectedCharacterId);
+    
+    // 解析骰子表达式
+    const match = dice.match(/^(\d+)d(\d+)$/);
+    if (!match) return;
+    
+    const count = parseInt(match[1]);
+    const sides = parseInt(match[2]);
+    
+    // 本地掷骰
+    const rolls: number[] = [];
+    for (let i = 0; i < count; i++) {
+      rolls.push(Math.floor(Math.random() * sides) + 1);
+    }
+    const total = rolls.reduce((a, b) => a + b, 0);
+    
+    // 构建消息
+    const rollContent = `掷骰 ${dice}: [${rolls.join(', ')}] = ${total}`;
+    
+    // 通过 API 存储骰子结果
+    if (token) {
+      await sendMessage(roomId, token, {
+        type: 'roll',
+        content: rollContent,
+        characterName: character?.name || profile?.username,
+        characterId: selectedCharacterId,
+        metadata: { dice, rolls, total },
+      });
+    }
+    
+    // 如果游戏进行中，触发AI判定
+    if (room?.status === 'playing' && sessionId) {
+      const successes = rolls.filter(r => r >= 5).length;
+      
+      const rollMessage: Message = {
+        id: Date.now().toString(),
+        type: 'roll',
+        content: rollContent,
+        senderId: user?.id,
+        senderName: character?.name || profile?.username,
+        timestamp: new Date().toISOString(),
+        metadata: { dice, rolls, total },
+      };
+      
+      const dialogHistory = [...messagesRef.current, rollMessage].map(m => ({
+        role: m.type === 'narrative' ? 'assistant' as const : 'user' as const,
+        content: m.type === 'narrative' ? m.content : `[${m.senderName || m.characterName || '玩家'}]: ${m.content}`,
+        timestamp: m.timestamp,
+      }));
+      
+      setTimeout(() => {
+        streamDM({
+          roomId,
+          sessionId,
+          gameState,
+          dialogHistory,
+          characters: members.map(m => m.characters).filter(Boolean),
+          playerAction: `[${character?.name || '玩家'}]: 掷骰检定结果 - ${rollContent}\n成功数: ${successes}\n请根据检定结果继续剧情。`,
+          scenarioName: currentScenarioName,
+        });
+      }, 100);
+    }
   };
 
   // 保存游戏进度
@@ -1029,7 +1120,23 @@ export default function RoomPage() {
         setSessionId(data.data.id);
         setGameState(data.data.game_state);
         
-        // 更新本地房间状态为游戏中
+        // 更新数据库中的房间状态为游戏中（重要：让其他玩家同步）
+        await fetch(`/api/rooms/${roomId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            status: 'playing',
+            current_scenario: {
+              name: selectedScenario,
+              gameState: data.data.game_state,
+            },
+          }),
+        });
+        
+        // 更新本地房间状态
         setRoom(prev => prev ? { ...prev, status: 'playing' } : null);
         
         // 开始AI叙事
@@ -1042,6 +1149,8 @@ export default function RoomPage() {
           playerAction: '开始游戏',
           dialogHistory: [],
         });
+        
+        toast.success('游戏已开始！');
       }
     } catch (error) {
       console.error('开始游戏失败:', error);
@@ -1471,7 +1580,9 @@ export default function RoomPage() {
                 <div className="space-y-4 text-sm">
                   <div className="p-3 bg-muted/20 rounded-lg border border-border/20">
                     <div className="text-muted-foreground text-xs font-display tracking-wide">剧本</div>
-                    <div className="font-medium text-secondary mt-1">{selectedScenario || '未开始'}</div>
+                    <div className="font-medium text-secondary mt-1">
+                      {currentScenarioName || room?.current_scenario?.name || '未开始'}
+                    </div>
                   </div>
                   
                   <Separator className="opacity-30" />
