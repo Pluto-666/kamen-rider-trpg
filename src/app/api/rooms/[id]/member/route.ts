@@ -35,12 +35,12 @@ export async function PUT(
       return NextResponse.json({ error: '更新失败' }, { status: 500 });
     }
 
-    // 获取更新后的角色信息
+    // 获取更新后的角色信息（完整数据）
     let character = null;
     if (characterId) {
       const { data: charData } = await supabase
         .from('characters')
-        .select('id, name, title, race, occupation, background, rider_data, attributes, weapons')
+        .select('*')  // 获取完整的角色数据，确保AI主持人能读取所有扩展信息
         .eq('id', characterId)
         .single();
       character = charData;

@@ -48,7 +48,7 @@ export async function GET(
     const { data: memberCharacters } = memberCharacterIds.length > 0 
       ? await supabase
           .from('characters')
-          .select('id, name, title, attributes')
+          .select('*')  // 获取完整的角色数据，包括 rider_data, background, weapons 等
           .in('id', memberCharacterIds)
       : { data: [] };
 

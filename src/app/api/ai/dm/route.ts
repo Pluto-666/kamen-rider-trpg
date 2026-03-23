@@ -116,6 +116,38 @@ export async function POST(request: NextRequest) {
         transformationItem?: string;
         finisherMoves?: string[];
         transformationPhrase?: string;
+        // 扩展字段
+        skills?: Record<string, number>;
+        racialTraits?: string[];
+        equipment?: string[];
+        characterType?: string;
+        characterTypeFeatures?: {
+          type: string;
+          configurations?: Array<{
+            name: string;
+            uses: string;
+            effect: string;
+            remainingUses: number;
+          }>;
+        };
+        derivedStats?: {
+          hp?: number;
+          fatePoints?: number;
+          initiativeBonus?: string;
+        };
+        riderForm?: {
+          formName?: string;
+          attributeBonus?: Record<string, string>;
+          abilities?: string[];
+          finisherDamage?: string;
+        };
+        combatStyle?: {
+          primary?: string;
+          secondary?: string;
+          specialty?: string;
+          tactics?: string;
+        };
+        [key: string]: unknown;
       };
       attributes?: Record<string, number>;
       weapons?: Array<{ name: string }>;
@@ -124,6 +156,30 @@ export async function POST(request: NextRequest) {
       if (c.title) parts.push(`称号：${c.title}`);
       if (c.race) parts.push(`种族：${c.race}`);
       if (c.occupation) parts.push(`职业：${c.occupation}`);
+      
+      // 角色类型（扩展信息）
+      if (c.rider_data?.characterType) {
+        parts.push(`角色类型：${c.rider_data.characterType}`);
+        if (c.rider_data.characterTypeFeatures?.configurations) {
+          const configs = c.rider_data.characterTypeFeatures.configurations
+            .map(cfg => `${cfg.name}(${cfg.remainingUses}/${cfg.uses})`)
+            .join('、');
+          parts.push(`类型能力：${configs}`);
+        }
+      }
+      
+      // 种族特性（扩展信息）
+      if (c.rider_data?.racialTraits?.length) {
+        parts.push(`种族特性：${c.rider_data.racialTraits.join('、')}`);
+      }
+      
+      // 技能（扩展信息）
+      if (c.rider_data?.skills && Object.keys(c.rider_data.skills).length > 0) {
+        const skillsInfo = Object.entries(c.rider_data.skills)
+          .map(([skill, value]) => `${skill}+${value}`)
+          .join('、');
+        parts.push(`技能：${skillsInfo}`);
+      }
       
       // 假面骑士特有信息
       if (c.rider_data?.riderSystem) {
@@ -135,6 +191,36 @@ export async function POST(request: NextRequest) {
       if (c.rider_data?.transformationPhrase) {
         parts.push(`变身口号：${c.rider_data.transformationPhrase}`);
       }
+      
+      // 骑士形态（扩展信息）
+      if (c.rider_data?.riderForm?.formName) {
+        parts.push(`骑士形态：${c.rider_data.riderForm.formName}`);
+        if (c.rider_data.riderForm.attributeBonus) {
+          const bonuses = Object.entries(c.rider_data.riderForm.attributeBonus)
+            .map(([attr, bonus]) => `${attr}+${bonus}`)
+            .join('、');
+          parts.push(`形态加成：${bonuses}`);
+        }
+        if (c.rider_data.riderForm.abilities?.length) {
+          parts.push(`形态能力：${c.rider_data.riderForm.abilities.join('、')}`);
+        }
+        if (c.rider_data.riderForm.finisherDamage) {
+          parts.push(`必杀伤害：${c.rider_data.riderForm.finisherDamage}`);
+        }
+      }
+      
+      // 战斗风格（扩展信息）
+      if (c.rider_data?.combatStyle) {
+        const styleParts = [];
+        if (c.rider_data.combatStyle.primary) styleParts.push(`主武器:${c.rider_data.combatStyle.primary}`);
+        if (c.rider_data.combatStyle.secondary) styleParts.push(`副武器:${c.rider_data.combatStyle.secondary}`);
+        if (c.rider_data.combatStyle.specialty) styleParts.push(`特长:${c.rider_data.combatStyle.specialty}`);
+        if (c.rider_data.combatStyle.tactics) styleParts.push(`战术:${c.rider_data.combatStyle.tactics}`);
+        if (styleParts.length > 0) {
+          parts.push(`战斗风格：${styleParts.join('、')}`);
+        }
+      }
+      
       if (c.rider_data?.finisherMoves?.length) {
         parts.push(`必杀技：${c.rider_data.finisherMoves.join('、')}`);
       }
@@ -142,6 +228,11 @@ export async function POST(request: NextRequest) {
       // 武器信息
       if (c.weapons?.length) {
         parts.push(`武器：${c.weapons.map(w => w.name).join('、')}`);
+      }
+      
+      // 装备（扩展信息）
+      if (c.rider_data?.equipment?.length) {
+        parts.push(`装备：${c.rider_data.equipment.join('、')}`);
       }
       
       // 背景故事（重要！用于代入剧情）
