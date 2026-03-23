@@ -214,7 +214,7 @@ export default function RoomPage() {
     },
   });
 
-  // WebSocket连接
+  // WebSocket连接（仅用于连接状态通知，消息通过轮询获取）
   const currentMember = members.find(m => m.user_id === user?.id);
   const currentCharacter = characters.find(c => c.id === selectedCharacterId);
   const { send: wsSend } = useGameWebSocket({
@@ -223,25 +223,9 @@ export default function RoomPage() {
     characterName: currentCharacter?.name || currentMember?.characters?.name,
     onMessage: (msg) => {
       switch (msg.type) {
-        case 'room:chat':
-          setMessages(prev => [...prev, {
-            id: Date.now().toString(),
-            type: 'chat',
-            content: (msg.payload as { content: string }).content,
-            senderId: (msg.payload as { userId?: string }).userId,
-            senderName: (msg.payload as { characterName?: string }).characterName || '玩家',
-            timestamp: (msg.payload as { timestamp: string }).timestamp,
-          }]);
-          break;
-        case 'game:narrative':
-          setMessages(prev => [...prev, {
-            id: Date.now().toString(),
-            type: 'narrative',
-            content: (msg.payload as { content: string }).content,
-            senderName: 'DM',
-            timestamp: new Date().toISOString(),
-          }]);
-          break;
+        // 注意：聊天消息和叙事消息通过轮询获取，不再通过 WebSocket 处理
+        // case 'room:chat': - 已禁用，避免与轮询重复
+        // case 'game:narrative': - 已禁用，避免与轮询重复
         case 'game:roll_result':
           const rollPayload = msg.payload as {
             userId?: string;
@@ -1047,7 +1031,7 @@ export default function RoomPage() {
       isInGame,
     });
     
-    // 通过 API 发送消息（存储到数据库）
+    // 通过 API 发送消息（存储到数据库，所有玩家通过轮询获取）
     if (token) {
       await sendMessage(roomId, token, {
         type: 'chat',
@@ -1057,7 +1041,7 @@ export default function RoomPage() {
       });
     }
     
-    // 先添加玩家消息到消息列表
+    // 构建消息对象用于 AI 响应的对话历史（不添加到本地消息列表，由轮询获取）
     const newMessage: Message = {
       id: Date.now().toString(),
       type: 'chat',
@@ -1068,22 +1052,8 @@ export default function RoomPage() {
       timestamp: new Date().toISOString(),
     };
     
-    console.log('[handlePlayerAction] 添加消息到列表:', newMessage);
-    setMessages(prev => {
-      const updated = [...prev, newMessage];
-      console.log('[handlePlayerAction] 消息列表长度:', updated.length);
-      return updated;
-    });
-    
-    // 发送玩家行动到WebSocket广播给其他玩家
-    wsSend({
-      type: 'room:chat',
-      payload: {
-        content: playerMessage,
-        characterId: selectedCharacterId,
-        characterName: character?.name || profile?.username,
-      },
-    });
+    // 注意：不在此处添加到本地消息列表，由轮询机制统一获取
+    // 这样可以避免消息重复显示
 
     // 获取AI响应 - 使用更新后的消息列表
     const dialogHistory = [...messages, newMessage].map(m => ({
