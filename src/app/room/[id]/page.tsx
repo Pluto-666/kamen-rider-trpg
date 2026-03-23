@@ -711,6 +711,23 @@ export default function RoomPage() {
         // 恢复消息
         if (save.messages && Array.isArray(save.messages)) {
           setMessages(save.messages);
+          
+          // 将存档消息同步到数据库，让其他玩家也能看到
+          // 批量导入消息到 room_messages 表
+          try {
+            await fetch(`/api/rooms/${roomId}/messages/batch`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                messages: save.messages,
+              }),
+            });
+          } catch (syncError) {
+            console.error('同步存档消息失败:', syncError);
+          }
         }
         
         // 恢复游戏状态
@@ -724,7 +741,29 @@ export default function RoomPage() {
           setSessionId(save.metadata.sessionId);
         }
         
-        toast.success('存档已加载');
+        // 更新房间状态为 'playing'
+        try {
+          await fetch(`/api/rooms/${roomId}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              status: 'playing',
+              current_scenario: {
+                name: save.current_scene?.scenarioName || '',
+                gameState: save.current_scene?.gameState || {},
+              },
+            }),
+          });
+          // 刷新房间数据
+          fetchRoomData();
+        } catch (statusError) {
+          console.error('更新房间状态失败:', statusError);
+        }
+        
+        toast.success('存档已加载，其他玩家将同步看到游戏内容');
         setShowLoadDialog(false);
       } else {
         toast.error('读取存档失败');
@@ -1358,66 +1397,64 @@ export default function RoomPage() {
                   </Button>
                 </div>
 
-                {/* Dice Roll Buttons */}
-                {isInGame && (
-                  <div className="space-y-2 mt-3 p-3 bg-muted/20 rounded-lg border border-border/20">
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm text-muted-foreground whitespace-nowrap font-display tracking-wide">🎲 投掷</span>
-                      <input
-                        type="number"
-                        min="1"
-                        max="20"
-                        value={diceCount}
-                        onChange={(e) => setDiceCount(e.target.value)}
-                        className="w-16 px-2 py-1 text-center border border-accent/30 rounded-md text-sm bg-muted/30 text-accent focus:border-accent focus:ring-1 focus:ring-accent/50"
-                        placeholder="数量"
-                      />
-                      <span className="text-sm text-muted-foreground">个</span>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => handleRollDice(`${diceCount || '1'}d4`)}
-                        className="dice-btn min-w-[60px] rounded-md"
-                      >
-                        {diceCount || '1'}d4
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => handleRollDice(`${diceCount || '1'}d6`)}
-                        className="dice-btn min-w-[60px] rounded-md"
-                      >
-                        {diceCount || '1'}d6
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => handleRollDice(`${diceCount || '1'}d8`)}
-                        className="dice-btn min-w-[60px] rounded-md"
-                      >
-                        {diceCount || '1'}d8
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => handleRollDice(`${diceCount || '1'}d20`)}
-                        className="dice-btn min-w-[60px] rounded-md"
-                      >
-                        {diceCount || '1'}d20
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => handleRollDice(`${diceCount || '1'}d100`)}
-                        className="dice-btn min-w-[60px] rounded-md"
-                      >
-                        {diceCount || '1'}d100
-                      </Button>
-                    </div>
+                {/* Dice Roll Buttons - 始终显示骰子系统 */}
+                <div className="space-y-2 mt-3 p-3 bg-muted/20 rounded-lg border border-border/20">
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm text-muted-foreground whitespace-nowrap font-display tracking-wide">🎲 投掷</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max="20"
+                      value={diceCount}
+                      onChange={(e) => setDiceCount(e.target.value)}
+                      className="w-16 px-2 py-1 text-center border border-accent/30 rounded-md text-sm bg-muted/30 text-accent focus:border-accent focus:ring-1 focus:ring-accent/50"
+                      placeholder="数量"
+                    />
+                    <span className="text-sm text-muted-foreground">个</span>
                   </div>
-                )}
+                  <div className="flex flex-wrap gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => handleRollDice(`${diceCount || '1'}d4`)}
+                      className="dice-btn min-w-[60px] rounded-md"
+                    >
+                      {diceCount || '1'}d4
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => handleRollDice(`${diceCount || '1'}d6`)}
+                      className="dice-btn min-w-[60px] rounded-md"
+                    >
+                      {diceCount || '1'}d6
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => handleRollDice(`${diceCount || '1'}d8`)}
+                      className="dice-btn min-w-[60px] rounded-md"
+                    >
+                      {diceCount || '1'}d8
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => handleRollDice(`${diceCount || '1'}d20`)}
+                      className="dice-btn min-w-[60px] rounded-md"
+                    >
+                      {diceCount || '1'}d20
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => handleRollDice(`${diceCount || '1'}d100`)}
+                      className="dice-btn min-w-[60px] rounded-md"
+                    >
+                      {diceCount || '1'}d100
+                    </Button>
+                  </div>
+                </div>
               </div>
             </Card>
           </div>
@@ -1463,7 +1500,6 @@ export default function RoomPage() {
                         className="w-full justify-start rounded-md border-border/30 hover:border-secondary/50 hover:bg-secondary/5" 
                         size="sm"
                         onClick={() => setShowSaveDialog(true)}
-                        disabled={!isInGame}
                       >
                         💾 保存进度
                       </Button>
