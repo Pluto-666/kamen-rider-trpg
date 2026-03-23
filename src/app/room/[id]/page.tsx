@@ -193,7 +193,7 @@ export default function RoomPage() {
       const fullMessage = dmMessageRef.current;
       console.log('[DM] 流式传输完成，消息长度:', fullMessage?.length || 0);
       if (fullMessage) {
-        // 通过 API 存储 AI 消息
+        // 通过 API 存储 AI 消息（所有玩家通过轮询获取）
         if (token) {
           await sendMessage(roomId, token, {
             type: 'narrative',
@@ -201,29 +201,7 @@ export default function RoomPage() {
             characterName: 'AI主持人',
           });
         }
-        
-        const narrativeMessage = {
-          id: Date.now().toString(),
-          type: 'narrative' as const,
-          content: fullMessage,
-          senderName: 'AI主持人',
-          timestamp: new Date().toISOString(),
-        };
-        console.log('[DM] 添加叙事消息到列表');
-        setMessages(prev => {
-          const updated = [...prev, narrativeMessage];
-          console.log('[DM] 消息列表长度:', updated.length);
-          return updated;
-        });
-        
-        // 广播AI叙事给房间内其他玩家（WebSocket）
-        wsSend({
-          type: 'game:narrative',
-          payload: {
-            content: fullMessage,
-            senderName: 'AI主持人',
-          },
-        });
+        // 不在此处添加到本地消息列表，由轮询机制统一获取，避免重复
       } else {
         console.log('[DM] 没有收到任何消息内容');
       }
@@ -587,7 +565,7 @@ export default function RoomPage() {
     // 检测是否艾特了AI主持人
     const isMentioningDM = messageContent.includes('@AI主持人') || messageContent.includes('@DM') || messageContent.includes('@主持人');
     
-    // 通过 API 发送消息（存储到数据库，其他玩家可以通过轮询获取）
+    // 通过 API 发送消息（存储到数据库，所有玩家通过轮询获取）
     if (token) {
       await sendMessage(roomId, token, {
         type: 'chat',
@@ -597,7 +575,7 @@ export default function RoomPage() {
       });
     }
     
-    // 立即添加消息到本地消息列表
+    // 构建消息对象用于 AI 响应的对话历史（不添加到本地消息列表，由轮询获取）
     const newMessage: Message = {
       id: Date.now().toString(),
       type: 'chat',
@@ -608,17 +586,8 @@ export default function RoomPage() {
       timestamp: new Date().toISOString(),
     };
     
-    setMessages(prev => [...prev, newMessage]);
-    
-    // 同时发送到 WebSocket（如果支持的话）
-    wsSend({
-      type: 'room:chat',
-      payload: {
-        content: messageContent,
-        characterId: selectedCharacterId,
-        characterName: character?.name || profile?.username,
-      },
-    });
+    // 注意：不在此处添加到本地消息列表，由轮询机制统一获取
+    // 这样可以避免消息重复显示
 
     setChatInput('');
     
