@@ -219,6 +219,171 @@ export default function RoomPage() {
   const [saveName, setSaveName] = useState('');
   const [diceCount, setDiceCount] = useState('1'); // 骰子数量
   
+  // 解析AI返回中的角色卡更新指令
+  const parseCharacterUpdates = (message: string): Array<{
+    characterName: string;
+    updates: Array<{ type: string; data: Record<string, unknown> }>;
+  }> => {
+    const results: Array<{ characterName: string; updates: Array<{ type: string; data: Record<string, unknown> }> }> = [];
+    
+    // 匹配【角色卡更新】块
+    const updateBlockRegex = /【角色卡更新】\s*\n([\s\S]*?)(?=(?:【|$))/g;
+    let match;
+    
+    while ((match = updateBlockRegex.exec(message)) !== null) {
+      const block = match[1];
+      const lines = block.trim().split('\n');
+      
+      let currentCharacter = '';
+      const updates: Array<{ type: string; data: Record<string, unknown> }> = [];
+      
+      for (const line of lines) {
+        const trimmedLine = line.trim();
+        
+        // 匹配玩家名
+        const playerMatch = trimmedLine.match(/^玩家[：:]\s*(.+)$/);
+        if (playerMatch) {
+          currentCharacter = playerMatch[1].trim();
+          continue;
+        }
+        
+        // 跳过"更新内容："行
+        if (trimmedLine.startsWith('更新内容') || trimmedLine === '') continue;
+        
+        // 匹配获得物品
+        const addItemMatch = trimmedLine.match(/^获得物品[：:]\s*(.+)$/);
+        if (addItemMatch) {
+          updates.push({
+            type: 'addItem',
+            data: { name: addItemMatch[1].trim() }
+          });
+          continue;
+        }
+        
+        // 匹配失去物品
+        const removeItemMatch = trimmedLine.match(/^失去物品[：:]\s*(.+)$/);
+        if (removeItemMatch) {
+          updates.push({
+            type: 'removeItem',
+            data: { name: removeItemMatch[1].trim() }
+          });
+          continue;
+        }
+        
+        // 匹配命运点
+        const fateMatch = trimmedLine.match(/^命运点[：:]\s*([+-]\d+)(?:\s*（(.+)）)?$/);
+        if (fateMatch) {
+          const amount = parseInt(fateMatch[1]);
+          updates.push({
+            type: amount > 0 ? 'addFatePoint' : 'useFatePoint',
+            data: { amount: Math.abs(amount), reason: fateMatch[2] }
+          });
+          continue;
+        }
+        
+        // 匹配HP
+        const hpMatch = trimmedLine.match(/^HP[：:]\s*(\d+)\/(\d+)(?:\s*（(.+)）)?$/);
+        if (hpMatch) {
+          updates.push({
+            type: 'modifyHP',
+            data: { currentHP: parseInt(hpMatch[1]), maxHP: parseInt(hpMatch[2]), reason: hpMatch[3] }
+          });
+          continue;
+        }
+        
+        // 匹配HP变化
+        const hpChangeMatch = trimmedLine.match(/^HP[：:]\s*([+-]\d+)(?:\s*（(.+)）)?$/);
+        if (hpChangeMatch) {
+          updates.push({
+            type: 'modifyHP',
+            data: { change: parseInt(hpChangeMatch[1]), reason: hpChangeMatch[2] }
+          });
+          continue;
+        }
+        
+        // 匹配属性变化
+        const attrMatch = trimmedLine.match(/^属性变化[：:]\s*(\S+)\s*([+-]\d+)(?:\s*（(.+)）)?$/);
+        if (attrMatch) {
+          updates.push({
+            type: 'modifyAttribute',
+            data: { attribute: attrMatch[1], change: parseInt(attrMatch[2]), reason: attrMatch[3] }
+          });
+          continue;
+        }
+        
+        // 匹配获得技能
+        const skillMatch = trimmedLine.match(/^获得技能[：:]\s*(\S+)\s*\+(\d+)$/);
+        if (skillMatch) {
+          updates.push({
+            type: 'addSkill',
+            data: { name: skillMatch[1], level: parseInt(skillMatch[2]) }
+          });
+          continue;
+        }
+        
+        // 匹配获得装备
+        const equipMatch = trimmedLine.match(/^获得装备[：:]\s*(.+)$/);
+        if (equipMatch) {
+          updates.push({
+            type: 'addEquipment',
+            data: { name: equipMatch[1].trim() }
+          });
+          continue;
+        }
+      }
+      
+      if (currentCharacter && updates.length > 0) {
+        results.push({ characterName: currentCharacter, updates });
+      }
+    }
+    
+    return results;
+  };
+  
+  // 执行角色卡更新
+  const executeCharacterUpdates = async (updates: Array<{
+    characterName: string;
+    updates: Array<{ type: string; data: Record<string, unknown> }>;
+  }>) => {
+    if (!token) return;
+    
+    for (const update of updates) {
+      // 查找对应的角色ID
+      const member = members.find(m => 
+        m.characters?.name === update.characterName ||
+        m.characters?.title === update.characterName
+      );
+      
+      if (!member?.character_id) {
+        console.log(`[角色卡更新] 未找到角色: ${update.characterName}`);
+        continue;
+      }
+      
+      try {
+        const response = await fetch(`/api/characters/${member.character_id}/increment`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({ updates: update.updates }),
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log(`[角色卡更新] 成功更新 ${update.characterName}:`, data.updateLog);
+          toast.success(`${update.characterName} 角色卡已更新`);
+          
+          // 刷新成员数据
+          fetchRoomData();
+        } else {
+          console.error(`[角色卡更新] 更新失败:`, await response.text());
+        }
+      } catch (error) {
+        console.error(`[角色卡更新] 请求错误:`, error);
+      }
+    }
+  };
   
   const { text: dmNarrative, appendText: appendNarrative, resetText: resetNarrative } = useTypewriter();
   const { stream: streamDM, isStreaming: isDMStreaming } = useAIStream({
@@ -233,6 +398,14 @@ export default function RoomPage() {
       const fullMessage = dmMessageRef.current;
       console.log('[DM] 流式传输完成，消息长度:', fullMessage?.length || 0);
       if (fullMessage) {
+        // 解析角色卡更新指令
+        const characterUpdates = parseCharacterUpdates(fullMessage);
+        if (characterUpdates.length > 0) {
+          console.log('[DM] 检测到角色卡更新:', characterUpdates);
+          // 异步执行更新，不阻塞消息存储
+          executeCharacterUpdates(characterUpdates);
+        }
+        
         // 通过 API 存储 AI 消息（所有玩家通过轮询获取）
         if (token) {
           await sendMessage(roomId, token, {
