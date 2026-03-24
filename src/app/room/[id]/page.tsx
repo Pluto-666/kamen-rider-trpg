@@ -218,6 +218,16 @@ export default function RoomPage() {
   const [isLoadingSaves, setIsLoadingSaves] = useState(false);
   const [saveName, setSaveName] = useState('');
   const [diceCount, setDiceCount] = useState('1'); // 骰子数量
+  const [storySummaries, setStorySummaries] = useState<Array<{
+    round: number;
+    scene: string;
+    time: string;
+    completedEvents: string[];
+    importantNPCs: Array<{ name: string; description: string }>;
+    currentGoal: string;
+    unresolvedMysteries: string[];
+    keyItems: string[];
+  }>>([]); // 剧情摘要
   
   // 解析AI返回中的角色卡更新指令
   const parseCharacterUpdates = (message: string): Array<{
@@ -384,6 +394,184 @@ export default function RoomPage() {
       }
     }
   };
+
+  // 解析AI返回中的消耗追踪指令
+  const parseConsumptionTracking = (message: string): Array<{
+    characterName: string;
+    assetName: string;
+    assetType: 'skill' | 'item' | 'consumable';
+  }> => {
+    const results: Array<{
+      characterName: string;
+      assetName: string;
+      assetType: 'skill' | 'item' | 'consumable';
+    }> = [];
+    
+    // 匹配【消耗追踪】块
+    const trackingBlockRegex = /【消耗追踪】\s*\n([\s\S]*?)(?=(?:【|$))/g;
+    let match;
+    
+    while ((match = trackingBlockRegex.exec(message)) !== null) {
+      const block = match[1];
+      const lines = block.trim().split('\n');
+      
+      let characterName = '';
+      let assetName = '';
+      let assetType: 'skill' | 'item' | 'consumable' = 'skill';
+      
+      for (const line of lines) {
+        const trimmedLine = line.trim();
+        
+        // 匹配玩家名
+        const playerMatch = trimmedLine.match(/^玩家[：:]\s*(.+)$/);
+        if (playerMatch) {
+          characterName = playerMatch[1].trim();
+          continue;
+        }
+        
+        // 匹配使用
+        const useMatch = trimmedLine.match(/^使用[：:]\s*(.+)$/);
+        if (useMatch) {
+          assetName = useMatch[1].trim();
+          continue;
+        }
+        
+        // 匹配类型
+        const typeMatch = trimmedLine.match(/^类型[：:]\s*(技能|物品|消耗品)$/);
+        if (typeMatch) {
+          assetType = typeMatch[1] === '技能' ? 'skill' : typeMatch[1] === '消耗品' ? 'consumable' : 'item';
+          continue;
+        }
+      }
+      
+      if (characterName && assetName) {
+        results.push({ characterName, assetName, assetType });
+      }
+    }
+    
+    return results;
+  };
+
+  // 执行消耗追踪
+  const executeConsumptionTracking = async (trackings: Array<{
+    characterName: string;
+    assetName: string;
+    assetType: 'skill' | 'item' | 'consumable';
+  }>) => {
+    if (!token) return;
+    
+    for (const tracking of trackings) {
+      // 查找对应的角色ID
+      const member = members.find(m => 
+        m.characters?.name === tracking.characterName ||
+        m.characters?.title === tracking.characterName
+      );
+      
+      if (!member?.character_id) {
+        console.log(`[消耗追踪] 未找到角色: ${tracking.characterName}`);
+        continue;
+      }
+      
+      try {
+        const response = await fetch(`/api/characters/${member.character_id}/use-asset`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            type: tracking.assetType === 'skill' ? 'skill' : 'item',
+            name: tracking.assetName,
+            characterName: tracking.characterName,
+          }),
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          console.log(`[消耗追踪] ${tracking.characterName} 使用 ${tracking.assetName}，剩余 ${data.remainingUses}/${data.maxUses}`);
+          if (data.removed) {
+            toast.info(`${tracking.assetName} 已用完并移除`);
+          }
+          // 刷新成员数据
+          fetchRoomData();
+        } else {
+          console.log(`[消耗追踪] ${tracking.assetName} 无法使用:`, data.error);
+          // 如果技能已用完，可以通知玩家
+          if (data.error?.includes('已用完')) {
+            toast.warning(`${tracking.assetName} 已用完，无法使用`);
+          }
+        }
+      } catch (error) {
+        console.error(`[消耗追踪] 请求错误:`, error);
+      }
+    }
+  };
+
+  // 生成剧情摘要（每10轮）
+  const generateStorySummary = async (roundNumber: number) => {
+    if (!token || !sessionId) return;
+    
+    try {
+      console.log(`[摘要] 开始生成第${roundNumber}轮摘要...`);
+      
+      const response = await fetch('/api/ai/summarize', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          sessionId,
+          messages: messages.slice(-20).map(m => ({
+            role: m.type === 'narrative' ? 'assistant' : 'user',
+            content: m.content,
+            timestamp: m.timestamp,
+          })),
+          currentScene: {
+            location: currentScenarioName || '未知',
+            time: new Date().toLocaleTimeString('zh-CN'),
+            scenarioName: currentScenarioName,
+          },
+          roundNumber,
+        }),
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log(`[摘要] 第${roundNumber}轮摘要已生成，总摘要数: ${data.totalSummaries}`);
+        // 更新本地摘要状态
+        if (data.summary) {
+          setStorySummaries(prev => [...prev, data.summary]);
+        }
+      }
+    } catch (error) {
+      console.error('[摘要] 生成失败:', error);
+    }
+  };
+
+  // 获取剧情摘要
+  const fetchStorySummaries = async () => {
+    if (!token || !sessionId) return;
+    
+    try {
+      const response = await fetch(`/api/ai/summarize?sessionId=${sessionId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.summaries) {
+          setStorySummaries(data.summaries);
+          console.log(`[摘要] 已加载${data.count}个剧情摘要`);
+        }
+      }
+    } catch (error) {
+      console.error('[摘要] 加载失败:', error);
+    }
+  };
   
   const { text: dmNarrative, appendText: appendNarrative, resetText: resetNarrative } = useTypewriter();
   const { stream: streamDM, isStreaming: isDMStreaming } = useAIStream({
@@ -406,6 +594,14 @@ export default function RoomPage() {
           executeCharacterUpdates(characterUpdates);
         }
         
+        // 解析消耗追踪指令（后台运行）
+        const consumptionTrackings = parseConsumptionTracking(fullMessage);
+        if (consumptionTrackings.length > 0) {
+          console.log('[DM] 检测到消耗追踪:', consumptionTrackings);
+          // 异步执行消耗追踪
+          executeConsumptionTracking(consumptionTrackings);
+        }
+        
         // 通过 API 存储 AI 消息（所有玩家通过轮询获取）
         if (token) {
           await sendMessage(roomId, token, {
@@ -413,6 +609,13 @@ export default function RoomPage() {
             content: fullMessage,
             characterName: 'AI主持人',
           });
+        }
+        
+        // 检查是否需要生成摘要（每10轮）
+        const currentMessageCount = messages.length + 1; // +1 是刚添加的AI消息
+        if (currentMessageCount > 0 && currentMessageCount % 10 === 0) {
+          console.log(`[摘要] 达到${currentMessageCount}条消息，触发摘要生成`);
+          generateStorySummary(Math.floor(currentMessageCount / 10));
         }
         // 不在此处添加到本地消息列表，由轮询机制统一获取，避免重复
       } else {
@@ -483,6 +686,7 @@ export default function RoomPage() {
                 characters: members.map(m => m.characters).filter(Boolean),
                 playerAction: `[${character?.name || '玩家'}]: 掷骰检定结果 - ${rollMessage.content}\n成功数: ${successes}\n请根据检定结果继续剧情。`,
                 scenarioName: currentScenarioName,
+                storySummaries,
               });
             }, 100);
           }
@@ -596,6 +800,13 @@ export default function RoomPage() {
     // 同步更新 messagesRef
     messagesRef.current = messages;
   }, [messages]);
+
+  // 当sessionId变化时，加载剧情摘要
+  useEffect(() => {
+    if (sessionId) {
+      fetchStorySummaries();
+    }
+  }, [sessionId]);
 
   const fetchRoomData = async () => {
     try {
@@ -833,6 +1044,7 @@ export default function RoomPage() {
           characters: members.map(m => m.characters).filter(Boolean),
           playerAction: `[${character?.name || profile?.username || '玩家'}]: ${messageContent}`,
           scenarioName: '',
+          storySummaries,
         });
       }, 100);
     }
@@ -903,6 +1115,7 @@ export default function RoomPage() {
           characters: members.map(m => m.characters).filter(Boolean),
           playerAction: `[${character?.name || '玩家'}]: 掷骰检定结果 - ${rollContent}\n成功数: ${successes}\n请根据检定结果继续剧情。`,
           scenarioName: currentScenarioName,
+          storySummaries,
         });
       }, 100);
     }
@@ -1355,6 +1568,7 @@ export default function RoomPage() {
           scenarioName: selectedScenario,
           playerAction: '开始游戏',
           dialogHistory: [],
+          storySummaries: [],
         });
         
         toast.success('游戏已开始！');
@@ -1427,6 +1641,7 @@ export default function RoomPage() {
       characters: members.map(m => m.characters).filter(Boolean),
       playerAction: `[${character?.name || '玩家'}]: ${playerMessage}`,
       scenarioName: currentScenarioName,
+      storySummaries,
     });
 
     setChatInput('');

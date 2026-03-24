@@ -21,6 +21,7 @@ export async function POST(request: NextRequest) {
       characters,
       scenarioName,
       currentScene,
+      storySummaries, // 新增：剧情摘要
     } = await request.json();
 
     // 判断是否是游戏开始
@@ -473,6 +474,23 @@ ${gameState ? `**详细状态**：${JSON.stringify(gameState, null, 2)}` : ''}
 
 **重要提醒**：以上是当前游戏的实际状态，请在回复中保持一致。如果场景发生变化，请在【场景状态】中更新。
 
+${storySummaries && storySummaries.length > 0 ? `
+## 📜 剧情摘要历史（每10轮生成一次，帮助记忆）
+以下是之前剧情的摘要，请仔细阅读以保持剧情连贯性：
+${storySummaries.map((s: { round: number; scene: string; time: string; completedEvents: string[]; importantNPCs: Array<{ name: string; description: string }>; currentGoal: string; unresolvedMysteries: string[]; keyItems: string[] }, i: number) => `
+### 摘要 #${s.round}（第${i + 1}次总结）
+- 场景：${s.scene}
+- 时间：${s.time}
+- 已完成事件：${s.completedEvents?.join('、') || '无'}
+- 重要NPC：${s.importantNPCs?.map((n: { name: string; description: string }) => `${n.name}(${n.description})`).join('、') || '无'}
+- 当前目标：${s.currentGoal}
+- 待解决悬念：${s.unresolvedMysteries?.join('、') || '无'}
+- 关键物品：${s.keyItems?.join('、') || '无'}
+`).join('\n')}
+
+**注意**：以上摘要是之前剧情的浓缩，请确保后续剧情与摘要内容保持一致！
+` : '（暂无剧情摘要）'}
+
 ## 玩家角色
 ${charactersDetailedInfo}
 
@@ -602,12 +620,40 @@ ${availableScenarios}
    - 更新必须合理，符合剧情发展
    - 获得的物品要具体描述名称和效果
 
+6. **⚠️ 技能/物品消耗追踪（重要！）**：
+   当玩家使用有次数限制的技能或消耗性物品时，必须使用【消耗追踪】标记：
+   
+   格式如下：
+   \`\`\`
+   【消耗追踪】
+   玩家：[角色名]
+   使用：[技能名/物品名]
+   类型：[技能/物品/消耗品]
+   剩余次数：[X/Y]
+   \`\`\`
+   
+   **有次数限制的技能/物品**：
+   - 每次使用扣减1次
+   - 次数归零后不可使用，直到恢复
+   - 恢复方式由规则书规定（如：战斗结束、休息等）
+   
+   **消耗性物品**：
+   - 使用后次数减1
+   - 次数归零后自动从角色卡删除
+   - 例如：药剂、卷轴等
+   
+   **注意**：
+   - 使用技能前，必须确认次数足够
+   - 如果次数不足，在回复中说明"该技能已用完，无法使用"
+   - 战斗结束后，自动恢复标记为"战斗结束恢复"的技能
+
 ## 输出格式标记
 - 【场景】场景描述
 - 【NPC名】NPC对话
 - 【检定-通常/变身】需要检定的内容（必须等待玩家投骰）
 - 【判定】检定结果和后果
 - 【角色卡更新】角色卡的动态更新（获得/失去物品、属性变化等）
+- 【消耗追踪】技能/物品使用次数追踪（后台运行）
 - 【规则书原文】引用规则
 - 【战斗】战斗相关
 - 【可选行动】玩家可采取的行动（当玩家未明确行动时必须提供）
