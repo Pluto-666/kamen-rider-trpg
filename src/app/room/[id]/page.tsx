@@ -213,6 +213,7 @@ export default function RoomPage() {
     room_id: string;
     current_scene?: { scenarioName?: string; gameState?: Record<string, unknown> };
     room_snapshot?: { name?: string; scenario?: string };
+    character_states?: Record<string, { name?: string; title?: string }>;
   }>>([]);
   const [isLoadingSaves, setIsLoadingSaves] = useState(false);
   const [saveName, setSaveName] = useState('');
@@ -2231,6 +2232,11 @@ export default function RoomPage() {
                     {save.room_snapshot?.name && (
                       <p className="text-xs text-[#c0c0c8]">
                         房间: {save.room_snapshot.name}
+                      </p>
+                    )}
+                    {save.character_states && Object.keys(save.character_states).length > 0 && (
+                      <p className="text-xs text-[#10b981]">
+                        角色: {Object.values(save.character_states).map(c => c.name).filter(Boolean).join('、')}
                       </p>
                     )}
                   </div>
