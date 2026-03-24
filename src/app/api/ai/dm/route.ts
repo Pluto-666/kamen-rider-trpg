@@ -465,16 +465,19 @@ ${charactersDetailedInfo}
 "请进行【XXX】检定，投掷Xd6，难易度Y"
 其中X是骰子数量，Y是需要的成功数
 
-## 当前游戏状态
-剧本：${scenarioName || '未设定'}
-场景：${currentScene?.location || '未设定'}
-${gameState ? `详细状态：${JSON.stringify(gameState, null, 2)}` : ''}
+## ⚠️ 当前游戏状态（必须记住！）
+**剧本**：${scenarioName || '未设定'}
+**当前场景地点**：${currentScene?.location || '未设定'}
+**场景类型**：${currentScene?.type || '未设定'}
+${gameState ? `**详细状态**：${JSON.stringify(gameState, null, 2)}` : ''}
+
+**重要提醒**：以上是当前游戏的实际状态，请在回复中保持一致。如果场景发生变化，请在【场景状态】中更新。
 
 ## 玩家角色
 ${charactersDetailedInfo}
 
-## 对话历史（最近10条）
-${dialogHistory?.slice(-10).map((m: { role: string; content: string }) => 
+## 对话历史（最近50条摘要）
+${dialogHistory?.slice(-50).map((m: { role: string; content: string }) => 
   `${m.role === 'user' ? '玩家' : 'DM'}: ${m.content}`
 ).join('\n') || '无历史对话'}
 
@@ -607,16 +610,30 @@ ${availableScenarios}
 - 【角色卡更新】角色卡的动态更新（获得/失去物品、属性变化等）
 - 【规则书原文】引用规则
 - 【战斗】战斗相关
-- 【可选行动】玩家可采取的行动（当玩家未明确行动时必须提供）`;
+- 【可选行动】玩家可采取的行动（当玩家未明确行动时必须提供）
+- 【场景状态】（重要！每次回复末尾必须包含）当前地点、时间、玩家状态等关键信息
+
+## ⚠️ 场景状态更新规则（必须遵守！）
+每次回复的**末尾**必须包含【场景状态】标记，格式如下：
+\`\`\`
+【场景状态】
+- 地点：[当前具体位置，如：新宿中央公园入口、废弃工厂内部]
+- 时间：[游戏内时间，如：深夜23:47]
+- 玩家状态：[变身/通常，HP情况]
+- 当前目标：[玩家正在做什么或应该做什么]
+- 重要信息：[需要记住的关键信息，如NPC名字、任务线索等]
+\`\`\`
+
+**这非常重要！** 场景状态是确保剧情连贯性的关键，即使对话历史很长，AI也能通过场景状态知道当前情况。`;
 
     // 构建消息数组 - 正确包含对话历史
     const conversationMessages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
       { role: 'system', content: systemPrompt }
     ];
 
-    // 添加对话历史（最近15条，保持上下文连贯）
+    // 添加对话历史（最近50条，保持上下文连贯）
     if (dialogHistory && dialogHistory.length > 0) {
-      const recentHistory = dialogHistory.slice(-15);
+      const recentHistory = dialogHistory.slice(-50);
       for (const msg of recentHistory) {
         if (msg.role === 'user') {
           conversationMessages.push({ role: 'user', content: msg.content });
