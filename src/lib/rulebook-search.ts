@@ -350,6 +350,70 @@ export async function searchCharacterCreationRules(
 }
 
 /**
+ * 搜索骑士系统/变身道具相关规则
+ */
+export async function searchRiderSystemRules(
+  systemName?: string
+): Promise<SearchResult> {
+  const queries: string[] = [];
+  
+  if (systemName) {
+    // 尝试不同的搜索变体
+    const lowerName = systemName.toLowerCase();
+    
+    // 常见骑士系统的关键词映射
+    const systemKeywords: Record<string, string[]> = {
+      'faiz': ['Faiz', '555', 'Smart Brain', '奥菲以诺', '手机变身'],
+      '555': ['Faiz', '555', 'Smart Brain', '奥菲以诺'],
+      'blad': ['Blade', 'BOARD', 'Undead', '卡牌'],
+      'blade': ['Blade', 'BOARD', 'Undead', '卡牌'],
+      'agito': ['Agito', '觉醒', 'Unknown', '超能力'],
+      'ryuki': ['Ryuki', '龙骑', '镜世界', '契约兽'],
+      'hibiki': ['Hibiki', '响鬼', '音击', '鬼'],
+      'kabuto': ['Kabuto', '甲斗', 'Zecter', 'Cast Off'],
+      'den-o': ['Den-O', '电王', '异魔神', 'Toritick'],
+      'kiva': ['Kiva', '月骑', 'Kivat', 'Fangire'],
+      'double': ['W', 'Double', '双重驱动器', '盖亚记忆体'],
+      'ooo': ['OOO', '硬币驱动器', '核心硬币', 'Greeed'],
+      'fourze': ['Fourze', '天文开关', 'Zodiarts'],
+      'wizard': ['Wizard', '魔法', 'Phantom', 'Wizard驱动器'],
+      'gaim': ['Gaim', '战极驱动器', 'Lockseed', '海姆冥界'],
+      'drive': ['Drive', 'Drive驱动器', 'Roidmude', '移速战车'],
+      'ghost': ['Ghost', 'Ghost驱动器', '眼魂'],
+      'ex-aid': ['Ex-Aid', 'Bugster', '玩家驱动器', '卡带'],
+      'build': ['Build', 'Build驱动器', '满装瓶', 'Smash'],
+      'zi-o': ['Zi-O', '时空驱动器', 'Ridewatch'],
+    };
+    
+    // 查找匹配的系统关键词
+    let matchedKeywords: string[] = [systemName];
+    for (const [key, keywords] of Object.entries(systemKeywords)) {
+      if (lowerName.includes(key) || key.includes(lowerName)) {
+        matchedKeywords = keywords;
+        break;
+      }
+    }
+    
+    // 使用匹配的关键词进行搜索
+    for (const keyword of matchedKeywords) {
+      queries.push(keyword);
+      queries.push(`${keyword} 驱动器`);
+      queries.push(`${keyword} 变身`);
+    }
+  }
+  
+  // 添加通用的骑士系统规则
+  queries.push('假面骑士系统 变身');
+  queries.push('驱动器 变身道具');
+  queries.push('骑士形态 能力');
+  
+  // 去重
+  const uniqueQueries = [...new Set(queries.filter(Boolean))];
+  
+  return searchMultipleQueries(uniqueQueries, { maxChunksPerQuery: 3 });
+}
+
+/**
  * 种族能力值分配点数据（从规则书提取的核心规则）
  */
 export const RACE_ABILITY_POINTS: Record<string, number> = {

@@ -4,6 +4,7 @@ import {
   searchCharacterCreationRules,
   searchRulebook,
   searchRaceAbilityRules,
+  searchRiderSystemRules,
   parseLineRequest,
   searchByLineNumber,
   RACE_ABILITY_POINTS,
@@ -279,6 +280,7 @@ export async function POST(request: NextRequest) {
     console.log('检索角色创建规则...');
     const raceParam = (characterData as CharacterData).race;
     const occupationParam = (characterData as CharacterData).occupation;
+    const transformItemParam = (characterData as CharacterData).transformItem;
     
     // 使用新的精确种族能力值检索
     const raceAbilityResult = await searchRaceAbilityRules(raceParam);
@@ -297,6 +299,31 @@ export async function POST(request: NextRequest) {
       if (userMessage.includes('技能') || userMessage.includes('能力')) {
         const skillSearch = await searchRulebook('技能列表 特殊能力');
         if (skillSearch.found) additionalRules += skillSearch.content + '\n\n';
+      }
+      // 检测是否提到骑士系统/驱动器
+      const riderSystemKeywords = ['驱动器', '骑士系统', '变身道具', 'Faiz', 'Blade', 'Agito', 'Kabuto', 'Den-O', 'Kiva', 'Double', 'OOO', 'Fourze', 'Wizard', 'Gaim', 'Drive', 'Ghost', 'Ex-Aid', 'Build', 'Zi-O', '555', '手机', '卡牌', '腰带'];
+      const hasRiderSystemMention = riderSystemKeywords.some(k => userMessage.toLowerCase().includes(k.toLowerCase()));
+      if (hasRiderSystemMention) {
+        // 提取可能的骑士系统名称
+        let systemName = '';
+        for (const keyword of riderSystemKeywords) {
+          if (userMessage.toLowerCase().includes(keyword.toLowerCase())) {
+            systemName = keyword;
+            break;
+          }
+        }
+        const riderSystemResult = await searchRiderSystemRules(systemName || transformItemParam);
+        if (riderSystemResult.found) {
+          additionalRules += '【骑士系统规则】\n' + riderSystemResult.content + '\n\n';
+        }
+      }
+    }
+    
+    // 如果角色数据中已有变身道具，也检索相关规则
+    if (transformItemParam && !additionalRules.includes('骑士系统规则')) {
+      const riderSystemResult = await searchRiderSystemRules(transformItemParam);
+      if (riderSystemResult.found) {
+        additionalRules += '【骑士系统规则】\n' + riderSystemResult.content + '\n\n';
       }
     }
 
@@ -399,6 +426,15 @@ ${Object.keys(characterData).length > 0
 
 ## 规则书参考内容
 ${ruleContext || '暂无相关规则，请根据假面骑士TRPG通用规则引导'}
+
+## ⚠️ 关于骑士系统/变身道具的说明
+当玩家提到特定的骑士系统（如Faiz驱动器、Blade卡牌系统等）时：
+1. 系统会自动检索规则书中相关的规则
+2. 如果规则书中没有该系统的详细规则，请：
+   - 诚实告知玩家"规则书中未找到该系统的详细规则"
+   - 但**不要拒绝创建角色**，可以基于假面骑士系列的一般知识引导玩家
+   - 让玩家提供变身道具名称、必杀技名称、变身口号等基本信息
+   - 使用通用的骑士系统规则（变身形态、HP提升等）作为参考
 
 ## 行号检索说明
 如果玩家请求查看特定行号的内容（如"第6450行"），系统会自动检索并展示对应行的规则书原文。
