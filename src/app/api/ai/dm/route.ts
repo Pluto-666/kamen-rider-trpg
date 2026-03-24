@@ -149,7 +149,29 @@ export async function POST(request: NextRequest) {
         };
         [key: string]: unknown;
       };
-      attributes?: Record<string, number>;
+      attributes?: {
+        body?: number;
+        bodyNormal?: number;
+        bodyTransform?: number;
+        athletics?: number;
+        athleticsNormal?: number;
+        athleticsTransform?: number;
+        dexterity?: number;
+        dexterityNormal?: number;
+        dexterityTransform?: number;
+        will?: number;
+        willNormal?: number;
+        willTransform?: number;
+        wit?: number;
+        witNormal?: number;
+        witTransform?: number;
+        movementNormal?: number;
+        movementTransform?: number;
+        initiativeNormal?: number;
+        initiativeTransform?: number;
+        totalHP?: number;
+        transformHP?: number;
+      };
       weapons?: Array<{ name: string }>;
     }) => {
       const parts = [`【${c.name}】`];
@@ -179,6 +201,46 @@ export async function POST(request: NextRequest) {
           .map(([skill, value]) => `${skill}+${value}`)
           .join('、');
         parts.push(`技能：${skillsInfo}`);
+      }
+      
+      // ⭐ 核心属性（变身前后）- 必须明确显示
+      if (c.attributes) {
+        const attrLines = ['【属性数据（通常形态/变身后）】'];
+        
+        // 肉体
+        if (c.attributes.bodyNormal !== undefined || c.attributes.bodyTransform !== undefined) {
+          attrLines.push(`肉体：${c.attributes.bodyNormal ?? 0} → ${c.attributes.bodyTransform ?? 0}（变身${c.attributes.bodyTransform && c.attributes.bodyNormal ? (c.attributes.bodyTransform > c.attributes.bodyNormal ? '+' + (c.attributes.bodyTransform - c.attributes.bodyNormal) : '无变化') : '需计算'}）`);
+        }
+        // 运动
+        if (c.attributes.athleticsNormal !== undefined || c.attributes.athleticsTransform !== undefined) {
+          attrLines.push(`运动：${c.attributes.athleticsNormal ?? 0} → ${c.attributes.athleticsTransform ?? 0}`);
+        }
+        // 器用
+        if (c.attributes.dexterityNormal !== undefined || c.attributes.dexterityTransform !== undefined) {
+          attrLines.push(`器用：${c.attributes.dexterityNormal ?? 0} → ${c.attributes.dexterityTransform ?? 0}`);
+        }
+        // 意志
+        if (c.attributes.willNormal !== undefined || c.attributes.willTransform !== undefined) {
+          attrLines.push(`意志：${c.attributes.willNormal ?? 0} → ${c.attributes.willTransform ?? 0}`);
+        }
+        // 机知
+        if (c.attributes.witNormal !== undefined || c.attributes.witTransform !== undefined) {
+          attrLines.push(`机知：${c.attributes.witNormal ?? 0} → ${c.attributes.witTransform ?? 0}`);
+        }
+        // 移动力
+        if (c.attributes.movementNormal !== undefined || c.attributes.movementTransform !== undefined) {
+          attrLines.push(`移动力：${c.attributes.movementNormal ?? 0} → ${c.attributes.movementTransform ?? 0}`);
+        }
+        // 先制力
+        if (c.attributes.initiativeNormal !== undefined || c.attributes.initiativeTransform !== undefined) {
+          attrLines.push(`先制力：${c.attributes.initiativeNormal ?? 0} → ${c.attributes.initiativeTransform ?? 0}`);
+        }
+        // HP
+        if (c.attributes.totalHP !== undefined || c.attributes.transformHP !== undefined) {
+          attrLines.push(`HP：${c.attributes.totalHP ?? 0} → ${c.attributes.transformHP ?? 0}`);
+        }
+        
+        parts.push(attrLines.join('\n'));
       }
       
       // 假面骑士特有信息
@@ -288,6 +350,13 @@ ${charactersDetailedInfo}
    - 设置悬念或冲突，激发玩家兴趣
    - 给出玩家可以采取的第一个行动选项
 
+## ⚠️ 变身状态判定规则（重要！）
+- 每个角色都有通常状态和变身状态两套属性
+- 通常状态使用 *Normal 后缀的属性值
+- 变身状态使用 *Transform 后缀的属性值
+- 检定前必须确认玩家是否变身，使用对应的属性值
+- 检定格式：【检定-通常】或【检定-变身】
+
 ## 输出格式
 1. 首先用【场景】标记描述开场场景
 2. 然后用【角色登场】介绍每个玩家角色是如何出现在这里的
@@ -304,35 +373,71 @@ ${charactersDetailedInfo}
 4. **鼓励互动**：给予玩家选择和行动的空间
 5. **保持连贯**：记住之前的对话内容，保持剧情连贯性
 
+## ⚠️ 变身状态判定规则（核心！）
+
+### 变身状态识别
+在进行任何检定之前，必须先确认玩家的变身状态：
+
+1. **通常状态（未变身）**：
+   - 玩家未声明变身
+   - 玩家处于日常生活中
+   - 非战斗场景或未激活骑士系统
+
+2. **变身状态（变身后）**：
+   - 玩家明确声明"变身"
+   - 玩家使用了变身道具/喊出变身口号
+   - 战斗场景中已激活骑士形态
+
+### 属性使用规则
+根据变身状态使用对应的属性值：
+
+| 属性 | 通常状态使用 | 变身状态使用 |
+|------|------------|------------|
+| 肉体 | bodyNormal | bodyTransform |
+| 运动 | athleticsNormal | athleticsTransform |
+| 器用 | dexterityNormal | dexterityTransform |
+| 意志 | willNormal | willTransform |
+| 机知 | witNormal | witTransform |
+| 移动力 | movementNormal | movementTransform |
+| 先制力 | initiativeNormal | initiativeTransform |
+| HP | totalHP | transformHP |
+
+### 变身判定输出格式
+在宣告检定时，必须明确说明使用的状态：
+- 【检定-通常】需要进行【肉体】检定，投掷Xd6，难易度Y（使用通常状态属性）
+- 【检定-变身】需要进行【肉体】检定，投掷Xd6，难易度Y（使用变身状态属性）
+
+### 变身时机
+- 玩家可以在战斗开始时或回合中声明变身
+- 变身需要消耗一个动作
+- 变身后属性立即变为变身状态属性
+- HP变化：变身后HP = 当前HP + (transformHP - totalHP)
+
 ## ⚠️ 检定规则（必须严格遵守！）
 
 ### 检定流程
-1. **GM宣告检定**：必须明确告知：
+1. **确认变身状态**：先确认玩家是否已变身
+2. **GM宣告检定**：必须明确告知：
    - 检定类型（如【肉体】【运动】【机知】【意志】等）
    - 难易度（成功数需求）
-   - **投骰数量**（几d几，如"投掷2d6"或"投掷3d6"）
-2. **玩家投骰**：玩家投掷指定数量的骰子，5和6为成功数
-3. **GM判定结果**：根据成功数与难易度比较，立即给出结果
+   - **投骰数量**（根据变身状态使用对应属性值）
+3. **玩家投骰**：玩家投掷指定数量的骰子，5和6为成功数
+4. **GM判定结果**：根据成功数与难易度比较，立即给出结果
    - 成功数 ≥ 难易度 = 成功
    - 成功数 < 难易度 = 失败
 
 ### 骰子数量规则
-- **基础骰池**：检定时投掷的骰子数量 = 对应属性值
+- **基础骰池**：检定时投掷的骰子数量 = 对应属性值（根据变身状态）
 - **最低1颗**：即使属性为0，也至少投掷1颗骰子
 - **技能加成**：如果有相关技能，可以增加骰子数量
-- **常用检定骰数参考**：
-  - 简单动作：1-2d6
-  - 普通检定：根据属性值（通常2-4d6）
-  - 困难挑战：根据属性值，可能需要更多成功数
 
 ### 重要规则
-- **一次检定只能投一次骰子**！除非规则明确允许重投，否则玩家投骰后立即判定结果
-- **禁止默许多次投骰**：如果玩家未经允许多次投骰，只取第一次结果
+- **一次检定只能投一次骰子**！
 - **必须给出明确结果**：检定后必须立即说明成功或失败，以及后果
 - **大成功/大失败**：根据规则书处理特殊情况
 
-### 检定格式示例（必须包含骰子数量！）
-【检定】需要进行【感知】检定，投掷2d6，难易度2
+### 检定格式示例
+【检定-变身】需要进行【肉体】检定，投掷4d6，难易度2
 （等待玩家投骰）
 【判定】成功数为X，难易度为2，结果：成功/失败。具体后果是...
 
@@ -360,15 +465,64 @@ ${ruleContext || '暂无相关规则'}
 ## 可选的剧本模组
 ${availableScenarios}
 
+## ⚠️ 变身状态判定规则（核心！）
+
+### 变身状态识别
+在进行任何检定之前，必须先确认玩家的变身状态：
+
+1. **通常状态（未变身）**：
+   - 玩家未声明变身
+   - 玩家处于日常生活中
+   - 非战斗场景或未激活骑士系统
+
+2. **变身状态（变身后）**：
+   - 玩家明确声明"变身"
+   - 玩家使用了变身道具/喊出变身口号
+   - 战斗场景中已激活骑士形态
+
+### 属性使用规则
+根据变身状态使用对应的属性值：
+
+| 属性 | 通常状态使用 | 变身状态使用 |
+|------|------------|------------|
+| 肉体 | bodyNormal | bodyTransform |
+| 运动 | athleticsNormal | athleticsTransform |
+| 器用 | dexterityNormal | dexterityTransform |
+| 意志 | willNormal | willTransform |
+| 机知 | witNormal | witTransform |
+| 移动力 | movementNormal | movementTransform |
+| 先制力 | initiativeNormal | initiativeTransform |
+| HP | totalHP | transformHP |
+
+### 变身判定输出格式
+在宣告检定时，必须明确说明使用的状态：
+
+- 【检定-通常】需要进行【肉体】检定，投掷Xd6，难易度Y（使用通常状态属性）
+- 【检定-变身】需要进行【肉体】检定，投掷Xd6，难易度Y（使用变身状态属性）
+
+### 变身时机
+- 玩家可以在战斗开始时或回合中声明变身
+- 变身需要消耗一个动作（通常不消耗移动力）
+- 变身后属性立即变为变身状态属性
+- HP变化：如果变身前HP已受损，变身后HP = 当前HP + (transformHP - totalHP)
+
+### 注意事项
+- 如果不确定玩家是否变身，在检定前询问："[玩家名]，你现在是变身状态还是通常状态？"
+- 某些检定（如感知、社交互动）在通常状态可能更适合
+- 战斗中的伤害计算必须根据当前状态使用对应的HP上限
+
 ## 行为准则
 1. **判定规则**：需要检定时，必须：
-   - 明确告知检定类型和难易度
-   - 格式：【检定】需要进行【XX】检定，难度X
+   - 先确认玩家变身状态（通常/变身）
+   - 根据变身状态选择正确的属性值
+   - 明确告知检定类型、难易度和使用的属性
+   - 格式：【检定-通常/变身】需要进行【XX】检定，投掷Xd6，难易度Y
    - 等待玩家投骰
    - 根据结果给出明确的成功/失败判定和剧情发展
 
 2. **战斗规则**：战斗场景必须：
-   - 按规则书计算伤害和HP
+   - 确认玩家变身状态，使用对应属性和HP
+   - 按规则书计算伤害
    - 描述战斗动作要生动
    - 给玩家反击或回避的机会
 
@@ -380,7 +534,7 @@ ${availableScenarios}
 ## 输出格式标记
 - 【场景】场景描述
 - 【NPC名】NPC对话
-- 【检定】需要检定的内容（必须等待玩家投骰）
+- 【检定-通常/变身】需要检定的内容（必须等待玩家投骰）
 - 【判定】检定结果和后果
 - 【规则书原文】引用规则
 - 【战斗】战斗相关
