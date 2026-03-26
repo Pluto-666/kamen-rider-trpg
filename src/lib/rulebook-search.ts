@@ -157,6 +157,7 @@ export interface SearchResult {
   source: 'file' | 'none';
   chunks?: string[];
   priority?: 'high' | 'normal' | 'low';
+  ruleType?: 'basic' | 'extended' | 'mixed';  // 规则类型：基础规则、扩展规则、混合
 }
 
 /**
@@ -214,6 +215,7 @@ function searchInRange(
 /**
  * 优先在【假面舞会】基础规则中搜索
  * 这是核心检索函数，实现优先级检索策略
+ * 返回结果会标记规则类型：基础规则（【假面舞会】）或扩展规则
  */
 function searchMasqueradeFirst(
   lines: string[],
@@ -224,10 +226,12 @@ function searchMasqueradeFirst(
     preferGMRules?: boolean;
     preferCombatRules?: boolean;
   } = {}
-): { chunks: string[]; priority: 'high' | 'normal' | 'low' } {
+): { chunks: string[]; priority: 'high' | 'normal' | 'low'; ruleType: 'basic' | 'extended' | 'mixed' } {
   const { maxChunks = 5, preferCharacterRules = false, preferGMRules = false, preferCombatRules = false } = options;
-  const allChunks: string[] = [];
+  const basicChunks: string[] = [];  // 【假面舞会】基础规则
+  const extendedChunks: string[] = [];  // 扩展规则
   let searchPriority: 'high' | 'normal' | 'low' = 'high';
+  let ruleType: 'basic' | 'extended' | 'mixed' = 'basic';
   
   // 第一步：确定优先搜索范围
   let priorityRange = SEARCH_PRIORITY.HIGH_PRIORITY_RANGE;
@@ -240,39 +244,52 @@ function searchMasqueradeFirst(
     priorityRange = { start: MASQUERADE_RANGES.BASIC_COMBAT.start, end: 15000 };
   }
   
-  // 第二步：在优先范围内搜索
+  // 第二步：在优先范围内搜索（【假面舞会】基础规则区域）
   const priorityChunks = searchInRange(lines, query, priorityRange.start, priorityRange.end, Math.ceil(maxChunks * 0.7));
-  allChunks.push(...priorityChunks);
+  basicChunks.push(...priorityChunks);
   
   // 第三步：如果优先范围结果不足，扩展到【假面舞会】完整范围
-  if (allChunks.length < maxChunks) {
-    const extendedChunks = searchInRange(
+  if (basicChunks.length < maxChunks) {
+    const extendedBasicChunks = searchInRange(
       lines, 
       query, 
       MASQUERADE_RANGES.WORLD_SETTING.start, 
       12000, 
-      maxChunks - allChunks.length
+      maxChunks - basicChunks.length
     );
-    allChunks.push(...extendedChunks);
+    basicChunks.push(...extendedBasicChunks);
   }
   
-  // 第四步：如果仍然不足，搜索全文档
-  if (allChunks.length < maxChunks) {
-    const fullChunks = searchInRange(lines, query, 0, lines.length, maxChunks - allChunks.length);
-    allChunks.push(...fullChunks);
+  // 第四步：如果仍然不足，搜索扩展规则（其他骑士系列规则）
+  if (basicChunks.length < maxChunks) {
+    // 扩展规则主要在第2段之后（第5000行之后）
+    const fullChunks = searchInRange(lines, query, 12000, lines.length, maxChunks - basicChunks.length);
+    extendedChunks.push(...fullChunks);
     if (fullChunks.length > 0) {
       searchPriority = 'normal';
+      ruleType = 'mixed';
     }
   }
   
   // 判断检索结果来源
-  if (allChunks.length === 0) {
+  if (basicChunks.length === 0 && extendedChunks.length === 0) {
     searchPriority = 'low';
-  } else if (priorityChunks.length > 0) {
+    ruleType = 'basic';
+  } else if (basicChunks.length > 0 && extendedChunks.length === 0) {
     searchPriority = 'high';
+    ruleType = 'basic';
+  } else if (basicChunks.length > 0 && extendedChunks.length > 0) {
+    searchPriority = 'high';
+    ruleType = 'mixed';
+  } else {
+    searchPriority = 'normal';
+    ruleType = 'extended';
   }
   
-  return { chunks: allChunks, priority: searchPriority };
+  // 合并结果，基础规则在前
+  const allChunks = [...basicChunks, ...extendedChunks];
+  
+  return { chunks: allChunks, priority: searchPriority, ruleType };
 }
 
 /**
@@ -425,12 +442,23 @@ export async function searchRulebook(
     });
     
     if (result.chunks.length > 0) {
+      // 根据规则类型添加来源标记
+      let ruleTypeLabel = '';
+      if (result.ruleType === 'basic') {
+        ruleTypeLabel = '【基础规则 - 假面舞会】以下内容来自基础扩展【假面舞会】，是游戏的核心规则依据。\n\n';
+      } else if (result.ruleType === 'extended') {
+        ruleTypeLabel = '【扩展规则】以下内容来自骑士系列扩展规则，在【假面舞会】基础上使用。\n\n';
+      } else {
+        ruleTypeLabel = '【混合规则】以下内容包含基础规则【假面舞会】和扩展规则，优先参考基础规则。\n\n';
+      }
+      
       return {
         found: true,
-        content: result.chunks.join('\n\n---\n\n'),
+        content: ruleTypeLabel + result.chunks.join('\n\n---\n\n'),
         source: 'file',
         chunks: result.chunks,
         priority: result.priority,
+        ruleType: result.ruleType,
       };
     }
     
