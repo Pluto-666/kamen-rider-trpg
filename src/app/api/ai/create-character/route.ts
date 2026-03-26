@@ -5,6 +5,7 @@ import {
   searchRulebook,
   searchRaceAbilityRules,
   searchRiderSystemRules,
+  searchForAI,
   parseLineRequest,
   searchByLineNumber,
   RACE_ABILITY_POINTS,
@@ -277,28 +278,31 @@ export async function POST(request: NextRequest) {
     }
 
     // 检索角色创建相关的规则书内容
-    console.log('检索角色创建规则...');
+    // ⭐ 优先检索【假面舞会】基础扩展的角色创建规则
+    console.log('检索角色创建规则（优先【假面舞会】）...');
     const raceParam = (characterData as CharacterData).race;
     const occupationParam = (characterData as CharacterData).occupation;
     const transformItemParam = (characterData as CharacterData).transformItem;
     
-    // 使用新的精确种族能力值检索
+    // 使用新的精确种族能力值检索（优先【假面舞会】）
     const raceAbilityResult = await searchRaceAbilityRules(raceParam);
-    const ruleResult = await searchCharacterCreationRules(raceParam, occupationParam);
+    
+    // 使用优先检索【假面舞会】角色创建规则
+    const ruleResult = await searchForAI('character_creation', '角色制作 角色作成 能力值分配 种族 职业');
     
     let additionalRules = '';
     if (userMessage) {
       if (userMessage.includes('种族') || userMessage.includes('古朗基') || userMessage.includes('奥菲以诺')) {
-        const raceSearch = await searchRulebook('种族 特殊能力');
-        if (raceSearch.found) additionalRules += raceSearch.content + '\n\n';
+        const raceSearch = await searchForAI('character_creation', '种族 特殊能力 能力值分配');
+        if (raceSearch.found) additionalRules += '【种族规则 - 优先参考【假面舞会】】\n' + raceSearch.content + '\n\n';
       }
       if (userMessage.includes('变身') || userMessage.includes('形态')) {
-        const transformSearch = await searchRulebook('变身 形态 变化');
-        if (transformSearch.found) additionalRules += transformSearch.content + '\n\n';
+        const transformSearch = await searchForAI('general', '变身 形态 变化');
+        if (transformSearch.found) additionalRules += '【变身规则 - 优先参考【假面舞会】】\n' + transformSearch.content + '\n\n';
       }
       if (userMessage.includes('技能') || userMessage.includes('能力')) {
-        const skillSearch = await searchRulebook('技能列表 特殊能力');
-        if (skillSearch.found) additionalRules += skillSearch.content + '\n\n';
+        const skillSearch = await searchForAI('character_creation', '技能列表 特殊能力');
+        if (skillSearch.found) additionalRules += '【技能规则 - 优先参考【假面舞会】】\n' + skillSearch.content + '\n\n';
       }
       // 检测是否提到骑士系统/驱动器
       const riderSystemKeywords = ['驱动器', '骑士系统', '变身道具', 'Faiz', 'Blade', 'Agito', 'Kabuto', 'Den-O', 'Kiva', 'Double', 'OOO', 'Fourze', 'Wizard', 'Gaim', 'Drive', 'Ghost', 'Ex-Aid', 'Build', 'Zi-O', '555', '手机', '卡牌', '腰带'];
@@ -424,7 +428,7 @@ ${Object.keys(characterData).length > 0
   ? JSON.stringify(characterData, null, 2) 
   : '暂无，等待玩家提供'}
 
-## 规则书参考内容
+## 规则书参考内容（⭐ 优先参考【假面舞会】基础扩展）
 ${ruleContext || '暂无相关规则，请根据假面骑士TRPG通用规则引导'}
 
 ## ⚠️ 关于骑士系统/变身道具的严格规定
