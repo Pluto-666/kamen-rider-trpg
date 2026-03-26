@@ -59,6 +59,203 @@ export const MASQUERADE_RANGES = {
 };
 
 /**
+ * 扩展规则映射表
+ * 记录各骑士系统/扩展内容的规则位置
+ * 当基础规则没有详细设定时，应搜索对应的扩展规则
+ */
+export const EXTENSION_RULES: Record<string, {
+  extensionName: string;
+  lineRange: { start: number; end: number };
+  keywords: string[];
+  description: string;
+}> = {
+  // 假面骑士Decade - 扩展08【时空幻境】
+  'decade': {
+    extensionName: '扩展08【时空幻境】',
+    lineRange: { start: 44700, end: 45500 },
+    keywords: ['Decade', 'decade', '假面驾驭', '驾驭驱动器', '骑士卡', 'Diend', '大修卡'],
+    description: '假面驾驭系统详细规则：变身为Decade时能力值分配点视为20点，追加HP+20点，可变身为所有假面骑士'
+  },
+  // 假面骑士Kiva - 扩展08【时空幻境】
+  'kiva': {
+    extensionName: '扩展08【时空幻境】',
+    lineRange: { start: 163800, end: 165000 },
+    keywords: ['Kiva', 'kiva', 'Kivat', '笛哨', '城堡', '传说偶兽'],
+    description: 'Kiva系统规则：使用Kivat变身，笛哨系统等'
+  },
+  // 假面骑士电王 - 扩展08【时空幻境】
+  'den-o': {
+    extensionName: '扩展08【时空幻境】',
+    lineRange: { start: 163800, end: 165000 },
+    keywords: ['Den-O', '电王', '异魔神', 'Toritick', '时间列车'],
+    description: '电王系统规则：异魔神附身变身，时间列车等'
+  },
+  // 假面骑士Blade - 扩展02
+  'blade': {
+    extensionName: '扩展02',
+    lineRange: { start: 5001, end: 10000 },
+    keywords: ['Blade', 'BOARD', 'Undead', '觉醒卡', '封印'],
+    description: '觉醒卡系统规则：使用Undead封印卡变身'
+  },
+  // 假面骑士Kabuto - 扩展03
+  'kabuto': {
+    extensionName: '扩展03',
+    lineRange: { start: 10001, end: 15000 },
+    keywords: ['Kabuto', 'Zecter', 'Cast Off', 'Clock Up', 'ZECT'],
+    description: 'Zecter系统规则：Cast Off变身，Clock Up超加速'
+  },
+  // 假面骑士OOO - 扩展04
+  'ooo': {
+    extensionName: '扩展04',
+    lineRange: { start: 15001, end: 20000 },
+    keywords: ['OOO', '核心硬币', 'Greeed', '细胞驱动器', '硬币组合'],
+    description: '硬币系统规则：使用核心硬币变身，不同组合获得不同能力'
+  },
+  // 假面骑士Wizard - 扩展05
+  'wizard': {
+    extensionName: '扩展05',
+    lineRange: { start: 20001, end: 25000 },
+    keywords: ['Wizard', '魔法', 'Phantom', '魔法戒指', '魔力'],
+    description: '魔法系统规则：使用魔法戒指，Phantom力量'
+  },
+  // 假面骑士Drive - 扩展06
+  'drive': {
+    extensionName: '扩展06',
+    lineRange: { start: 25001, end: 30000 },
+    keywords: ['Drive', 'Roidmude', '变档战车', '重加速'],
+    description: '变档战车系统规则：使用变档战车变身'
+  },
+  // 假面骑士Ex-Aid - 扩展07
+  'ex-aid': {
+    extensionName: '扩展07',
+    lineRange: { start: 30001, end: 35000 },
+    keywords: ['Ex-Aid', 'Bugster', '卡带', '游戏驱动器', '玩家'],
+    description: '卡带系统规则：使用游戏卡带变身，Bugster相关'
+  },
+  // 假面骑士Build - 扩展08
+  'build': {
+    extensionName: '扩展08',
+    lineRange: { start: 35001, end: 40000 },
+    keywords: ['Build', '满装瓶', 'Smash', 'Best Match', '危险等级'],
+    description: '满装瓶系统规则：使用满装瓶变身，Best Match组合'
+  },
+  // 假面骑士Zi-O - 扩展08【时空幻境】
+  'zi-o': {
+    extensionName: '扩展08【时空幻境】',
+    lineRange: { start: 44700, end: 45500 },
+    keywords: ['Zi-O', '时空驱动器', 'Ridewatch', '驾驭表头'],
+    description: '时空驱动器规则：使用Ridewatch变身，借用历代骑士力量'
+  },
+  // 假面骑士Zero-One - 扩展12
+  'zero-one': {
+    extensionName: '扩展12',
+    lineRange: { start: 55001, end: 60000 },
+    keywords: ['Zero One', 'Progrise', '秘钥', 'Humagear', '亚克'],
+    description: 'Progrise系统规则：使用秘钥变身'
+  },
+  // 龙骑 - 扩展02
+  'ryuki': {
+    extensionName: '扩展02',
+    lineRange: { start: 5001, end: 10000 },
+    keywords: ['Ryuki', '龙骑', '镜世界', '契约兽', '降临卡'],
+    description: '镜世界规则：使用降临卡与契约兽契约变身'
+  },
+  // 响鬼 - 扩展02
+  'hibiki': {
+    extensionName: '扩展02',
+    lineRange: { start: 5001, end: 10000 },
+    keywords: ['Hibiki', '响鬼', '音击', '鬼', '音叉'],
+    description: '音击系统规则：使用音击武器战斗'
+  },
+  // Agito - 扩展01
+  'agito': {
+    extensionName: '扩展01',
+    lineRange: { start: 1, end: 5000 },
+    keywords: ['Agito', '觉醒', 'Unknown', '超能力', '光之力'],
+    description: '觉醒系统规则：觉醒超能力变身'
+  },
+  // 空我 - 扩展01
+  'kuuga': {
+    extensionName: '扩展01',
+    lineRange: { start: 1, end: 5000 },
+    keywords: ['Kuuga', '空我', '古朗基', '超古代', '力量形态'],
+    description: '空我形态规则：多种形态切换'
+  },
+  // W - 扩展04
+  'w': {
+    extensionName: '扩展04',
+    lineRange: { start: 15001, end: 20000 },
+    keywords: ['W', 'Double', '盖亚记忆体', '双重驱动器'],
+    description: '盖亚记忆体规则：两种记忆体组合变身'
+  },
+  // Fourze - 扩展11
+  'fourze': {
+    extensionName: '扩展11',
+    lineRange: { start: 50001, end: 55000 },
+    keywords: ['Fourze', '天文开关', 'Zodiarts', '宇宙'],
+    description: '天文开关规则：使用天文开关装备各种能力'
+  },
+  // Ghost - 扩展07
+  'ghost': {
+    extensionName: '扩展07',
+    lineRange: { start: 30001, end: 35000 },
+    keywords: ['Ghost', '眼魂', '幽灵', '伟人'],
+    description: '眼魂系统规则：使用伟人眼魂变身'
+  },
+  // Amazon - 扩展13
+  'amazon': {
+    extensionName: '扩展13',
+    lineRange: { start: 60001, end: 65000 },
+    keywords: ['Amazon', '亚马逊', '臂环', '野生'],
+    description: '亚马逊系统规则：臂环变身，野生本能'
+  },
+  // Faiz/555 - 基础扩展中有部分
+  'faiz': {
+    extensionName: '扩展01',
+    lineRange: { start: 1, end: 5000 },
+    keywords: ['Faiz', '555', '奥菲以诺', 'Smart Brain', '手机变身'],
+    description: '奥菲以诺规则：奥菲以诺种族规则'
+  },
+};
+
+/**
+ * 根据关键词查找对应的扩展规则
+ */
+export function findExtensionRule(keyword: string): {
+  extensionName: string;
+  lineRange: { start: number; end: number };
+  description: string;
+  keywords: string[];
+} | null {
+  const lowerKeyword = keyword.toLowerCase();
+  
+  for (const [key, rule] of Object.entries(EXTENSION_RULES)) {
+    // 匹配扩展名称
+    if (lowerKeyword.includes(key)) {
+      return {
+        extensionName: rule.extensionName,
+        lineRange: rule.lineRange,
+        description: rule.description,
+        keywords: rule.keywords,
+      };
+    }
+    // 匹配关键词
+    for (const kw of rule.keywords) {
+      if (lowerKeyword.includes(kw.toLowerCase())) {
+        return {
+          extensionName: rule.extensionName,
+          lineRange: rule.lineRange,
+          description: rule.description,
+          keywords: rule.keywords,
+        };
+      }
+    }
+  }
+  
+  return null;
+}
+
+/**
  * 检索优先级配置
  */
 const SEARCH_PRIORITY = {
@@ -572,56 +769,116 @@ export async function searchCharacterCreationRules(
 
 /**
  * 搜索骑士系统/变身道具相关规则
- * 【优先检索】【假面舞会】基础规则
+ * 【重要】首先检查扩展规则映射，如果找到对应扩展则直接搜索扩展内容
+ * 如果扩展中没有，再搜索基础规则
  */
 export async function searchRiderSystemRules(
   systemName?: string
 ): Promise<SearchResult> {
+  if (!systemName) {
+    // 没有指定系统名，搜索通用的骑士系统规则
+    return searchMultipleQueries(['假面骑士系统 变身', '驱动器 变身道具', '骑士形态 能力'], { maxChunksPerQuery: 3 });
+  }
+  
+  const lowerName = systemName.toLowerCase();
+  
+  // 第一步：检查扩展规则映射表
+  const extensionRule = findExtensionRule(systemName);
+  
+  if (extensionRule) {
+    console.log(`找到骑士系统【${systemName}】对应的扩展规则: ${extensionRule.extensionName}`);
+    console.log(`规则位置: 第${extensionRule.lineRange.start}-${extensionRule.lineRange.end}行`);
+    
+    // 直接搜索扩展规则范围
+    try {
+      const rulebookPath = path.join(process.cwd(), 'assets', '规则书.txt');
+      if (fs.existsSync(rulebookPath)) {
+        const content = fs.readFileSync(rulebookPath, 'utf-8');
+        const lines = content.split('\n');
+        
+        // 在扩展规则范围内搜索
+        const extensionChunks: string[] = [];
+        const keywords = [systemName, ...extensionRule.keywords.map(k => k.toLowerCase())];
+        
+        for (let i = extensionRule.lineRange.start; i < extensionRule.lineRange.end && i < lines.length; i++) {
+          const line = lines[i].toLowerCase();
+          const hasMatch = keywords.some(k => line.includes(k.toLowerCase()));
+          
+          if (hasMatch) {
+            const start = Math.max(extensionRule.lineRange.start, i - 30);
+            const end = Math.min(extensionRule.lineRange.end, lines.length, i + 30);
+            const chunk = lines.slice(start, end).join('\n');
+            
+            const chunkPreview = chunk.substring(0, 100);
+            if (!extensionChunks.some(r => r.includes(chunkPreview))) {
+              extensionChunks.push(chunk);
+            }
+            i += 30;
+          }
+          
+          if (extensionChunks.length >= 5) break;
+        }
+        
+        if (extensionChunks.length > 0) {
+          return {
+            found: true,
+            content: `【扩展规则 - ${extensionRule.extensionName}】\n${extensionRule.description}\n\n---规则书原文---\n\n${extensionChunks.join('\n\n---\n\n')}`,
+            source: 'file',
+            chunks: extensionChunks,
+            priority: 'high',
+            ruleType: 'extended',
+          };
+        }
+      }
+    } catch (error) {
+      console.error('搜索扩展规则错误:', error);
+    }
+  }
+  
+  // 第二步：扩展规则没找到，使用通用关键词搜索
+  console.log(`在扩展规则映射中未找到【${systemName}】，使用通用搜索`);
+  
   const queries: string[] = [];
   
-  if (systemName) {
-    // 尝试不同的搜索变体
-    const lowerName = systemName.toLowerCase();
-    
-    // 常见骑士系统的关键词映射
-    const systemKeywords: Record<string, string[]> = {
-      'faiz': ['Faiz', '555', 'Smart Brain', '奥菲以诺', '手机变身'],
-      '555': ['Faiz', '555', 'Smart Brain', '奥菲以诺'],
-      'blad': ['Blade', 'BOARD', 'Undead', '卡牌'],
-      'blade': ['Blade', 'BOARD', 'Undead', '卡牌'],
-      'agito': ['Agito', '觉醒', 'Unknown', '超能力'],
-      'ryuki': ['Ryuki', '龙骑', '镜世界', '契约兽'],
-      'hibiki': ['Hibiki', '响鬼', '音击', '鬼'],
-      'kabuto': ['Kabuto', '甲斗', 'Zecter', 'Cast Off'],
-      'den-o': ['Den-O', '电王', '异魔神', 'Toritick'],
-      'kiva': ['Kiva', '月骑', 'Kivat', 'Fangire'],
-      'double': ['W', 'Double', '双重驱动器', '盖亚记忆体'],
-      'ooo': ['OOO', '硬币驱动器', '核心硬币', 'Greeed'],
-      'fourze': ['Fourze', '天文开关', 'Zodiarts'],
-      'wizard': ['Wizard', '魔法', 'Phantom', 'Wizard驱动器'],
-      'gaim': ['Gaim', '战极驱动器', 'Lockseed', '海姆冥界'],
-      'drive': ['Drive', 'Drive驱动器', 'Roidmude', '移速战车'],
-      'ghost': ['Ghost', 'Ghost驱动器', '眼魂'],
-      'ex-aid': ['Ex-Aid', 'Bugster', '玩家驱动器', '卡带'],
-      'build': ['Build', 'Build驱动器', '满装瓶', 'Smash'],
-      'zi-o': ['Zi-O', '时空驱动器', 'Ridewatch'],
-    };
-    
-    // 查找匹配的系统关键词
-    let matchedKeywords: string[] = [systemName];
-    for (const [key, keywords] of Object.entries(systemKeywords)) {
-      if (lowerName.includes(key) || key.includes(lowerName)) {
-        matchedKeywords = keywords;
-        break;
-      }
+  // 常见骑士系统的关键词映射（保留原有逻辑作为备选）
+  const systemKeywords: Record<string, string[]> = {
+    'faiz': ['Faiz', '555', 'Smart Brain', '奥菲以诺', '手机变身'],
+    '555': ['Faiz', '555', 'Smart Brain', '奥菲以诺'],
+    'blad': ['Blade', 'BOARD', 'Undead', '卡牌'],
+    'blade': ['Blade', 'BOARD', 'Undead', '卡牌'],
+    'agito': ['Agito', '觉醒', 'Unknown', '超能力'],
+    'ryuki': ['Ryuki', '龙骑', '镜世界', '契约兽'],
+    'hibiki': ['Hibiki', '响鬼', '音击', '鬼'],
+    'kabuto': ['Kabuto', '甲斗', 'Zecter', 'Cast Off'],
+    'den-o': ['Den-O', '电王', '异魔神', 'Toritick'],
+    'kiva': ['Kiva', '月骑', 'Kivat', 'Fangire'],
+    'double': ['W', 'Double', '双重驱动器', '盖亚记忆体'],
+    'ooo': ['OOO', '硬币驱动器', '核心硬币', 'Greeed'],
+    'fourze': ['Fourze', '天文开关', 'Zodiarts'],
+    'wizard': ['Wizard', '魔法', 'Phantom', 'Wizard驱动器'],
+    'gaim': ['Gaim', '战极驱动器', 'Lockseed', '海姆冥界'],
+    'drive': ['Drive', 'Drive驱动器', 'Roidmude', '移速战车'],
+    'ghost': ['Ghost', 'Ghost驱动器', '眼魂'],
+    'ex-aid': ['Ex-Aid', 'Bugster', '玩家驱动器', '卡带'],
+    'build': ['Build', 'Build驱动器', '满装瓶', 'Smash'],
+    'zi-o': ['Zi-O', '时空驱动器', 'Ridewatch'],
+    'decade': ['Decade', '假面驾驭', '驾驭驱动器', '骑士卡', 'Diend', '大修卡'],
+  };
+  
+  // 查找匹配的系统关键词
+  let matchedKeywords: string[] = [systemName];
+  for (const [key, keywords] of Object.entries(systemKeywords)) {
+    if (lowerName.includes(key) || key.includes(lowerName)) {
+      matchedKeywords = keywords;
+      break;
     }
-    
-    // 使用匹配的关键词进行搜索
-    for (const keyword of matchedKeywords) {
-      queries.push(keyword);
-      queries.push(`${keyword} 驱动器`);
-      queries.push(`${keyword} 变身`);
-    }
+  }
+  
+  // 使用匹配的关键词进行搜索
+  for (const keyword of matchedKeywords) {
+    queries.push(keyword);
+    queries.push(`${keyword} 驱动器`);
+    queries.push(`${keyword} 变身`);
   }
   
   // 添加通用的骑士系统规则
