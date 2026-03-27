@@ -11,6 +11,12 @@ import {
   RACE_ABILITY_POINTS,
   ABILITY_TYPES
 } from '@/lib/rulebook-search';
+import {
+  searchRulebookKnowledge,
+  searchCharacterCreationKnowledge,
+  searchCharacterExample,
+  searchRiderSystemKnowledge,
+} from '@/lib/knowledge-client';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -278,33 +284,70 @@ export async function POST(request: NextRequest) {
     }
 
     // 检索角色创建相关的规则书内容
-    // ⭐ 优先检索【假面舞会】基础扩展的角色创建规则
-    console.log('检索角色创建规则（优先【假面舞会】）...');
+    // ⭐ 优先从扣子知识库检索，知识库无结果时回退到本地规则
+    console.log('检索角色创建规则（优先知识库）...');
     const raceParam = (characterData as CharacterData).race;
     const occupationParam = (characterData as CharacterData).occupation;
     const transformItemParam = (characterData as CharacterData).transformItem;
     
-    // 使用新的精确种族能力值检索（优先【假面舞会】）
+    // 优先从知识库检索角色创建规则
+    let ruleContext = '';
+    const kbCreationResult = await searchCharacterCreationKnowledge();
+    if (kbCreationResult.success && kbCreationResult.content) {
+      ruleContext += '【角色创建规则（来自知识库）】\n' + kbCreationResult.content + '\n\n';
+    }
+    
+    // 使用新的精确种族能力值检索（优先【假面舞会】）作为补充
     const raceAbilityResult = await searchRaceAbilityRules(raceParam);
+    if (raceAbilityResult.found) {
+      ruleContext += '【种族能力值规则】\n' + raceAbilityResult.content + '\n\n';
+    }
     
-    // 使用优先检索【假面舞会】角色创建规则
-    const ruleResult = await searchForAI('character_creation', '角色制作 角色作成 能力值分配 种族 职业');
+    // 如果知识库没有结果，回退到本地规则
+    if (!kbCreationResult.success) {
+      const ruleResult = await searchForAI('character_creation', '角色制作 角色作成 能力值分配 种族 职业');
+      if (ruleResult.found) {
+        ruleContext += '【角色创建规则 - 优先参考【假面舞会】】\n' + ruleResult.content + '\n\n';
+      }
+    }
     
+    // 额外规则检索（根据用户消息内容）
     let additionalRules = '';
     if (userMessage) {
+      // 种族相关
       if (userMessage.includes('种族') || userMessage.includes('古朗基') || userMessage.includes('奥菲以诺')) {
-        const raceSearch = await searchForAI('character_creation', '种族 特殊能力 能力值分配');
-        if (raceSearch.found) additionalRules += '【种族规则 - 优先参考【假面舞会】】\n' + raceSearch.content + '\n\n';
+        const kbRaceResult = await searchRulebookKnowledge('种族 特殊能力');
+        if (kbRaceResult.success && kbRaceResult.content) {
+          additionalRules += '【种族规则（来自知识库）】\n' + kbRaceResult.content + '\n\n';
+        } else {
+          const raceSearch = await searchForAI('character_creation', '种族 特殊能力 能力值分配');
+          if (raceSearch.found) additionalRules += '【种族规则 - 优先参考【假面舞会】】\n' + raceSearch.content + '\n\n';
+        }
       }
+      
+      // 变身/形态相关
       if (userMessage.includes('变身') || userMessage.includes('形态')) {
-        const transformSearch = await searchForAI('general', '变身 形态 变化');
-        if (transformSearch.found) additionalRules += '【变身规则 - 优先参考【假面舞会】】\n' + transformSearch.content + '\n\n';
+        const kbTransformResult = await searchRulebookKnowledge('变身 形态');
+        if (kbTransformResult.success && kbTransformResult.content) {
+          additionalRules += '【变身规则（来自知识库）】\n' + kbTransformResult.content + '\n\n';
+        } else {
+          const transformSearch = await searchForAI('general', '变身 形态 变化');
+          if (transformSearch.found) additionalRules += '【变身规则 - 优先参考【假面舞会】】\n' + transformSearch.content + '\n\n';
+        }
       }
+      
+      // 技能/能力相关
       if (userMessage.includes('技能') || userMessage.includes('能力')) {
-        const skillSearch = await searchForAI('character_creation', '技能列表 特殊能力');
-        if (skillSearch.found) additionalRules += '【技能规则 - 优先参考【假面舞会】】\n' + skillSearch.content + '\n\n';
+        const kbSkillResult = await searchRulebookKnowledge('技能 特殊能力');
+        if (kbSkillResult.success && kbSkillResult.content) {
+          additionalRules += '【技能规则（来自知识库）】\n' + kbSkillResult.content + '\n\n';
+        } else {
+          const skillSearch = await searchForAI('character_creation', '技能列表 特殊能力');
+          if (skillSearch.found) additionalRules += '【技能规则 - 优先参考【假面舞会】】\n' + skillSearch.content + '\n\n';
+        }
       }
-      // 检测是否提到骑士系统/驱动器
+      
+      // 检测是否提到骑士系统/驱动器 - 优先使用知识库检索
       const riderSystemKeywords = ['驱动器', '骑士系统', '变身道具', 'Faiz', 'Blade', 'Agito', 'Kabuto', 'Den-O', 'Kiva', 'Double', 'OOO', 'Fourze', 'Wizard', 'Gaim', 'Drive', 'Ghost', 'Ex-Aid', 'Build', 'Zi-O', '555', '手机', '卡牌', '腰带'];
       const hasRiderSystemMention = riderSystemKeywords.some(k => userMessage.toLowerCase().includes(k.toLowerCase()));
       if (hasRiderSystemMention) {
@@ -316,31 +359,47 @@ export async function POST(request: NextRequest) {
             break;
           }
         }
-        const riderSystemResult = await searchRiderSystemRules(systemName || transformItemParam);
-        if (riderSystemResult.found) {
-          additionalRules += '【骑士系统规则】\n' + riderSystemResult.content + '\n\n';
+        // 优先从知识库检索骑士系统规则
+        const kbRiderResult = await searchRiderSystemKnowledge(systemName || transformItemParam || '');
+        if (kbRiderResult.success && kbRiderResult.content) {
+          additionalRules += '【骑士系统规则（来自知识库）】\n' + kbRiderResult.content + '\n\n';
+        } else {
+          const riderSystemResult = await searchRiderSystemRules(systemName || transformItemParam);
+          if (riderSystemResult.found) {
+            additionalRules += '【骑士系统规则】\n' + riderSystemResult.content + '\n\n';
+          }
+        }
+      }
+      
+      // 检测是否请求角色卡示例
+      if (userMessage.includes('示例') || userMessage.includes('例子') || userMessage.includes('参考')) {
+        const kbExampleResult = await searchCharacterExample(userMessage);
+        if (kbExampleResult.success && kbExampleResult.content) {
+          additionalRules += '【角色卡示例（来自知识库）】\n' + kbExampleResult.content + '\n\n';
         }
       }
     }
     
     // 如果角色数据中已有变身道具，也检索相关规则
     if (transformItemParam && !additionalRules.includes('骑士系统规则')) {
-      const riderSystemResult = await searchRiderSystemRules(transformItemParam);
-      if (riderSystemResult.found) {
-        additionalRules += '【骑士系统规则】\n' + riderSystemResult.content + '\n\n';
+      const kbRiderResult = await searchRiderSystemKnowledge(transformItemParam);
+      if (kbRiderResult.success && kbRiderResult.content) {
+        additionalRules += '【骑士系统规则（来自知识库）】\n' + kbRiderResult.content + '\n\n';
+      } else {
+        const riderSystemResult = await searchRiderSystemRules(transformItemParam);
+        if (riderSystemResult.found) {
+          additionalRules += '【骑士系统规则】\n' + riderSystemResult.content + '\n\n';
+        }
       }
     }
 
-    // 合并规则内容，行号检索结果优先，然后是种族能力值规则
-    let ruleContext = '';
+    // 添加额外规则到规则上下文
+    ruleContext += additionalRules;
     
     // 如果有行号检索结果，优先展示
     if (lineSearchResult) {
-      ruleContext += '【行号检索结果】\n' + lineSearchResult + '\n\n';
+      ruleContext = '【行号检索结果】\n' + lineSearchResult + '\n\n' + ruleContext;
     }
-    
-    ruleContext += (raceAbilityResult.found ? raceAbilityResult.content : '') + '\n\n' + 
-                   (ruleResult.found ? ruleResult.content : '') + '\n\n' + additionalRules;
 
     // 构建消息历史
     const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [];

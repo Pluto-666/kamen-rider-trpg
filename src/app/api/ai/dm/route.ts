@@ -10,6 +10,13 @@ import {
   searchGMRules,
   SCENARIO_MODULES
 } from '@/lib/rulebook-search';
+import {
+  searchRulebookKnowledge,
+  searchCombatKnowledge,
+  searchCheckKnowledge,
+  searchScenarioKnowledge,
+  searchRiderSystemKnowledge,
+} from '@/lib/knowledge-client';
 
 // AI主持人 - 流式输出 (使用 DeepSeek API)
 export async function POST(request: NextRequest) {
@@ -32,37 +39,58 @@ export async function POST(request: NextRequest) {
                         dialogHistory?.length <= 1;
 
     // 根据不同情况检索规则书
-    // ⭐ 优先检索【假面舞会】基础扩展的规则
+    // ⭐ 优先检索扣子知识库，如果知识库有结果则使用，否则回退到本地规则
     let ruleContext = '';
     let scenarioContext = '';
     
     // 1. 如果是游戏开始，检索剧本模组完整内容
     if (isGameStart && scenarioName) {
       console.log('游戏开始，检索剧本模组:', scenarioName);
-      const scenarioResult = await searchScenarioModule(scenarioName);
-      if (scenarioResult.found) {
-        scenarioContext = scenarioResult.content;
-        ruleContext += '【剧本模组完整内容】\n' + scenarioResult.content + '\n\n';
+      // 优先从知识库检索
+      const kbScenarioResult = await searchScenarioKnowledge(scenarioName);
+      if (kbScenarioResult.success && kbScenarioResult.content) {
+        scenarioContext = kbScenarioResult.content;
+        ruleContext += '【剧本模组完整内容（来自知识库）】\n' + kbScenarioResult.content + '\n\n';
+      } else {
+        // 回退到本地规则
+        const localScenarioResult = await searchScenarioModule(scenarioName);
+        if (localScenarioResult.found) {
+          scenarioContext = localScenarioResult.content;
+          ruleContext += '【剧本模组完整内容】\n' + localScenarioResult.content + '\n\n';
+        }
       }
     }
     
-    // 2. 检测是否需要战斗规则 - 使用优先检索
+    // 2. 检测是否需要战斗规则 - 优先使用知识库
     const combatKeywords = ['战斗', '攻击', '防御', '伤害', 'HP', '必杀技', '武器'];
     const needsCombatRules = combatKeywords.some(k => playerAction?.includes(k)) || 
                              currentScene?.type === 'combat';
     if (needsCombatRules) {
-      console.log('检索战斗规则（优先【假面舞会】）...');
-      const combatResult = await searchForAI('combat', '战斗规则 攻击 回合 伤害');
-      if (combatResult.found) {
-        ruleContext += '【战斗规则 - 优先参考【假面舞会】基础规则】\n' + combatResult.content + '\n\n';
+      console.log('检索战斗规则（优先知识库）...');
+      // 优先从知识库检索
+      const kbCombatResult = await searchCombatKnowledge();
+      if (kbCombatResult.success && kbCombatResult.content) {
+        ruleContext += '【战斗规则（来自知识库）】\n' + kbCombatResult.content + '\n\n';
+      } else {
+        // 回退到本地规则
+        const combatResult = await searchForAI('combat', '战斗规则 攻击 回合 伤害');
+        if (combatResult.found) {
+          ruleContext += '【战斗规则 - 优先参考【假面舞会】基础规则】\n' + combatResult.content + '\n\n';
+        }
       }
     }
     
-    // 3. 检测是否需要检定规则 - 使用优先检索
-    console.log('检索检定规则（优先【假面舞会】）...');
-    const checkResult = await searchForAI('general', '检定规则 判定 成功数');
-    if (checkResult.found) {
-      ruleContext += '【检定规则 - 优先参考【假面舞会】基础规则】\n' + checkResult.content + '\n\n';
+    // 3. 检测是否需要检定规则 - 优先使用知识库
+    console.log('检索检定规则（优先知识库）...');
+    const kbCheckResult = await searchCheckKnowledge('检定');
+    if (kbCheckResult.success && kbCheckResult.content) {
+      ruleContext += '【检定规则（来自知识库）】\n' + kbCheckResult.content + '\n\n';
+    } else {
+      // 回退到本地规则
+      const checkResult = await searchForAI('general', '检定规则 判定 成功数');
+      if (checkResult.found) {
+        ruleContext += '【检定规则 - 优先参考【假面舞会】基础规则】\n' + checkResult.content + '\n\n';
+      }
     }
     
     // 3.5 检测是否是玩家投骰结果
@@ -74,37 +102,55 @@ export async function POST(request: NextRequest) {
     
     if (isDiceRoll) {
       console.log('检测到玩家投骰结果，需要给出判定');
-      // 确保检定规则存在
+      // 确保检定规则存在 - 优先使用知识库
       if (!ruleContext.includes('检定规则')) {
-        ruleContext += '【检定规则 - 优先参考【假面舞会】基础规则】\n' + checkResult.content + '\n\n';
+        const kbCheckResult = await searchCheckKnowledge('检定');
+        if (kbCheckResult.success && kbCheckResult.content) {
+          ruleContext += '【检定规则（来自知识库）】\n' + kbCheckResult.content + '\n\n';
+        }
       }
     }
     
-    // 4. 根据当前场景类型检索相关规则 - 使用优先检索
+    // 4. 根据当前场景类型检索相关规则 - 优先使用知识库
     if (currentScene?.location) {
-      const locationResult = await searchForAI('general', currentScene.location);
-      if (locationResult.found) {
-        ruleContext += '【场景信息】\n' + locationResult.content + '\n\n';
+      const kbLocationResult = await searchRulebookKnowledge(currentScene.location);
+      if (kbLocationResult.success && kbLocationResult.content) {
+        ruleContext += '【场景信息（来自知识库）】\n' + kbLocationResult.content + '\n\n';
+      } else {
+        const locationResult = await searchForAI('general', currentScene.location);
+        if (locationResult.found) {
+          ruleContext += '【场景信息】\n' + locationResult.content + '\n\n';
+        }
       }
     }
     
-    // 5. 检索世界观设定（如果有相关关键词）- 使用优先检索
+    // 5. 检索世界观设定（如果有相关关键词）- 优先使用知识库
     const worldKeywords = ['古朗基', '奥菲以诺', 'Unknown', '林多', '世界', '组织', 'Smart Brain', 'BOARD'];
     for (const keyword of worldKeywords) {
       if (playerAction?.includes(keyword)) {
-        const worldResult = await searchForAI('general', keyword);
-        if (worldResult.found) {
-          ruleContext += `【${keyword}相关信息 - 优先参考【假面舞会】设定】\n${worldResult.content}\n\n`;
+        const kbWorldResult = await searchRulebookKnowledge(keyword);
+        if (kbWorldResult.success && kbWorldResult.content) {
+          ruleContext += `【${keyword}相关信息（来自知识库）】\n${kbWorldResult.content}\n\n`;
+        } else {
+          const worldResult = await searchForAI('general', keyword);
+          if (worldResult.found) {
+            ruleContext += `【${keyword}相关信息 - 优先参考【假面舞会】设定】\n${worldResult.content}\n\n`;
+          }
         }
         break;
       }
     }
     
-    // 6. 如果玩家有异议，额外检索相关内容 - 使用优先检索
+    // 6. 如果玩家有异议，额外检索相关内容 - 优先使用知识库
     if (playerAction?.includes('为什么') || playerAction?.includes('不对') || playerAction?.includes('规则')) {
-      const specificResult = await searchForAI('gm', playerAction);
-      if (specificResult.found) {
-        ruleContext += '【规则书原文 - 优先参考【假面舞会】规则】\n' + specificResult.content + '\n\n';
+      const kbSpecificResult = await searchRulebookKnowledge(playerAction);
+      if (kbSpecificResult.success && kbSpecificResult.content) {
+        ruleContext += '【规则书原文（来自知识库）】\n' + kbSpecificResult.content + '\n\n';
+      } else {
+        const specificResult = await searchForAI('gm', playerAction);
+        if (specificResult.found) {
+          ruleContext += '【规则书原文 - 优先参考【假面舞会】规则】\n' + specificResult.content + '\n\n';
+        }
       }
     }
 
