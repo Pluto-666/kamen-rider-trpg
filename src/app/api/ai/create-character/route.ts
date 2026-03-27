@@ -82,6 +82,42 @@ function extractJsonFromResponse(response: string): CharacterData | null {
 }
 
 // 从对话中提取角色数据
+// 清理字段值中的格式问题（如 "**-通常**不消耗**命运点"）
+function cleanFieldValue(value: unknown): unknown {
+  if (typeof value === 'string') {
+    // 移除 Markdown 格式标记
+    let cleaned = value.replace(/\*\*/g, '');
+    // 移除类似 "-通常不消耗命运点" 的后缀
+    cleaned = cleaned.replace(/\s*[-－][^\n]*/g, '');
+    // 移除引号
+    cleaned = cleaned.replace(/["""]/g, '');
+    // 去除首尾空格
+    cleaned = cleaned.trim();
+    return cleaned || undefined;
+  }
+  return value;
+}
+
+// 清理对象中所有字符串字段
+function cleanObjectFields(obj: Record<string, unknown>): Record<string, unknown> {
+  const cleaned: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (typeof value === 'string') {
+      cleaned[key] = cleanFieldValue(value);
+    } else if (Array.isArray(value)) {
+      cleaned[key] = value.map(v => 
+        typeof v === 'string' ? cleanFieldValue(v) : 
+        typeof v === 'object' && v !== null ? cleanObjectFields(v as Record<string, unknown>) : v
+      );
+    } else if (typeof value === 'object' && value !== null) {
+      cleaned[key] = cleanObjectFields(value as Record<string, unknown>);
+    } else {
+      cleaned[key] = value;
+    }
+  }
+  return cleaned;
+}
+
 function extractCharacterData(characterData: CharacterData, messages: Message[]): CharacterData {
   const data = { ...characterData };
   const recentMessages = messages.slice(-6);
@@ -103,6 +139,7 @@ function extractCharacterData(characterData: CharacterData, messages: Message[])
       /待填写/,
       /待定/,
       /暂无/,
+      /^字段$/,
     ];
     return promptPatterns.some(pattern => pattern.test(str)) || str.trim().length < 2;
   };
@@ -114,50 +151,81 @@ function extractCharacterData(characterData: CharacterData, messages: Message[])
     if (jsonData) {
       console.log('从 JSON 提取到完整角色数据:', JSON.stringify(jsonData, null, 2));
       
-      // 基础字段直接合并
-      const baseFields = {
-        name: jsonData.name,
-        playerName: jsonData.playerName,
-        age: jsonData.age,
-        gender: jsonData.gender,
-        race: jsonData.race,
-        occupation: jsonData.occupation,
-        background: jsonData.background,
-        attributes: jsonData.attributes,
-        transformItem: jsonData.transformItem,
-        finisherMove: jsonData.finisherMove,
-        transformPhrase: jsonData.transformPhrase,
-      };
+      // 清理所有字段值
+      const cleanedJson = cleanObjectFields(jsonData);
+      console.log('清理后的角色数据:', JSON.stringify(cleanedJson, null, 2));
+      
+      // 基础字段直接合并（清理后）
+      const baseFields: Record<string, unknown> = {};
+      const baseFieldNames = ['name', 'playerName', 'age', 'gender', 'race', 'occupation', 
+                              'background', 'attributes', 'transformItem', 'finisherMove', 'transformPhrase'];
+      for (const field of baseFieldNames) {
+        if (cleanedJson[field] !== undefined && cleanedJson[field] !== null && cleanedJson[field] !== '') {
+          baseFields[field] = cleanedJson[field];
+        }
+      }
+      
+      // 如果 playerName 为空或无效，设置默认值
+      if (!baseFields.playerName || isPromptText(baseFields.playerName as string)) {
+        baseFields.playerName = '未知玩家';
+      }
       
       // 扩展字段 - 合并到 rider_data
       const extendedFields: Record<string, unknown> = {};
       const extendedFieldNames = [
         'skills', 'racialTraits', 'equipment', 'characterType', 
         'characterTypeFeatures', 'derivedStats', 'riderForm', 
-        'combatStyle', 'finisherDamage', 'riderForm'
+        'combatStyle', 'finisherDamage'
       ];
       
       for (const field of extendedFieldNames) {
-        if (jsonData[field] !== undefined) {
-          extendedFields[field] = jsonData[field];
+        if (cleanedJson[field] !== undefined && cleanedJson[field] !== null) {
+          // 对于技能，确保格式正确
+          if (field === 'skills' && typeof cleanedJson[field] === 'object') {
+            const skills = cleanedJson[field] as Record<string, unknown>;
+            if (Object.keys(skills).length > 0) {
+              extendedFields[field] = skills;
+            }
+          }
+          // 对于骑士形态，确保包含所有必要字段
+          else if (field === 'riderForm' && typeof cleanedJson[field] === 'object') {
+            const form = cleanedJson[field] as Record<string, unknown>;
+            if (form.formName || form.abilities || form.finisherDamage) {
+              extendedFields[field] = form;
+            }
+          }
+          // 对于角色类型，确保值有效
+          else if (field === 'characterType' && typeof cleanedJson[field] === 'string') {
+            const typeValue = cleanedJson[field] as string;
+            if (typeValue.includes('BA') || typeValue.includes('DA') || typeValue.includes('SA') ||
+                typeValue.includes('战斗型') || typeValue.includes('戏剧型') || typeValue.includes('支援型')) {
+              extendedFields[field] = typeValue;
+            }
+          }
+          else {
+            extendedFields[field] = cleanedJson[field];
+          }
         }
       }
       
       // 同时保留原有的 rider_data 内容
-      if (jsonData.rider_data) {
-        Object.assign(extendedFields, jsonData.rider_data);
+      const existingRiderData = cleanedJson.rider_data as Record<string, unknown> | undefined;
+      if (existingRiderData) {
+        Object.assign(extendedFields, existingRiderData);
       }
       
       // 构建最终的 rider_data
       const riderData: Record<string, unknown> = {
-        riderSystem: jsonData.transformItem || jsonData.rider_data?.riderSystem || '',
-        transformationItem: jsonData.transformItem || jsonData.rider_data?.transformationItem || '',
-        finisherMoves: jsonData.finisherMove ? [jsonData.finisherMove] : (jsonData.rider_data?.finisherMoves || []),
-        specialAbilities: jsonData.rider_data?.specialAbilities || [],
-        transformationPhrase: jsonData.transformPhrase || jsonData.rider_data?.transformationPhrase || '',
+        riderSystem: cleanedJson.transformItem || (existingRiderData?.riderSystem as string) || '',
+        transformationItem: cleanedJson.transformItem || (existingRiderData?.transformationItem as string) || '',
+        finisherMoves: cleanedJson.finisherMove ? [cleanedJson.finisherMove] : ((existingRiderData?.finisherMoves as string[]) || []),
+        specialAbilities: (existingRiderData?.specialAbilities as string[]) || [],
+        transformationPhrase: cleanedJson.transformPhrase || (existingRiderData?.transformationPhrase as string) || '',
         // 添加扩展字段
         ...extendedFields,
       };
+      
+      console.log('最终 rider_data:', JSON.stringify(riderData, null, 2));
       
       return { 
         ...data,
@@ -556,23 +624,73 @@ ${racePointsRef}
 "【已确认】必杀技：Rider Kick"
 "【已确认】背景：他是一名普通的中学体育教师，某天被神秘力量选中..."
 
-### 角色卡完成时输出JSON格式
-当所有信息收集完毕，最后输出完整的JSON：
+### ⚠️ 角色卡完成时输出JSON格式（非常重要！必须包含所有字段！）
+当所有信息收集完毕，最后输出完整的JSON，**必须包含以下所有字段，不可遗漏任何字段**：
 \`\`\`json
 {
-  "name": "角色名",
-  "playerName": "玩家名",
-  "race": "种族",
-  "occupation": "职业",
-  "age": 年龄,
-  "gender": "性别",
-  "background": "背景故事",
-  "attributes": {"body": 4, "athletics": 3, "dexterity": 2, "will": 2, "wit": 2},
-  "transformItem": "变身道具名",
-  "finisherMove": "必杀技名",
-  "transformPhrase": "变身口号"
+  "name": "角色名（必填）",
+  "playerName": "玩家名（必填，如果玩家未提供则填写\"未知玩家\"）",
+  "race": "种族（必填，如：人类/古朗基/奥菲以诺等）",
+  "occupation": "职业（必填，如：刑警/医生/学生等）",
+  "age": 年龄（必填，数字）,
+  "gender": "性别（必填，男/女/其他）",
+  "background": "背景故事（必填，2-3句话描述）",
+  "attributes": {
+    "body": 肉体值（必填，数字）,
+    "athletics": 运动值（必填，数字）,
+    "dexterity": 器用值（必填，数字）,
+    "will": 意志值（必填，数字）,
+    "wit": 机知值（必填，数字）,
+    "movementNormal": 通常移动力（必填，数字）,
+    "movementTransform": 变身移动力（必填，数字）,
+    "initiativeNormal": 通常先制力（必填，数字）,
+    "initiativeTransform": 变身先制力（必填，数字）,
+    "totalHP": 通常HP（必填，数字）,
+    "transformHP": 变身HP（必填，数字）
+  },
+  "transformItem": "变身道具名（必填，如：OOO驱动器）",
+  "finisherMove": "必杀技名（必填）",
+  "transformPhrase": "变身口号（必填）",
+  "characterType": "角色类型（必填，战斗型[BA]/戏剧型[DA]/支援型[SA]）",
+  "skills": {
+    "技能名1": 技能等级（数字）,
+    "技能名2": 技能等级（数字）
+  },
+  "racialTraits": ["种族特性1", "种族特性2"],
+  "equipment": ["装备1", "装备2"],
+  "riderForm": {
+    "formName": "骑士形态名（必填）",
+    "attributeBonus": {"属性名": "加值"},
+    "abilities": ["形态能力1", "形态能力2"],
+    "finisherDamage": "必杀伤害值"
+  },
+  "combatStyle": {
+    "primary": "主武器",
+    "secondary": "副武器",
+    "specialty": "特长",
+    "tactics": "战术"
+  }
 }
 \`\`\`
+
+### ⚠️ JSON输出检查清单（输出前必须确认！）
+在输出JSON前，请检查以下所有字段是否已填写：
+- [ ] name - 角色名
+- [ ] playerName - 玩家名（如果玩家未提供，填写"未知玩家"）
+- [ ] race - 种族
+- [ ] occupation - 职业
+- [ ] age - 年龄
+- [ ] gender - 性别
+- [ ] background - 背景故事
+- [ ] attributes - 完整属性（包含所有子字段）
+- [ ] transformItem - 变身道具
+- [ ] finisherMove - 必杀技
+- [ ] transformPhrase - 变身口号
+- [ ] characterType - 角色类型
+- [ ] skills - 技能列表（至少3个技能）
+- [ ] riderForm - 骑士形态信息
+
+**如果有任何字段未填写，请不要输出JSON，继续询问玩家！**
 
 ## 当前已确认的角色信息
 ${Object.keys(characterData).length > 0 
