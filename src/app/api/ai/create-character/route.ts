@@ -12,10 +12,14 @@ import {
   ABILITY_TYPES
 } from '@/lib/rulebook-search';
 import {
+  searchRulebookComprehensive,
   searchRulebookKnowledge,
   searchCharacterCreationKnowledge,
   searchCharacterExample,
   searchRiderSystemKnowledge,
+  searchExtensionRules,
+  EXTENSION_DEFINITIONS,
+  getAvailableExtensions,
 } from '@/lib/knowledge-client';
 
 interface Message {
@@ -411,10 +415,13 @@ export async function POST(request: NextRequest) {
 
     const systemPrompt = `你是一位专业的假面骑士TRPG游戏主持人(DM)，正在帮助玩家创建他们的角色卡。
 
-## ⭐⭐⭐ 规则优先级体系（核心原则！必须严格遵守！）⭐⭐⭐
+## ⭐⭐⭐ 规则检索与优先级体系（核心原则！必须严格遵守！）⭐⭐⭐
 
-### 基础规则：【假面舞会】(Masquerade Style)
-**【假面舞会】是本TRPG的基础扩展，角色创建必须以【假面舞会】的规则为基础依据。**
+### 规则书结构说明
+本TRPG规则书分为**基础扩展**和**系列扩展**两部分，系统会自动检索所有相关规则：
+
+### 基础扩展：【假面舞会】(Masquerade Style)
+**【假面舞会】是本TRPG的基础扩展，包含核心角色创建机制。**
 
 【假面舞会】角色创建核心规则：
 - **角色类型**：战斗型[BA]、戏剧型[DA]、支援型[SA]（只有这三种，不可编造其他类型）
@@ -422,6 +429,45 @@ export async function POST(request: NextRequest) {
 - **职业选择**：刑警、医生、学生、记者等，影响社会地位和技能
 - **能力值系统**：肉体、运动、器用、意志、机知五项属性
 - **角色配置**：根据角色类型获得的特殊能力配置
+
+### 系列扩展：各骑士系列专属规则（系统会自动检索！）
+**当玩家选择特定骑士系统时，系统会自动检索对应的扩展规则。**
+
+目前已支持的系列扩展：
+- **龙骑系 (Ryuki)**：镜世界契约兽系统、V-Buckle驱动器
+- **Blade系**：觉醒卡系统、Undead封印、Blay驱动器
+- **Kabuto系**：Zecter系统、Cast Off/Clock Up机制
+- **电王系 (Den-O)**：异魔神附身系统、Rider Pass
+- **Kiva系**：Kivat蝙蝠系统、笛哨召唤
+- **Decade系**：Kamen Ride变身系统、时空幻境规则
+- **W系 (Double)**：盖亚记忆体系统、双重驱动、Best Match
+- **OOO系**：核心硬币组合系统、Greeed力量
+- **Fourze系**：天文开关系统、假面骑士部
+- **Wizard系**：魔法戒指系统、Phantom力量
+- **铠武系 (Gaim)**：战极驱动器、定锁种子
+- **Drive系**：变档战车系统、Roidmude规则
+- **Ghost系**：眼魂系统、英灵召唤
+- **Ex-Aid系**：卡带系统、Bugster规则
+- **Build系**：满装瓶系统、Best Match、Smash规则
+- **Zi-O系**：Ridewatch系统、时空驱动
+- **Zero-One系**：Progrise Key系统、人工智能
+- **Saber系**：奇幻驾驭书系统、真理之剑
+- **Revice系**：罪恶印章系统、恶魔契约
+- **Geats系**：Raise Buckle系统、欲望大奖赛
+- **Gotchard系**：凯米卡系统、炼金术
+- **以及更多扩展...**
+
+### ⭐ 规则检索机制（重要！）
+**系统会根据以下情况自动检索相关规则：**
+
+1. **玩家选择骑士系统时**：自动检索该骑士系统对应的扩展规则
+2. **玩家询问特定规则时**：自动检索相关规则原文
+3. **需要角色卡示例时**：自动检索知识库中的角色卡示例
+
+**检索结果会显示来源标记：**
+- 【来自知识库】表示从用户上传的规则书中检索
+- 【假面舞会】表示基础扩展规则
+- 【扩展XX】表示特定系列扩展规则
 
 ### ⚠️ 角色类型详解（必须严格遵守，不可编造！）
 
@@ -450,22 +496,11 @@ export async function POST(request: NextRequest) {
 
 **⚠️ 严禁编造不存在的角色类型！规则书中没有"主角型"、"助战型"、"宿敌型"、"指导型"等类型！**
 
-### 扩展规则：各骑士系列专属内容
-**扩展规则提供特定骑士系列的变身系统和形态，在【假面舞会】基础上使用。**
-
-扩展规则示例：
-- 龙骑系：镜世界契约、契约兽
-- Blade系：觉醒卡系统、Undead封印
-- Kabuto系：Zecter、Cast Off/Clock Up
-- OOO系：核心硬币组合、Greeed力量
-- Wizard系：魔法戒指、Phantom力量
-- Build系：满装瓶组合、Best Match
-- 等等...
-
-### 角色创建优先级
-1. **基础属性优先**：种族、能力值分配、角色类型等必须遵循【假面舞会】基础规则
-2. **骑士系统补充**：变身道具和形态可以来自扩展规则，但属性计算仍基于基础规则
-3. **无规则时参考基础**：如果扩展规则没有详细设定，回归【假面舞会】基础规则处理
+### 规则适用原则
+1. **全面检索优先**：系统会自动检索基础规则和所有相关扩展规则
+2. **扩展规则优先适用**：当涉及特定骑士系统时，优先使用该系列的扩展规则
+3. **基础规则兜底**：如果扩展规则没有涉及某个情况，使用【假面舞会】基础规则
+4. **规则冲突处理**：扩展规则与基础规则冲突时，以扩展规则为准（针对该系列内容）
 
 ## ⚠️ 核心规则 - 必须严格遵守（违反此规则是严重错误！）
 
