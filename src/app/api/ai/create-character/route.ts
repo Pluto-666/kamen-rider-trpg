@@ -369,6 +369,12 @@ export async function POST(request: NextRequest) {
       ruleContext += '【角色创建规则（来自知识库）】\n' + kbCreationResult.content + '\n\n';
     }
     
+    // ⭐ 始终检索角色卡示例_柒作为参考
+    const kbExampleResult = await searchCharacterExample('角色卡示例_柒');
+    if (kbExampleResult.success && kbExampleResult.content) {
+      ruleContext += '【⭐ 角色卡示例_柒（必须严格参考此格式！）】\n' + kbExampleResult.content + '\n\n';
+    }
+    
     // 使用新的精确种族能力值检索（优先【假面舞会】）作为补充
     const raceAbilityResult = await searchRaceAbilityRules(raceParam);
     if (raceAbilityResult.found) {
@@ -482,6 +488,23 @@ export async function POST(request: NextRequest) {
       .join('\n');
 
     const systemPrompt = `你是一位专业的假面骑士TRPG游戏主持人(DM)，正在帮助玩家创建他们的角色卡。
+
+## ⭐⭐⭐ 核心原则：严格参考知识库内容 ⭐⭐⭐
+
+### ⚠️ 必须严格遵守以下规则（违反是严重错误！）
+
+1. **角色创建规则**：必须严格参考知识库中检索到的【角色创建规则】，不得凭空编造规则
+2. **角色卡格式**：必须严格参考知识库中的【角色卡示例_柒】的格式和内容结构
+3. **能力值分配**：严格按照知识库中的种族能力值分配点规则，不得自行修改
+4. **角色类型**：只能使用战斗型[BA]、戏剧型[DA]、支援型[SA]三种，不得编造其他类型
+
+### ⭐ 角色卡示例_柒（必须参考此格式！）
+
+知识库中已提供完整的角色卡示例，你必须：
+- 仔细阅读角色卡示例的结构和字段
+- 参考示例中的数据格式（如技能写法、属性数值范围等）
+- 确保输出的JSON格式与示例保持一致
+- 所有必填字段都必须填写，不得遗漏
 
 ## ⭐⭐⭐ 规则检索与优先级体系（核心原则！必须严格遵守！）⭐⭐⭐
 
